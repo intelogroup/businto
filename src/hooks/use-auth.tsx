@@ -75,19 +75,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let isMounted = true;
 
         const init = async () => {
+            console.log("[Auth] Initializing session...");
             setIsLoading(true);
-            const { data } = await supabase.auth.getSession();
-            if (!isMounted) return;
-
-            setSession(data.session);
-            if (data.session?.user) {
-                const mapped = await mapSupabaseUser(data.session.user);
+            try {
+                const { data } = await supabase.auth.getSession();
                 if (!isMounted) return;
-                setUser(mapped);
-            } else {
-                setUser(null);
+
+                setSession(data.session);
+                if (data.session?.user) {
+                    console.log("[Auth] Session found for user:", data.session.user.id);
+                    const mapped = await mapSupabaseUser(data.session.user);
+                    if (!isMounted) return;
+                    setUser(mapped);
+                } else {
+                    console.log("[Auth] No active session.");
+                    setUser(null);
+                }
+            } catch (err) {
+                console.error("[Auth] Initialization error:", err);
+            } finally {
+                if (isMounted) setIsLoading(false);
             }
-            setIsLoading(false);
         };
 
         init();
@@ -112,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const login = async (email: string, password?: string) => {
+        console.log(`[Auth] Login attempt for ${email}${password ? " (password)" : " (magic link)"}`);
         setIsLoading(true);
         try {
             if (password && password.trim().length > 0) {
@@ -120,8 +129,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     password,
                 });
 
-                if (error) throw error;
+                if (error) {
+                    console.error("[Auth] Password login error:", error.message);
+                    throw error;
+                }
 
+                console.log("[Auth] Password login success");
                 setSession(data.session);
                 if (data.user) {
                     const mapped = await mapSupabaseUser(data.user);
@@ -137,14 +150,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 },
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error("[Auth] Magic link error:", error.message);
+                throw error;
+            }
+
+            console.log("[Auth] Magic link sent");
             return { mode: "magic_link" as const };
+        } catch (err) {
+            console.error("[Auth] Login catch-all error:", err);
+            throw err;
         } finally {
             setIsLoading(false);
         }
     };
 
     const signup = async (email: string, password: string, fullName: string) => {
+        console.log("[Auth] Signup attempt for:", email);
         setIsLoading(true);
         try {
             const { data, error } = await supabase.auth.signUp({
@@ -157,8 +179,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 },
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error("[Auth] Signup error:", error.message);
+                throw error;
+            }
 
+            console.log("[Auth] Signup success, creating profile...");
             if (data.user) {
                 await supabase.from("profiles").upsert({
                     id: data.user.id,
@@ -169,6 +195,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const mapped = await mapSupabaseUser(data.user);
                 setUser(mapped);
             }
+        } catch (err) {
+            console.error("[Auth] Signup catch-all error:", err);
+            throw err;
         } finally {
             setIsLoading(false);
         }
