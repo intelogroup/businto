@@ -1,7 +1,15 @@
 import { SignJWT, jwtVerify } from 'jose';
 
+// Primary secret used for all new tokens
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+);
+
+// Legacy secret for tokens generated before JWT_SECRET was set in env.
+// Allows operators whose emails were sent before the env var was added to
+// still access their quote links without needing a resend.
+const JWT_SECRET_LEGACY = new TextEncoder().encode(
+  'your-secret-key-change-in-production'
 );
 
 export interface OperatorViewTokenPayload {
@@ -47,19 +55,31 @@ export async function generateOperatorViewToken(
 export async function verifyOperatorViewToken(
   token: string
 ): Promise<OperatorViewTokenPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    
-    return {
-      requestId: payload.requestId as string,
-      operatorId: payload.operatorId as string | undefined,
-      purpose: payload.purpose as 'view' | 'quote',
-      exp: payload.exp as number,
-    };
-  } catch (error) {
-    console.error('Token verification failed:', error);
-    return null;
+  // Try primary secret first, then fall back to legacy secret so tokens
+  // generated before JWT_SECRET was configured in the environment still work.
+  const secrets = [JWT_SECRET];
+  if (process.env.JWT_SECRET) {
+    // Only add the legacy secret as a fallback when a custom secret IS set,
+    // otherwise both entries are the same key and the second try is redundant.
+    secrets.push(JWT_SECRET_LEGACY);
   }
+
+  for (const secret of secrets) {
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      return {
+        requestId: payload.requestId as string,
+        operatorId: payload.operatorId as string | undefined,
+        purpose: payload.purpose as 'view' | 'quote',
+        exp: payload.exp as number,
+      };
+    } catch {
+      // Try next secret
+    }
+  }
+
+  console.error('Token verification failed with all known secrets');
+  return null;
 }
 
 /**
