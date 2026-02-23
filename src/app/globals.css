@@ -1,26 +1,278 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Tailwind CSS v4 Custom Variant */
+@custom-variant dark (&:is(.dark *));
 
+/* Tailwind CSS v4 Theme Configuration */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Inter", "DM Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "DM Sans", "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.75rem;
+  --background: #FFFFFF;
+  --foreground: #09090B;
+
+  --card: #FFFFFF;
+  --card-foreground: #09090B;
+  --popover: #FFFFFF;
+  --popover-foreground: #09090B;
+
+  --primary: #18181B;
+  --primary-foreground: #FAFAFA;
+
+  --secondary: #F4F4F5;
+  --secondary-foreground: #18181B;
+
+  --muted: #F8F8F9;
+  --muted-foreground: #64748b;
+
+  --accent: #F4F4F5;
+  --accent-foreground: #18181B;
+
+  --destructive: #ef4444;
+  --border: #E4E4E7;
+  --input: #E4E4E7;
+  --ring: #18181B;
+
+  /* Refined Service Colors */
+  --color-school: #f97316;
+  /* Vibrant Orange */
+  --color-medical: #0ea5e9;
+  /* Professional Blue-Teal */
+  --color-event: #8b5cf6;
+  /* Modern Violet */
+
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #09090B;
+  --sidebar-primary: #18181B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F4F4F5;
+  --sidebar-accent-foreground: #18181B;
+  --sidebar-border: #E4E4E7;
+  --sidebar-ring: #18181B;
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --primary: #f8fafc;
+  --primary-foreground: #020617;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+  --destructive: #7f1d1d;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #cbd5e1;
+
+  /* Service Colors */
+  --color-school: #fb923c;
+  --color-medical: #38bdf8;
+  --color-event: #a78bfa;
+
+  --sidebar: #0f172a;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #f8fafc;
+  --sidebar-primary-foreground: #020617;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #1e293b;
+  --sidebar-ring: #cbd5e1;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-neutral-900 selection:text-white dark:selection:bg-white dark:selection:text-black;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-neutral-200 rounded-full hover:bg-neutral-300 transition-colors;
+  }
+}
+
+/* React Day Picker Styles */
+.rdp {
+  --rdp-cell-size: 36px;
+  --rdp-accent-color: #18181b;
+  --rdp-background-color: #f4f4f5;
+}
+
+.rdp-months {
+  display: flex;
+  gap: 1rem;
+}
+
+.rdp-month {
+  margin: 0;
+}
+
+.rdp-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 0.75rem;
+}
+
+.rdp-caption_label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.rdp-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rdp-nav_button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  color: #71717a;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rdp-nav_button:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.rdp-table {
+  border-collapse: collapse;
+}
+
+.rdp-head_cell {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  padding: 0.5rem 0;
+  width: var(--rdp-cell-size);
+  text-align: center;
+}
+
+.rdp-cell {
+  padding: 1px;
+  text-align: center;
+}
+
+.rdp-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--rdp-cell-size);
+  height: var(--rdp-cell-size);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #18181b;
+  background: transparent;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rdp-day:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+  background: #f4f4f5;
+}
+
+.rdp-day_selected {
+  background: #18181b !important;
+  color: white !important;
+}
+
+.rdp-day_today:not(.rdp-day_selected) {
+  font-weight: 700;
+  color: #f97316;
+}
+
+.rdp-day_disabled {
+  color: #d4d4d8;
+  cursor: not-allowed;
+}
+
+.rdp-day_outside {
+  color: #d4d4d8;
 }

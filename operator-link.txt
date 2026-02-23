@@ -1,0 +1,28 @@
+
+OPERATOR LANDING PAGE TEST LINK
+================================
+
+Request ID: a277ff17-d44f-4f27-aefe-1afca68d53ac
+Created: 2026-01-12T03:18:40.334Z
+
+Operator Landing Page:
+http://localhost:3000/quotes/submit?request_id=a277ff17-d44f-4f27-aefe-1afca68d53ac&token=eyJhbGciOiJIUzI1NiJ9.eyJyZXF1ZXN0SWQiOiJhMjc3ZmYxNy1kNDRmLTRmMjctYWVmZS0xYWZjYTY4ZDUzYWMiLCJwdXJwb3NlIjoidmlldyIsImV4cCI6MTc2ODc5MjcyMCwiaWF0IjoxNzY4MTg3OTIwfQ.ABAh2ZGZ0LgptQvQt7LycWfmmZ3IykYN0m5UsNif1Qs
+
+API Endpoint (for testing):
+http://localhost:3000/api/requests/a277ff17-d44f-4f27-aefe-1afca68d53ac/operator-view?token=eyJhbGciOiJIUzI1NiJ9.eyJyZXF1ZXN0SWQiOiJhMjc3ZmYxNy1kNDRmLTRmMjctYWVmZS0xYWZjYTY4ZDUzYWMiLCJwdXJwb3NlIjoidmlldyIsImV4cCI6MTc2ODc5MjcyMCwiaWF0IjoxNzY4MTg3OTIwfQ.ABAh2ZGZ0LgptQvQt7LycWfmmZ3IykYN0m5UsNif1Qs
+
+Token (first 100 chars):
+eyJhbGciOiJIUzI1NiJ9.eyJyZXF1ZXN0SWQiOiJhMjc3ZmYxNy1kNDRmLTRmMjctYWVmZS0xYWZjYTY4ZDUzYWMiLCJwdXJwb3N...
+
+Instructions:
+1. Open the Operator Landing Page URL in your browser
+2. You should see the quote submission form
+3. Request details will be visible (fuzzy locations only)
+4. Parent contact info is NOT visible (security verified)
+5. Submit a quote to test the full flow
+
+Security Notes:
+- Token expires in 7 days
+- Token is validated server-side
+- Rate limited to 10 requests per hour per IP
+- All access is logged to operator_access_log table

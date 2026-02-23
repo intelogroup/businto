@@ -1,0 +1,123 @@
+import { SignJWT, jwtVerify } from 'jose';
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+);
+
+export interface OperatorViewTokenPayload {
+  requestId: string;
+  operatorId?: string;
+  purpose: 'view' | 'quote';
+  exp: number; // Unix timestamp
+}
+
+/**
+ * Generate a signed token for operator view access
+ * @param requestId - Transport request ID
+ * @param operatorId - Optional operator ID for scoped access
+ * @param purpose - Purpose of the token (view or quote)
+ * @param expiryDays - Days until token expires (default: 7)
+ */
+export async function generateOperatorViewToken(
+  requestId: string,
+  operatorId?: string,
+  purpose: 'view' | 'quote' = 'view',
+  expiryDays: number = 7
+): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + (expiryDays * 24 * 60 * 60);
+  
+  const token = await new SignJWT({
+    requestId,
+    operatorId,
+    purpose,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(exp)
+    .setIssuedAt()
+    .sign(JWT_SECRET);
+
+  return token;
+}
+
+/**
+ * Verify and decode an operator view token
+ * @param token - JWT token string
+ * @returns Decoded payload or null if invalid
+ */
+export async function verifyOperatorViewToken(
+  token: string
+): Promise<OperatorViewTokenPayload | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    
+    return {
+      requestId: payload.requestId as string,
+      operatorId: payload.operatorId as string | undefined,
+      purpose: payload.purpose as 'view' | 'quote',
+      exp: payload.exp as number,
+    };
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return null;
+  }
+}
+
+/**
+ * In-memory rate limiting store (use Redis in production)
+ */
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+/**
+ * Check rate limit for operator view access
+ * @param key - Rate limit key (typically IP + requestId)
+ * @param limit - Max requests per hour (default: 10)
+ * @returns true if allowed, false if rate limited
+ */
+export function checkRateLimit(key: string, limit: number = 10): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+
+  // Clean up expired entries periodically
+  if (Math.random() < 0.1) { // 10% chance
+    for (const [k, v] of rateLimitStore.entries()) {
+      if (v.resetAt < now) {
+        rateLimitStore.delete(k);
+      }
+    }
+  }
+
+  if (!entry || entry.resetAt < now) {
+    // Create new entry with 1 hour window
+    rateLimitStore.set(key, {
+      count: 1,
+      resetAt: now + (60 * 60 * 1000), // 1 hour
+    });
+    return true;
+  }
+
+  if (entry.count >= limit) {
+    return false; // Rate limited
+  }
+
+  // Increment count
+  entry.count++;
+  return true;
+}
+
+/**
+ * Get client IP address from request headers
+ */
+export function getClientIP(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIP = request.headers.get('x-real-ip');
+  
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  if (realIP) {
+    return realIP;
+  }
+  
+  return 'unknown';
+}
