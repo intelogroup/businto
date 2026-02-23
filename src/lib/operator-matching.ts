@@ -120,7 +120,7 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
   try {
     // Use your existing maps API endpoint
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/api/maps/geocode?address=${encodeURIComponent(address)}`
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/api/maps/geocode?address=${encodeURIComponent(address)}`
     );
     
     if (!response.ok) return null;
