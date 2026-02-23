@@ -104,7 +104,7 @@ export function AIChatPanel() {
     };
 
     return (
-        <Card className="h-full flex flex-col border-none shadow-sm ring-1 ring-black/[0.03] bg-white rounded-xl overflow-hidden relative">
+        <Card className="h-full flex flex-col border-none shadow-lg ring-1 ring-black/[0.04] bg-gradient-to-br from-neutral-950/5 via-white to-white rounded-xl overflow-hidden relative">
             {/* Header */}
             <CardHeader className="bg-white border-b border-neutral-50 px-4 py-3 flex flex-row items-center justify-between sticky top-0 z-10">
                 <div className="flex items-center gap-2">
@@ -125,8 +125,8 @@ export function AIChatPanel() {
             </CardHeader>
 
             {/* Chat Area */}
-            <CardContent className="flex-1 p-0 overflow-hidden bg-neutral-50/30 relative">
-                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-30 pointer-events-none" />
+            <CardContent className="flex-1 p-0 overflow-hidden relative bg-gradient-to-b from-neutral-900/5 via-neutral-50 to-white">
+                <div className="absolute inset-0 bg-[radial-gradient(rgba(229,231,235,0.9)_1px,transparent_1px)] [background-size:18px_18px] opacity-35 pointer-events-none" />
 
                 <ScrollArea className="h-full px-4 py-4">
                     <div className="space-y-4">
@@ -142,9 +142,9 @@ export function AIChatPanel() {
                                     {msg.role === "ai" ? <img src="/brand-mark.svg" className="w-5 h-5" alt="AI" /> : <User className="h-4 w-4" />}
                                 </div>
                                 <div className={`flex flex-col gap-1 max-w-[80%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                                    <div className={`p-4 rounded-lg text-sm font-medium shadow-sm ${msg.role === "ai"
-                                        ? "bg-white text-neutral-700 rounded-tl-none border border-neutral-100"
-                                        : "bg-neutral-900 text-white rounded-tr-none"
+                                    <div className={`p-4 rounded-lg text-sm font-medium shadow-lg transition-colors duration-200 ${msg.role === "ai"
+                                        ? "bg-white/95 text-neutral-900 rounded-tl-none border border-neutral-200/80 ring-1 ring-white/80"
+                                        : "bg-neutral-900 text-white rounded-tr-none border border-neutral-800/60"
                                         }`}>
                                         {msg.content}
                                     </div>
