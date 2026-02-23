@@ -9,46 +9,35 @@ import { motion, AnimatePresence } from "framer-motion";
 import { QuoteComparison } from "@/components/quote-comparison";
 import { TripRequest, Quote } from "@/types/quotes";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useTransportRequests, TransportRequest as ApiRequest } from "@/hooks/use-transport-requests";
 
 export function TripsSidebar({ children }: { children?: React.ReactNode }) {
+    const { requests: apiRequests, loading: isLoadingRequests } = useTransportRequests();
     const [trips, setTrips] = useState<TripRequest[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<TripRequest | null>(null);
     const { addNotification } = useNotifications();
 
-    const loadTrips = () => {
-        const stored = localStorage.getItem('transport_requests');
-        if (stored) {
-            const parsedTrips = JSON.parse(stored);
-            // Add mock quotes to each trip for demo and map location fields
-            const tripsWithQuotes = parsedTrips.map((trip: any) => {
-                // Map location fields based on service type
-                let pickup_fuzzy_location = '';
-                let dropoff_fuzzy_location = '';
+    useEffect(() => {
+        if (!apiRequests) return;
 
-                if (trip.service_type === 'school') {
-                    pickup_fuzzy_location = trip.pickup_address || 'Home Address';
-                    dropoff_fuzzy_location = trip.school_name || 'School';
-                } else if (trip.service_type === 'medical') {
-                    pickup_fuzzy_location = trip.pickup_location || 'Pickup Location';
-                    dropoff_fuzzy_location = trip.dropoff_location || 'Medical Facility';
-                } else if (trip.service_type === 'wedding') {
-                    pickup_fuzzy_location = trip.hotel_zip ? `Hotel (${trip.hotel_zip})` : 'Hotel';
-                    dropoff_fuzzy_location = trip.venue_zip ? `Venue (${trip.venue_zip})` : 'Venue';
-                }
+        // Map API objects to UI objects
+        const mappedTrips = apiRequests.map((trip: any) => {
+            let pickup_fuzzy_location = trip.pickup_fuzzy || trip.pickup_address || 'Pickup';
+            let dropoff_fuzzy_location = trip.dropoff_fuzzy || trip.dropoff_address || 'Destination';
 
-                return {
-                    ...trip,
-                    pickup_fuzzy_location,
-                    dropoff_fuzzy_location,
-                    distance: trip.distance || 4.2,
-                    duration: trip.duration || 18,
-                    quotes: generateMockQuotes(trip)
-                };
-            });
-            setTrips(tripsWithQuotes);
-        }
-    };
+            return {
+                ...trip,
+                pickup_fuzzy_location,
+                dropoff_fuzzy_location,
+                distance: trip.distance || 4.2,
+                duration: trip.duration || 18,
+                quotes: trip.quotes || generateMockQuotes(trip)
+            } as unknown as TripRequest;
+        });
+
+        setTrips(mappedTrips);
+    }, [apiRequests]);
 
     const generateMockQuotes = (trip: any): Quote[] => {
         const operators = [
@@ -173,15 +162,9 @@ export function TripsSidebar({ children }: { children?: React.ReactNode }) {
     };
 
     useEffect(() => {
-        loadTrips();
-        const handleNewRequest = () => loadTrips();
         const handleOpenSidebar = () => setIsOpen(true);
-
-        window.addEventListener('new-transport-request', handleNewRequest);
         window.addEventListener('open-trips-sidebar', handleOpenSidebar);
-
         return () => {
-            window.removeEventListener('new-transport-request', handleNewRequest);
             window.removeEventListener('open-trips-sidebar', handleOpenSidebar);
         };
     }, []);
@@ -225,14 +208,14 @@ export function TripsSidebar({ children }: { children?: React.ReactNode }) {
             <SheetContent className="w-full sm:max-w-md p-0 border-l-0 bg-neutral-50 flex flex-col h-full overflow-hidden">
                 {selectedTrip ? (
                     <>
-                    <SheetTitle className="sr-only">Quote Comparison</SheetTitle>
-                    <QuoteComparison
-                        tripRequest={selectedTrip}
-                        onBack={() => setSelectedTrip(null)}
-                        onAcceptQuote={handleAcceptQuote}
-                        onDeclineQuote={handleDeclineQuote}
-                        onMessageOperator={handleMessageOperator}
-                    />
+                        <SheetTitle className="sr-only">Quote Comparison</SheetTitle>
+                        <QuoteComparison
+                            tripRequest={selectedTrip}
+                            onBack={() => setSelectedTrip(null)}
+                            onAcceptQuote={handleAcceptQuote}
+                            onDeclineQuote={handleDeclineQuote}
+                            onMessageOperator={handleMessageOperator}
+                        />
                     </>
                 ) : (
                     <>
@@ -252,90 +235,90 @@ export function TripsSidebar({ children }: { children?: React.ReactNode }) {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                    {trips.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40 grayscale">
-                            <Package className="w-16 h-16" />
-                            <p className="font-bold">No active requests found.</p>
-                        </div>
-                    ) : (
-                        <AnimatePresence mode="popLayout">
-                            {trips.map((trip, idx) => {
-                                const Icon = getIcon(trip.service_type);
-                                return (
-                                    <motion.div
-                                        key={trip.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.05 }}
-                                        onClick={() => setSelectedTrip(trip)}
-                                        className="bg-white rounded-lg p-6 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow duration-150 group relative overflow-hidden cursor-pointer"
-                                    >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={cn("p-3 rounded-lg", getColorClass(trip.service_type))}>
-                                                    <Icon className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
-                                                        {trip.service_type === 'school' ? 'School Run' : trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
-                                                    </div>
-                                                    <div className="text-sm font-semibold text-neutral-900">
-                                                        {trip.created_at ? new Date(trip.created_at).toLocaleDateString() : 'Just now'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="px-3 py-1 rounded-full bg-green-50 text-[10px] font-semibold text-green-600 uppercase tracking-widest border border-green-100 flex items-center gap-1.5">
-                                                <span className="w-1 h-1 rounded-full bg-green-500" />
-                                                Live Bidding
-                                            </div>
-                                        </div>
-
-                                        <div className="relative pl-2">
-                                            {/* Connecting line */}
-                                            <div className="absolute left-[5px] top-[8px] bottom-[8px] w-[2px] bg-gradient-to-b from-neutral-300 to-indigo-500 rounded-full" />
-
-                                            <div className="space-y-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative z-10 w-3 h-3 rounded-full bg-neutral-400 border-2 border-white shadow-sm flex-shrink-0" />
-                                                    <div className="text-xs font-semibold text-neutral-500 truncate">
-                                                        {trip.pickup_fuzzy_location || 'Pickup Location'}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative z-10 w-3 h-3 rounded-full bg-indigo-600 border-2 border-white shadow-sm flex-shrink-0" />
-                                                    <div className="text-xs font-bold text-neutral-900 truncate">
-                                                        {trip.dropoff_fuzzy_location || 'Destination'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-6 pt-4 border-t border-neutral-50 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex -space-x-2">
-                                                    {(trip.quotes || []).slice(0, 3).map((_, i) => (
-                                                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
-                                                            <CheckCircle2 className="w-3 h-3 text-white" />
+                            {trips.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40 grayscale">
+                                    <Package className="w-16 h-16" />
+                                    <p className="font-bold">No active requests found.</p>
+                                </div>
+                            ) : (
+                                <AnimatePresence mode="popLayout">
+                                    {trips.map((trip, idx) => {
+                                        const Icon = getIcon(trip.service_type);
+                                        return (
+                                            <motion.div
+                                                key={trip.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: idx * 0.05 }}
+                                                onClick={() => setSelectedTrip(trip)}
+                                                className="bg-white rounded-lg p-6 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow duration-150 group relative overflow-hidden cursor-pointer"
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={cn("p-3 rounded-lg", getColorClass(trip.service_type))}>
+                                                            <Icon className="w-5 h-5" />
                                                         </div>
-                                                    ))}
+                                                        <div>
+                                                            <div className="text-xs font-semibold uppercase tracking-widest text-neutral-400">
+                                                                {trip.service_type === 'school' ? 'School Run' : trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
+                                                            </div>
+                                                            <div className="text-sm font-semibold text-neutral-900">
+                                                                {trip.created_at ? new Date(trip.created_at).toLocaleDateString() : 'Just now'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="px-3 py-1 rounded-full bg-green-50 text-[10px] font-semibold text-green-600 uppercase tracking-widest border border-green-100 flex items-center gap-1.5">
+                                                        <span className="w-1 h-1 rounded-full bg-green-500" />
+                                                        Live Bidding
+                                                    </div>
                                                 </div>
-                                                <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest">
-                                                    {(trip.quotes || []).length} Quote{(trip.quotes || []).length !== 1 ? 's' : ''} Received
-                                                </span>
-                                            </div>
-                                            <ChevronRight className="w-4 h-4 text-neutral-300 group-hover:text-indigo-500 transition-colors duration-150" />
-                                        </div>
 
-                                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                                            <div className="px-2 py-1 rounded-md bg-neutral-950 text-white text-[9px] font-semibold uppercase tracking-tighter shadow-sm">
-                                                View Project
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
-                    )}
+                                                <div className="relative pl-2">
+                                                    {/* Connecting line */}
+                                                    <div className="absolute left-[5px] top-[8px] bottom-[8px] w-[2px] bg-gradient-to-b from-neutral-300 to-indigo-500 rounded-full" />
+
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="relative z-10 w-3 h-3 rounded-full bg-neutral-400 border-2 border-white shadow-sm flex-shrink-0" />
+                                                            <div className="text-xs font-semibold text-neutral-500 truncate">
+                                                                {trip.pickup_fuzzy_location || 'Pickup Location'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="relative z-10 w-3 h-3 rounded-full bg-indigo-600 border-2 border-white shadow-sm flex-shrink-0" />
+                                                            <div className="text-xs font-bold text-neutral-900 truncate">
+                                                                {trip.dropoff_fuzzy_location || 'Destination'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-6 pt-4 border-t border-neutral-50 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex -space-x-2">
+                                                            {(trip.quotes || []).slice(0, 3).map((_, i) => (
+                                                                <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
+                                                                    <CheckCircle2 className="w-3 h-3 text-white" />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-[10px] font-semibold text-neutral-400 uppercase tracking-widest">
+                                                            {(trip.quotes || []).length} Quote{(trip.quotes || []).length !== 1 ? 's' : ''} Received
+                                                        </span>
+                                                    </div>
+                                                    <ChevronRight className="w-4 h-4 text-neutral-300 group-hover:text-indigo-500 transition-colors duration-150" />
+                                                </div>
+
+                                                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                                    <div className="px-2 py-1 rounded-md bg-neutral-950 text-white text-[9px] font-semibold uppercase tracking-tighter shadow-sm">
+                                                        View Project
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+                            )}
                         </div>
 
                         <div className="p-8 bg-white border-t space-y-4">

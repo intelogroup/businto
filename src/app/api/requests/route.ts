@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
       is_recurring,
       recurrence_pattern,
       metadata,
-      user_id
+      user_id,
+      end_time,
     } = body;
 
     if (!service_type || !pickup_address || !dropoff_address || !start_date) {
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
         start_date,
         start_time,
         end_date,
+        end_time,
         is_recurring: is_recurring || false,
         recurrence_pattern,
         metadata_safe,
@@ -296,6 +298,7 @@ export async function POST(request: NextRequest) {
       start_date: data.start_date,
       start_time: data.start_time,
       end_date: data.end_date,
+      end_time: data.end_time,
       is_recurring: data.is_recurring,
       recurrence_pattern: data.recurrence_pattern,
       metadata_safe: data.metadata_safe,

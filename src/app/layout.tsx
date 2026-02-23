@@ -11,6 +11,7 @@ import { TripsSidebar } from "@/components/trips-sidebar";
 import { SimulationProvider } from "@/components/simulation-provider";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function RootLayout({
   children,
@@ -25,6 +26,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <NotificationProvider>
+            <Toaster />
             <TripsSidebar>
               <SimulationProvider>
                 <div className="flex flex-col min-h-screen">
