@@ -51,11 +51,11 @@ function DashboardContent() {
     // School fields
     const [pickupZip, setPickupZip] = useState("");
     const [schoolName, setSchoolName] = useState("");
-    const [gradeLevel, setGradeLevel] = useState("");
+    const [gradeLevel, setGradeLevel] = useState("middle");
     const [scheduleType, setScheduleType] = useState("round-trip");
     const [amTime, setAmTime] = useState("07:45");
     const [pmTime, setPmTime] = useState("15:00");
-    const [startDate, setStartDate] = useState("");
+    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [studentCount, setStudentCount] = useState("");
     const [schoolDurationType, setSchoolDurationType] = useState("daily");
     const [schoolDurationValue, setSchoolDurationValue] = useState("");
@@ -67,8 +67,8 @@ function DashboardContent() {
     const [wheelchairType, setWheelchairType] = useState("");
     const [appointmentTime, setAppointmentTime] = useState("");
     const [appointmentDate, setAppointmentDate] = useState("");
-    const [serviceLevel, setServiceLevel] = useState("curb");
-    const [tripType, setTripType] = useState("one-way");
+    const [serviceLevel, setServiceLevel] = useState("curb-to-curb");
+    const [tripType, setTripType] = useState("round-trip");
     const [medicalDurationType, setMedicalDurationType] = useState("one-time");
     const [medicalDurationValue, setMedicalDurationValue] = useState("");
     const [medicalCustomDates, setMedicalCustomDates] = useState<Date[]>([]);
@@ -124,9 +124,9 @@ function DashboardContent() {
                     parent_name: user?.name,
                     parent_email: user?.email,
                 };
-                
+
                 const { metadata_safe, metadata_private } = splitMetadataByServiceType('school', schoolMetadata);
-                
+
                 requestData = {
                     service_type: 'school' as const,
                     pickup_address: pickupZip,
@@ -151,9 +151,9 @@ function DashboardContent() {
                     patient_name: user?.name || 'Patient',
                     contact_email: user?.email,
                 };
-                
+
                 const { metadata_safe, metadata_private } = splitMetadataByServiceType('medical', medicalMetadata);
-                
+
                 requestData = {
                     service_type: 'medical' as const,
                     pickup_address: pickupLocation,
@@ -180,9 +180,9 @@ function DashboardContent() {
                     contact_phone: '555-0000', // Phone not available in user object
                     contact_email: user?.email || 'event@example.com',
                 };
-                
+
                 const { metadata_safe, metadata_private } = splitMetadataByServiceType('wedding', weddingMetadata);
-                
+
                 requestData = {
                     service_type: 'wedding' as const,
                     pickup_address: hotelZip,
@@ -199,14 +199,15 @@ function DashboardContent() {
             }
 
             // Validate using Zod
+            console.log('Submitting request:', requestData);
             const validation = validateTransportRequest(requestData);
-            
+
             if (!validation.success) {
                 const errorMessages = Object.values(validation.errors).slice(0, 3).join(', ');
-                addNotification({ 
-                    title: "Validation Error", 
-                    message: errorMessages || "Please fill in all required fields correctly", 
-                    type: "error" 
+                addNotification({
+                    title: "Validation Error",
+                    message: errorMessages || "Please fill in all required fields correctly",
+                    type: "error"
                 });
                 return;
             }
@@ -330,9 +331,9 @@ function DashboardContent() {
                                         <Select value={serviceLevel} onValueChange={setServiceLevel}>
                                             <SelectTrigger className="h-9 rounded-md bg-white border-neutral-200 px-3 text-sm"><SelectValue /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="curb">Curb-to-Curb</SelectItem>
-                                                <SelectItem value="door">Door-to-Door</SelectItem>
-                                                <SelectItem value="door-through">Door-Through</SelectItem>
+                                                <SelectItem value="curb-to-curb">Curb-to-Curb</SelectItem>
+                                                <SelectItem value="door-to-door">Door-to-Door</SelectItem>
+                                                <SelectItem value="door-through-door">Door-Through</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -343,7 +344,7 @@ function DashboardContent() {
                                             <SelectContent>
                                                 <SelectItem value="one-way">One-Way</SelectItem>
                                                 <SelectItem value="round-trip">Round Trip</SelectItem>
-                                                <SelectItem value="wait-return">Wait & Return</SelectItem>
+                                                <SelectItem value="wait-and-return">Wait & Return</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -464,24 +465,22 @@ function DashboardContent() {
                                     {/* Header */}
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-2">
-                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                                                trip.service_type === 'school' ? 'bg-amber-100 text-amber-600' :
+                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${trip.service_type === 'school' ? 'bg-amber-100 text-amber-600' :
                                                 trip.service_type === 'medical' ? 'bg-green-100 text-green-600' :
-                                                'bg-indigo-100 text-indigo-600'
-                                            }`}>
+                                                    'bg-indigo-100 text-indigo-600'
+                                                }`}>
                                                 {trip.service_type === 'school' ? <Bus className="h-4 w-4" /> :
-                                                 trip.service_type === 'medical' ? <Heart className="h-4 w-4" /> :
-                                                 <Plane className="h-4 w-4" />}
+                                                    trip.service_type === 'medical' ? <Heart className="h-4 w-4" /> :
+                                                        <Plane className="h-4 w-4" />}
                                             </div>
                                             <div>
                                                 <div className="font-mono text-xs text-neutral-500">#{trip.id.slice(0, 8)}</div>
-                                                <Badge variant="outline" className={`text-xs ${
-                                                    trip.service_type === 'school' ? 'bg-amber-50 text-amber-700' :
+                                                <Badge variant="outline" className={`text-xs ${trip.service_type === 'school' ? 'bg-amber-50 text-amber-700' :
                                                     trip.service_type === 'medical' ? 'bg-green-50 text-green-700' :
-                                                    'bg-indigo-50 text-indigo-700'
-                                                }`}>
+                                                        'bg-indigo-50 text-indigo-700'
+                                                    }`}>
                                                     {trip.service_type === 'school' ? 'School Run' :
-                                                     trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
+                                                        trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
                                                 </Badge>
                                             </div>
                                         </div>
@@ -489,12 +488,11 @@ function DashboardContent() {
 
                                     {/* Status */}
                                     <div className="mb-3">
-                                        <Badge className={`text-xs ${
-                                            trip.status === 'pending' ? 'bg-yellow-500' :
+                                        <Badge className={`text-xs ${trip.status === 'pending' ? 'bg-yellow-500' :
                                             trip.status === 'matched' ? 'bg-purple-500' :
-                                            trip.status === 'booked' ? 'bg-green-500' :
-                                            'bg-neutral-500'
-                                        }`}>
+                                                trip.status === 'booked' ? 'bg-green-500' :
+                                                    'bg-neutral-500'
+                                            }`}>
                                             {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
                                         </Badge>
                                     </div>
