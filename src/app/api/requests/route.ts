@@ -8,7 +8,7 @@ import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
   try {
-    const appBaseUrl = new URL(request.url).origin;
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
     const body = await request.json();
     const {
       service_type,

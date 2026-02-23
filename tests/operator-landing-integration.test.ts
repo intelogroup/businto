@@ -178,35 +178,46 @@ describe('Operator Landing Page - Complete Flow', () => {
   describe('Operator View Page Rendering', () => {
     it('should display error message without token', async () => {
       console.log('🌐 Test: Page render without token');
-      
+
       const response = await fetch(`${BASE_URL}/quotes/submit?request_id=${testRequestId}`, {
         headers: { 'Accept': 'text/html' }
       });
-      
+
       expect(response.ok).toBe(true);
       const html = await response.text();
-      
-      // Page should load with form structure
-      expect(html).toContain('Quote'); // Basic page structure
-      
-      console.log('   ✅ Page loads (will show error in browser)');
+
+      // Page is CSR — SSR shell confirms it's the right app and route
+      expect(html).toContain('Businto');
+      expect(html).toContain('BAILOUT_TO_CLIENT_SIDE_RENDERING');
+
+      // API-level security check (the real gatekeeper)
+      const apiResponse = await fetch(`${BASE_URL}/api/requests/${testRequestId}/operator-view`);
+      expect(apiResponse.status).toBe(401);
+
+      console.log('   ✅ Page loads (error shown client-side), API blocks access correctly');
     }, TEST_TIMEOUT);
 
     it('should load page structure with valid token', async () => {
       console.log('🌐 Test: Page render with valid token');
-      
+
       const response = await fetch(`${BASE_URL}/quotes/submit?request_id=${testRequestId}&token=${validToken}`, {
         headers: { 'Accept': 'text/html' }
       });
-      
+
       expect(response.ok).toBe(true);
       const html = await response.text();
-      
-      // Check for key page elements
-      expect(html).toContain('Quote'); // Page has quote-related content
-      
-      console.log('   ✅ Page loaded successfully');
-      console.log('   ✅ Contains quote submission form');
+
+      // SSR shell loads; actual form renders client-side after token validation
+      expect(html).toContain('Businto');
+      expect(html).toContain('quotes');
+
+      // API confirms valid token grants access
+      const apiResponse = await fetch(`${BASE_URL}/api/requests/${testRequestId}/operator-view?token=${validToken}`);
+      expect(apiResponse.status).toBe(200);
+      const data = await apiResponse.json();
+      expect(data).toHaveProperty('id', testRequestId);
+
+      console.log('   ✅ Page loaded successfully, API grants access with valid token');
     }, TEST_TIMEOUT);
   });
 
