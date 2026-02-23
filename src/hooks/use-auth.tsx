@@ -32,20 +32,31 @@ function normalizeRole(rawRole: unknown): User["role"] {
 }
 
 async function mapSupabaseUser(authUser: SupabaseAuthUser): Promise<User> {
+    console.log("[Auth] mapSupabaseUser called for:", authUser.id);
     let profileName: string | undefined;
     let profileRole: User["role"] = "user";
     let profileAvatar: string | undefined;
 
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, role, avatar_url")
-        .eq("id", authUser.id)
-        .maybeSingle();
+    try {
+        console.log("[Auth] Querying profiles table...");
+        const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("full_name, role, avatar_url")
+            .eq("id", authUser.id)
+            .maybeSingle();
 
-    if (profile) {
-        profileName = profile.full_name || undefined;
-        profileRole = normalizeRole(profile.role);
-        profileAvatar = profile.avatar_url || undefined;
+        if (error) {
+            console.warn("[Auth] Profile query error (continuing with metadata):", error.message);
+        } else if (profile) {
+            console.log("[Auth] Profile data retrieved:", profile);
+            profileName = profile.full_name || undefined;
+            profileRole = normalizeRole(profile.role);
+            profileAvatar = profile.avatar_url || undefined;
+        } else {
+            console.log("[Auth] No profile record found for this user.");
+        }
+    } catch (err) {
+        console.error("[Auth] Critical error in mapSupabaseUser query:", err);
     }
 
     const derivedName =
@@ -53,6 +64,8 @@ async function mapSupabaseUser(authUser: SupabaseAuthUser): Promise<User> {
         authUser.user_metadata?.full_name ||
         authUser.email?.split("@")[0] ||
         "User";
+
+    console.log("[Auth] Mapping complete for:", derivedName);
 
     return {
         id: authUser.id,
@@ -100,17 +113,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         init();
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+            console.log("[Auth] onAuthStateChange event:", event);
             if (!isMounted) return;
+
             setSession(nextSession);
-            if (nextSession?.user) {
-                const mapped = await mapSupabaseUser(nextSession.user);
-                if (!isMounted) return;
-                setUser(mapped);
-            } else {
-                setUser(null);
+            try {
+                if (nextSession?.user) {
+                    console.log("[Auth] User found in state change, mapping...");
+                    const mapped = await mapSupabaseUser(nextSession.user);
+                    if (!isMounted) return;
+                    setUser(mapped);
+                    console.log("[Auth] User state updated.");
+                } else {
+                    console.log("[Auth] No user in state change, clearing user state.");
+                    setUser(null);
+                }
+            } catch (err) {
+                console.error("[Auth] Error in onAuthStateChange handler:", err);
+            } finally {
+                console.log("[Auth] Loading finished.");
+                setIsLoading(false);
             }
-            setIsLoading(false);
         });
 
         return () => {
