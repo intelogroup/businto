@@ -114,18 +114,14 @@ export function AIChatPanel() {
     };
 
     return (
-        <Card className="h-full flex flex-col border-none shadow-none bg-white rounded-2xl overflow-hidden relative">
-            {/* Base Background Layers - Fully contained */}
-            <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none z-0" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/40 via-white to-white z-0" />
-            <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.01)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none z-0" />
+        <Card className="h-full flex flex-col border border-neutral-200 shadow-none bg-white rounded-2xl overflow-hidden relative">
 
             <div className="flex-1 relative overflow-hidden flex flex-col h-full">
                 {/* Header - Overlaid with backdrop blur - Reduced height */}
-                <CardHeader className="absolute top-0 w-full bg-white/80 backdrop-blur-xl px-5 py-2 flex flex-row items-center justify-between z-30 border-b border-white shadow-sm shadow-black/[0.01]">
+                <CardHeader className="absolute top-0 w-full bg-white px-5 py-2 flex flex-row items-center justify-between z-30 border-b border-neutral-100">
                     <div className="flex items-center gap-2.5">
                         <div className="relative">
-                            <div className="h-9 w-9 rounded-xl bg-neutral-900 flex items-center justify-center overflow-hidden shadow-lg shadow-neutral-200">
+                            <div className="h-9 w-9 rounded-xl bg-neutral-900 flex items-center justify-center overflow-hidden">
                                 <img src="/brand-mark.svg" alt="Businto AI" className="w-6 h-6 outline-none" />
                             </div>
                         </div>
@@ -163,7 +159,7 @@ export function AIChatPanel() {
                                         <div className={cn(
                                             "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed tracking-tight transition-all duration-300",
                                             msg.role === "ai"
-                                                ? "bg-white border border-neutral-100 text-neutral-800 rounded-tl-none"
+                                                ? "bg-white border border-neutral-200 text-neutral-800 rounded-tl-none"
                                                 : "bg-neutral-900 text-white rounded-tr-none ml-auto"
                                         )}>
                                             {msg.content}
@@ -188,7 +184,7 @@ export function AIChatPanel() {
                                         animate={{ opacity: 1, x: 0 }}
                                         className="flex gap-3"
                                     >
-                                        <div className="bg-white/60 backdrop-blur-sm px-4 py-2.5 rounded-2xl rounded-tl-none border border-white shadow-sm flex gap-1.5 items-center">
+                                        <div className="bg-white px-4 py-2.5 rounded-2xl rounded-tl-none border border-neutral-200 flex gap-1.5 items-center">
                                             {[0, 1, 2].map((i) => (
                                                 <motion.div
                                                     key={i}
@@ -258,7 +254,7 @@ export function AIChatPanel() {
                 </div>
 
                 {/* Input Area - Reduced height, removed powered-by */}
-                <CardFooter className="px-5 py-2 bg-white/80 backdrop-blur-lg border-t border-neutral-100 flex flex-col gap-2 relative z-30">
+                <CardFooter className="px-5 py-2 bg-white border-t border-neutral-100 flex flex-col gap-2 relative z-30">
                     <form
                         className="flex w-full items-center gap-2 group transition-all duration-300"
                         onSubmit={(e) => {
@@ -283,14 +279,14 @@ export function AIChatPanel() {
                                 placeholder="How can I help you?"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                className="pl-10 pr-4 h-10 rounded-xl bg-white border-neutral-200/60 focus:bg-white text-sm placeholder:text-neutral-400 shadow-sm transition-all focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                                className="pl-10 pr-4 h-10 rounded-xl bg-white border-neutral-200 focus:bg-white text-sm placeholder:text-neutral-400 shadow-none transition-colors focus-visible:ring-0 focus-visible:border-neutral-900"
                             />
                         </div>
                         <Button
                             type="submit"
                             size="icon"
                             disabled={!inputValue.trim()}
-                            className="h-10 w-10 rounded-xl bg-neutral-900 hover:bg-black text-white disabled:opacity-30 shadow-lg shadow-neutral-200 shrink-0 transition-all hover:scale-105 active:scale-95"
+                            className="h-10 w-10 rounded-xl bg-neutral-900 hover:bg-black text-white disabled:opacity-30 shadow-none shrink-0 transition-all hover:scale-105 active:scale-95"
                         >
                             <Send className="h-4.5 w-4.5" />
                         </Button>

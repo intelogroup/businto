@@ -87,10 +87,7 @@ export function Hero() {
   const [pmTime, setPmTime] = useState("15:00");
   const [startDate, setStartDate] = useState("");
   const [studentCount, setStudentCount] = useState("");
-  const [requiresCori, setRequiresCori] = useState(true);
-  const [schoolDurationType, setSchoolDurationType] = useState("daily");
-  const [schoolDurationValue, setSchoolDurationValue] = useState("");
-  const [schoolCustomDates, setSchoolCustomDates] = useState<Date[]>([]);
+  const [endDate, setEndDate] = useState("");
 
   // Medical fields
   const [pickupLocation, setPickupLocation] = useState("");
@@ -145,8 +142,8 @@ export function Hero() {
           if (parsed.amTime) setAmTime(parsed.amTime);
           if (parsed.pmTime) setPmTime(parsed.pmTime);
           if (parsed.startDate) setStartDate(parsed.startDate);
+          if (parsed.endDate) setEndDate(parsed.endDate);
           if (parsed.studentCount) setStudentCount(parsed.studentCount);
-          if (parsed.schoolDurationType) setSchoolDurationType(parsed.schoolDurationType);
 
           // Restore medical fields
           if (parsed.pickupLocation) setPickupLocation(parsed.pickupLocation);
@@ -178,7 +175,7 @@ export function Hero() {
       const draft = {
         activeTab,
         // School fields
-        pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, studentCount, schoolDurationType,
+        pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, endDate, studentCount,
         // Medical fields
         pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
         // Wedding fields
@@ -186,7 +183,7 @@ export function Hero() {
       };
       sessionStorage.setItem('businto_form_draft', JSON.stringify(draft));
     }
-  }, [activeTab, pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, studentCount, schoolDurationType,
+  }, [activeTab, pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, endDate, studentCount,
     pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
     guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime, isSubmitted]);
 
@@ -201,12 +198,11 @@ export function Hero() {
     if (activeTab === 'school') {
       const schoolMetadata = {
         school_name: schoolName,
-        grade_level: gradeLevel,
+        grade_level: gradeLevel || undefined,
         student_count: parseInt(studentCount) || 1,
         schedule_type: scheduleType,
-        am_pickup_time: amTime,
-        pm_pickup_time: pmTime,
-        duration_type: schoolDurationType,
+        am_pickup_time: (scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : undefined,
+        pm_pickup_time: (scheduleType === 'round-trip' || scheduleType === 'pm-only') ? pmTime : undefined,
         note: note || undefined,
         // Private fields - will be split out
         parent_name: user?.name,
@@ -222,9 +218,10 @@ export function Hero() {
         pickup_fuzzy: pickupZip,
         dropoff_fuzzy: schoolName,
         start_date: startDate,
-        start_time: amTime,
-        is_recurring: schoolDurationType !== 'custom',
-        recurrence_pattern: schoolDurationType === 'daily' ? 'weekdays' : schoolDurationType,
+        end_date: endDate || undefined,
+        start_time: (scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : pmTime,
+        is_recurring: true,
+        recurrence_pattern: 'weekdays',
         metadata: schoolMetadata, // For backward compatibility
         metadata_safe,
         metadata_private,
@@ -407,7 +404,7 @@ export function Hero() {
                           </Select>
                         </div>
                       </div>
-                      {/* Row 2: Schedule & Service Details */}
+                      {/* Row 2: Schedule, Students, Times */}
                       <div className="flex flex-wrap gap-4">
                         <div className="w-[120px] space-y-2">
                           <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Schedule</label>
@@ -422,7 +419,7 @@ export function Hero() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="w-[80px] space-y-2">
+                        <div className="w-[70px] space-y-2">
                           <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Students</label>
                           <Input
                             type="number"
@@ -433,57 +430,31 @@ export function Hero() {
                             className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        <div className="w-[140px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Service Type</label>
-                          <Select value={schoolDurationType} onValueChange={setSchoolDurationType}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
-                              <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="daily" className="rounded-md py-3 px-4">Daily (Weekdays)</SelectItem>
-                              <SelectItem value="weekly" className="rounded-md py-3 px-4">Weekly</SelectItem>
-                              <SelectItem value="monthly" className="rounded-md py-3 px-4">Monthly</SelectItem>
-                              <SelectItem value="semester" className="rounded-md py-3 px-4">Full Semester</SelectItem>
-                              <SelectItem value="custom" className="rounded-md py-3 px-4">Custom Dates</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {schoolDurationType !== "custom" && schoolDurationType !== "semester" && (
-                          <div className="w-[100px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">
-                              {schoolDurationType === "daily" ? "# of Days" : schoolDurationType === "weekly" ? "# of Weeks" : "# of Months"}
-                            </label>
+                        {(scheduleType === 'round-trip' || scheduleType === 'am-only') && (
+                          <div className="w-[110px] space-y-2">
+                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">AM Pickup</label>
                             <Input
-                              type="number"
-                              placeholder="Enter"
-                              min="1"
-                              value={schoolDurationValue}
-                              onChange={(e) => setSchoolDurationValue(e.target.value)}
-                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                              type="time"
+                              value={amTime}
+                              onChange={(e) => setAmTime(e.target.value)}
+                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            />
+                          </div>
+                        )}
+                        {(scheduleType === 'round-trip' || scheduleType === 'pm-only') && (
+                          <div className="w-[110px] space-y-2">
+                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">PM Pickup</label>
+                            <Input
+                              type="time"
+                              value={pmTime}
+                              onChange={(e) => setPmTime(e.target.value)}
+                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                             />
                           </div>
                         )}
                       </div>
-                      {/* Row 3: Times & Dates */}
+                      {/* Row 3: Start Date & End Date */}
                       <div className="flex flex-wrap gap-4">
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">AM Pickup</label>
-                          <Input
-                            type="time"
-                            value={amTime}
-                            onChange={(e) => setAmTime(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">PM Pickup</label>
-                          <Input
-                            type="time"
-                            value={pmTime}
-                            onChange={(e) => setPmTime(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
                         <div className="w-[140px] space-y-2">
                           <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Start Date</label>
                           <Input
@@ -493,30 +464,16 @@ export function Hero() {
                             className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        {schoolDurationType === "custom" && (
-                          <div className="w-[150px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Pick Dates</label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="h-9 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-white"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {schoolCustomDates.length > 0 ? `${schoolCustomDates.length} dates` : "Select"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <DayPicker
-                                  mode="multiple"
-                                  selected={schoolCustomDates}
-                                  onSelect={(dates) => setSchoolCustomDates(dates || [])}
-                                  className="p-3"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        )}
+                        <div className="w-[140px] space-y-2">
+                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">End Date <span className="normal-case font-normal text-neutral-400">(optional)</span></label>
+                          <Input
+                            type="date"
+                            value={endDate}
+                            min={startDate || undefined}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
                       </div>
                       {/* Row 4: Note */}
                       <div className="flex flex-wrap gap-4">

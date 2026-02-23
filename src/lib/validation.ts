@@ -22,8 +22,8 @@ const baseRequestSchema = z.object({
 export const schoolRequestSchema = baseRequestSchema.extend({
   service_type: z.literal('school'),
   metadata: z.object({
-    school_name: z.string().optional(), // Made optional for dev mode
-    grade_level: z.string().min(1, 'Grade level is required'),
+    school_name: z.string().optional(),
+    grade_level: z.string().optional(),
     student_count: z.number().min(1, 'At least 1 student is required').max(100),
     schedule_type: z.enum(['round-trip', 'am-only', 'pm-only']),
     am_pickup_time: z.string().optional(),
@@ -31,9 +31,8 @@ export const schoolRequestSchema = baseRequestSchema.extend({
     special_needs: z.string().optional(),
     parent_name: z.string().optional(),
     parent_phone: z.string().optional(),
-    duration_type: z.enum(['daily', 'weekly', 'monthly', 'semester', 'custom']),
+    note: z.string().optional(),
   }).refine((data) => {
-    // If schedule includes AM, require AM time
     if (data.schedule_type === 'round-trip' || data.schedule_type === 'am-only') {
       return !!data.am_pickup_time;
     }
@@ -42,7 +41,6 @@ export const schoolRequestSchema = baseRequestSchema.extend({
     message: 'AM pickup time is required for this schedule type',
     path: ['am_pickup_time'],
   }).refine((data) => {
-    // If schedule includes PM, require PM time
     if (data.schedule_type === 'round-trip' || data.schedule_type === 'pm-only') {
       return !!data.pm_pickup_time;
     }
