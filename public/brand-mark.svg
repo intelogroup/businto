@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  {/* Modern Black Circular Base */}
+  <circle cx="20" cy="20" r="20" fill="black"/>
+  
+  {/* Bus Main Chassis (Front Profile) */}
+  <path d="M12 12C12 10.3431 13.3431 9 15 9H25C26.6569 9 28 10.3431 28 12V27C28 28.1046 27.1046 29 26 29H14C12.8954 29 12 28.1046 12 27V12Z" fill="white"/>
+  
+  {/* Panoramic Windshield */}
+  <path d="M13.5 13C13.5 12.1716 14.1716 11.5 15 11.5H25C25.8284 11.5 26.5 12.1716 26.5 13V20H13.5V13Z" fill="black" fill-opacity="0.85"/>
+  
+  {/* Destination Display Bar */}
+  <rect x="16" y="10" width="8" height="1" rx="0.5" fill="white" fill-opacity="0.4"/>
+  
+  {/* Modern Headlights */}
+  <circle cx="15.5" cy="25.5" r="1.5" fill="black" fill-opacity="0.8"/>
+  <circle cx="24.5" cy="25.5" r="1.5" fill="black" fill-opacity="0.8"/>
+  
+  {/* Grille / Badge Detail */}
+  <rect x="18" y="25" width="4" height="1" rx="0.5" fill="black" fill-opacity="0.2"/>
+  
+  {/* Mirror Silhouettes */}
+  <path d="M12 14H10.5V17" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M28 14H29.5V17" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

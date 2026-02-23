@@ -1,0 +1,291 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { sendEmail, emailTemplates } from '@/lib/email';
+import { logEvent } from '@/lib/event-logger';
+
+// Service role client for quote operations (bypasses RLS for anonymous operator submissions)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
+export async function POST(request: NextRequest) {
+  try {
+    const appBaseUrl = new URL(request.url).origin;
+    const body = await request.json();
+    const {
+      request_id,
+      operator_id,
+      total_price,
+      base_fare,
+      distance_charge,
+      additional_fees,
+      vehicle_type,
+      vehicle_year,
+      vehicle_capacity,
+      vehicle_photo_url,
+      wheelchair_accessible,
+      note
+    } = body;
+
+    // For MVP: operator_id is optional (anonymous quotes allowed)
+    if (!request_id || !total_price || !vehicle_type) {
+      return NextResponse.json(
+        { error: 'Missing required fields: request_id, total_price, vehicle_type' },
+        { status: 400 }
+      );
+    }
+
+    // MARKETPLACE INTEGRITY: Request is locked once a quote is accepted
+    const { data: acceptedQuote } = await supabaseAdmin
+      .from('quotes')
+      .select('id, operator_id')
+      .eq('request_id', request_id)
+      .eq('status', 'accepted')
+      .maybeSingle();
+
+    if (acceptedQuote) {
+      return NextResponse.json(
+        { error: 'Request already fulfilled. Acceptance is final - no new quotes accepted.' },
+        { status: 409 }
+      );
+    }
+
+    // QUOTE ABUSE PREVENTION: Check if operator already submitted quote for this request
+    if (operator_id) {
+      const { data: existingQuote } = await supabaseAdmin
+        .from('quotes')
+        .select('id, status')
+        .eq('request_id', request_id)
+        .eq('operator_id', operator_id)
+        .maybeSingle();
+
+      if (existingQuote) {
+        // If they have an existing quote that's not withdrawn, reject
+        if (existingQuote.status !== 'withdrawn') {
+          return NextResponse.json(
+            { error: 'You have already submitted a quote for this request. You cannot submit multiple quotes.' },
+            { status: 409 }
+          );
+        }
+        // If previous quote was withdrawn, allow resubmission but delete the old one
+        await supabaseAdmin
+          .from('quotes')
+          .delete()
+          .eq('id', existingQuote.id);
+      }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('quotes')
+      .insert({
+        request_id,
+        operator_id: operator_id || null,
+        total_price,
+        base_fare,
+        distance_charge,
+        additional_fees: additional_fees || [],
+        vehicle_type,
+        vehicle_year,
+        vehicle_capacity,
+        vehicle_photo_url,
+        wheelchair_accessible: wheelchair_accessible || false,
+        note,
+        status: 'pending'
+      })
+      .select(`
+        *,
+        operator:profiles!quotes_operator_id_fkey (
+          id,
+          full_name,
+          company_name,
+          avatar_url
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    await logEvent({
+      event_type: 'quote.submitted',
+      actor_type: operator_id ? 'operator' : 'anonymous_operator',
+      actor_id: operator_id || null,
+      operator_id: operator_id || null,
+      request_id,
+      quote_id: data.id,
+      metadata: {
+        total_price,
+        vehicle_type,
+      },
+    });
+
+    // Update request status to 'quoted' if first quote
+    await supabaseAdmin
+      .from('transport_requests')
+      .update({ status: 'quoted' })
+      .eq('id', request_id)
+      .eq('status', 'pending');
+
+    // Send quote notification email (fire and forget)
+    // SECURITY: Only reads metadata_private server-side for email, never returns to client
+    try {
+      const { data: transportRequest, error: reqError } = await supabase
+        .from('transport_requests')
+        .select('user_id, metadata_private')
+        .eq('id', request_id)
+        .single();
+      
+      if (reqError) {
+        console.error('Failed to fetch request for quote email:', reqError);
+      } else {
+        let userEmail = null;
+        let userName = null;
+        
+        if (transportRequest?.user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', transportRequest.user_id)
+            .single();
+          
+          userEmail = profile?.email;
+          userName = profile?.full_name;
+        }
+        
+        // Fallback: check if contact email is in metadata_private
+        const privateMetadata = transportRequest?.metadata_private || {};
+        if (!userEmail && (privateMetadata?.parent_email || privateMetadata?.contact_email)) {
+          userEmail = privateMetadata.parent_email || privateMetadata.contact_email;
+          userName = privateMetadata.parent_name || privateMetadata.contact_name || 'Parent';
+        }
+        
+        if (userEmail) {
+          const operatorName = data.operator?.company_name || data.operator?.full_name || 'An operator';
+          
+          try {
+            const result = await sendEmail({
+              to: userEmail,
+              ...emailTemplates.quoteReceived({
+                userName: userName || 'User',
+                operatorName,
+                price: total_price,
+                vehicleType: vehicle_type,
+                requestId: request_id,
+                quoteId: data.id,
+                appBaseUrl,
+              })
+            });
+
+            await logEvent({
+              event_type: 'quote.notification_email.sent',
+              actor_type: 'system',
+              request_id,
+              quote_id: data.id,
+              user_id: transportRequest?.user_id || null,
+              metadata: {
+                to: userEmail,
+                message_id: result?.id,
+              },
+            });
+          } catch (emailErr) {
+            console.error('Failed to send quote notification email:', emailErr);
+            await logEvent({
+              event_type: 'quote.notification_email.failed',
+              status: 'error',
+              actor_type: 'system',
+              request_id,
+              quote_id: data.id,
+              user_id: transportRequest?.user_id || null,
+              message: emailErr instanceof Error ? emailErr.message : 'Unknown quote email error',
+              metadata: { to: userEmail },
+            });
+          }
+        } else {
+          console.log('⚠️ No email found for quote notification - request has no user_id or contact email in metadata_private');
+          await logEvent({
+            event_type: 'quote.notification_email.skipped',
+            actor_type: 'system',
+            request_id,
+            quote_id: data.id,
+            message: 'No recipient email found in profile or private metadata',
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to process quote notification email:', err);
+    }
+
+    return NextResponse.json({
+      success: true,
+      quote: data,
+      message: 'Quote submitted successfully'
+    });
+  } catch (error) {
+    console.error('Error creating quote:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const requestId = searchParams.get('request_id');
+    const operatorId = searchParams.get('operator_id');
+
+    let query = supabase
+      .from('quotes')
+      .select(`
+        *,
+        operator:profiles!quotes_operator_id_fkey (
+          id,
+          full_name,
+          company_name,
+          avatar_url
+        ),
+        request:transport_requests (
+          id,
+          service_type,
+          pickup_fuzzy,
+          dropoff_fuzzy,
+          start_date,
+          status
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (requestId) {
+      query = query.eq('request_id', requestId);
+    }
+    if (operatorId) {
+      query = query.eq('operator_id', operatorId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ quotes: data });
+  } catch (error) {
+    console.error('Error fetching quotes:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
