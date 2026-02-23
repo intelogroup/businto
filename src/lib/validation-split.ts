@@ -14,13 +14,12 @@ import { z } from 'zod';
 // School service - SAFE metadata (operator-visible)
 export const schoolSafeMetadataSchema = z.object({
   school_name: z.string().optional(),
-  grade_level: z.string().min(1, 'Grade level is required'),
+  grade_level: z.string().optional(),
   student_count: z.number().min(1, 'At least 1 student is required').max(100),
   schedule_type: z.enum(['round-trip', 'am-only', 'pm-only']),
   am_pickup_time: z.string().optional(),
   pm_pickup_time: z.string().optional(),
   special_needs: z.string().optional(),
-  duration_type: z.enum(['daily', 'weekly', 'monthly', 'semester', 'custom']),
   needs_wheelchair: z.boolean().optional(),
   needs_car_seat: z.boolean().optional(),
   special_requirements: z.string().optional(),
