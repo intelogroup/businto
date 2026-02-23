@@ -31,9 +31,9 @@ const SERVICE_ICONS = {
 };
 
 const SERVICE_COLORS = {
-  school: "bg-amber-100 text-amber-800 border-amber-300",
-  medical: "bg-blue-100 text-blue-800 border-blue-300",
-  wedding: "bg-purple-100 text-purple-800 border-purple-300",
+  school: "bg-orange-50 text-orange-600 border-orange-200",
+  medical: "bg-sky-50 text-sky-600 border-sky-200",
+  wedding: "bg-violet-50 text-violet-600 border-violet-200",
 };
 
 function SubmitQuoteContent() {
@@ -215,19 +215,19 @@ function SubmitQuoteContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
       </div>
     );
   }
 
   if (error && !request) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
-        <Card className="max-w-md p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-neutral-900 mb-2">Error</h1>
-          <p className="text-neutral-600">{error}</p>
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <Card className="max-w-md w-full p-8 text-center shadow-none border border-neutral-200">
+          <AlertCircle className="w-10 h-10 text-neutral-400 mx-auto mb-4" />
+          <h1 className="text-base font-semibold text-neutral-900 mb-1">Unable to load request</h1>
+          <p className="text-sm text-neutral-500">{error}</p>
         </Card>
       </div>
     );
@@ -252,18 +252,20 @@ function SubmitQuoteContent() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
-        <Card className="max-w-md p-8 text-center">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-neutral-900 mb-2">
-            Quote submitted successfully!
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <Card className="max-w-md w-full p-10 text-center shadow-none border border-neutral-200">
+          <div className="w-12 h-12 rounded-full bg-neutral-900 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-neutral-900 mb-2">
+            Quote submitted
           </h1>
-          <p className="text-neutral-600 mb-6">
-            Your quote has been sent to the customer.
+          <p className="text-sm text-neutral-500 mb-8">
+            Your quote has been sent to the customer. They will be in touch if interested.
           </p>
           <button
             onClick={handleWithdraw}
-            className="text-sm text-neutral-500 hover:text-neutral-700 underline"
+            className="text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-4"
           >
             Withdraw quote
           </button>
@@ -273,52 +275,62 @@ function SubmitQuoteContent() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-white">
+      {/* Top bar */}
+      <div className="border-b border-neutral-100 px-4 py-3">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
+          <span className="font-semibold text-neutral-900 text-sm tracking-tight">Businto</span>
+          <span className="text-xs text-neutral-400 uppercase tracking-widest">Operator Portal</span>
+        </div>
+      </div>
+
+      <div className="max-w-xl mx-auto px-4 py-8">
         {/* Non-binding banner */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-yellow-800 text-center font-medium">
-            ⚠️ Non-binding inquiry. No commitment. Parent may contact multiple
-            operators.
+        <div className="border border-neutral-200 rounded-md px-4 py-3 mb-6 flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-neutral-500 leading-relaxed">
+            Non-binding inquiry — no commitment required. The parent may contact multiple operators.
           </p>
         </div>
 
         {/* Request details */}
-        <Card className="p-6 mb-6">
-          <div className="flex items-start gap-3 mb-4">
-            <span className="text-3xl">{serviceIcon}</span>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-xl font-bold text-neutral-900">
+        <Card className="p-6 mb-5 shadow-none border border-neutral-200">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-md bg-neutral-100 flex items-center justify-center text-lg shrink-0">
+              {serviceIcon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold text-neutral-900 truncate">
                   {request.service_type.charAt(0).toUpperCase() +
                     request.service_type.slice(1)}{" "}
                   Transportation
                 </h1>
-                <Badge className={serviceColor}>
+                <Badge className={`${serviceColor} shadow-none text-[10px] font-medium px-1.5 py-0.5`}>
                   {request.service_type.toUpperCase()}
                 </Badge>
               </div>
-              <p className="text-sm text-neutral-500">
+              <p className="text-xs text-neutral-400 mt-0.5">
                 Request #{request.id.slice(0, 8)}
               </p>
             </div>
           </div>
 
-          <div className="space-y-3 border-t pt-4">
-            <div className="flex justify-between">
-              <span className="text-sm text-neutral-600">Pickup Area</span>
+          <div className="divide-y divide-neutral-100">
+            <div className="flex justify-between py-2.5">
+              <span className="text-xs text-neutral-500 uppercase tracking-wide">Pickup Area</span>
               <span className="text-sm font-medium text-neutral-900">
                 {request.pickup_fuzzy}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-neutral-600">Dropoff Area</span>
+            <div className="flex justify-between py-2.5">
+              <span className="text-xs text-neutral-500 uppercase tracking-wide">Dropoff Area</span>
               <span className="text-sm font-medium text-neutral-900">
                 {request.dropoff_fuzzy}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-neutral-600">
+            <div className="flex justify-between py-2.5">
+              <span className="text-xs text-neutral-500 uppercase tracking-wide">
                 {request.start_time ? "Date & Time" : "Start Date"}
               </span>
               <span className="text-sm font-medium text-neutral-900">
@@ -327,30 +339,29 @@ function SubmitQuoteContent() {
               </span>
             </div>
 
-            {/* Service-specific metadata */}
             {request.service_type === "school" && request.metadata_safe?.schedule_type && (
-              <div className="flex justify-between">
-                <span className="text-sm text-neutral-600">Schedule</span>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-neutral-500 uppercase tracking-wide">Schedule</span>
                 <span className="text-sm font-medium text-neutral-900">
                   {request.metadata_safe.schedule_type}
                 </span>
               </div>
             )}
             {request.service_type === "school" && request.metadata_safe?.student_count && (
-              <div className="flex justify-between">
-                <span className="text-sm text-neutral-600">Students</span>
+              <div className="flex justify-between py-2.5">
+                <span className="text-xs text-neutral-500 uppercase tracking-wide">Students</span>
                 <span className="text-sm font-medium text-neutral-900">
                   {request.metadata_safe.student_count}
                 </span>
               </div>
             )}
             {request.metadata_safe?.note && (
-              <div className="pt-2 border-t">
-                <span className="text-sm text-neutral-600 block mb-1">
-                  Note from parent:
+              <div className="py-3">
+                <span className="text-xs text-neutral-500 uppercase tracking-wide block mb-1.5">
+                  Note from parent
                 </span>
-                <p className="text-sm text-neutral-900 italic">
-                  "{request.metadata_safe.note}"
+                <p className="text-sm text-neutral-700 italic leading-relaxed">
+                  &ldquo;{request.metadata_safe.note}&rdquo;
                 </p>
               </div>
             )}
@@ -358,32 +369,33 @@ function SubmitQuoteContent() {
         </Card>
 
         {/* Quote form */}
-        <Card className="p-6">
-          <h2 className="text-lg font-bold text-neutral-900 mb-4">
-            Submit Indicative Quote
+        <Card className="p-6 shadow-none border border-neutral-200">
+          <h2 className="text-base font-semibold text-neutral-900 mb-1">
+            Your Quote
           </h2>
+          <p className="text-xs text-neutral-400 mb-5">All fields marked * are required.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Your Price ($) <span className="text-red-500">*</span>
+              <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1.5">
+                Price (USD) <span className="text-neutral-900">*</span>
               </label>
               <Input
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="e.g., 150.00"
+                placeholder="0.00"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
                 disabled={submitting}
-                className="text-lg"
+                className="text-base font-medium shadow-none focus-visible:ring-0 focus-visible:border-neutral-900 h-11"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Vehicle Type <span className="text-red-500">*</span>
+              <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1.5">
+                Vehicle Type <span className="text-neutral-900">*</span>
               </label>
               <Input
                 type="text"
@@ -392,41 +404,43 @@ function SubmitQuoteContent() {
                 onChange={(e) => setVehicleType(e.target.value)}
                 required
                 disabled={submitting}
+                className="shadow-none focus-visible:ring-0 focus-visible:border-neutral-900 h-11"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Message (optional)
+              <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1.5">
+                Message <span className="text-neutral-400 normal-case font-normal">(optional)</span>
               </label>
               <textarea
-                placeholder="Brief note about availability, special features, etc."
+                placeholder="Availability, special features, route notes..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 disabled={submitting}
                 rows={3}
                 maxLength={500}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2.5 border border-neutral-200 rounded-md text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-900 resize-none transition-colors"
               />
-              <p className="text-xs text-neutral-500 mt-1">
-                {message.length}/500 characters
+              <p className="text-xs text-neutral-400 mt-1 text-right">
+                {message.length}/500
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="border border-neutral-200 rounded-md px-4 py-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0" />
+                <p className="text-sm text-neutral-600">{error}</p>
               </div>
             )}
 
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 text-lg"
+              className="w-full bg-neutral-900 hover:bg-neutral-700 text-white font-semibold h-12 text-sm rounded-md shadow-none"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Submitting...
                 </>
               ) : (
@@ -434,8 +448,8 @@ function SubmitQuoteContent() {
               )}
             </Button>
 
-            <p className="text-xs text-neutral-500 text-center">
-              Quote automatically expires in 72 hours
+            <p className="text-xs text-neutral-400 text-center">
+              Expires automatically in 72 hours
             </p>
           </form>
         </Card>
