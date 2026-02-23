@@ -51,41 +51,6 @@ export function Hero() {
     mouseY.set(clientY - top);
   }
 
-  useEffect(() => {
-    const handleNewRequest = (event: any) => {
-      // Skip if no detail provided (refresh events)
-      if (!event.detail) return;
-
-      const { city, service, time, request } = event.detail;
-
-      const iconMap: Record<string, any> = {
-        "School Run": Bus,
-        "Care Ride": HeartPulse,
-        "Event Shuttle": Gem
-      };
-
-      const colorMap: Record<string, string> = {
-        "School Run": "text-amber-500 bg-amber-50",
-        "Care Ride": "text-green-500 bg-green-50",
-        "Event Shuttle": "text-indigo-500 bg-indigo-50"
-      };
-
-      const newFeedItem = {
-        city: city || "Local Area",
-        service: service,
-        time: time,
-        status: "New Request",
-        icon: iconMap[service] || Activity,
-        color: colorMap[service] || "text-neutral-500 bg-neutral-50"
-      };
-
-      setRequests(prev => [newFeedItem, ...prev.slice(0, 3)]);
-      setFeedIndex(0); // Jump to the new request
-    };
-
-    window.addEventListener('new-transport-request', handleNewRequest);
-    return () => window.removeEventListener('new-transport-request', handleNewRequest);
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -171,7 +136,7 @@ export function Hero() {
         try {
           const parsed = JSON.parse(draft);
           if (parsed.activeTab) setActiveTab(parsed.activeTab);
-          
+
           // Restore school fields
           if (parsed.pickupZip) setPickupZip(parsed.pickupZip);
           if (parsed.schoolName) setSchoolName(parsed.schoolName);
@@ -182,7 +147,7 @@ export function Hero() {
           if (parsed.startDate) setStartDate(parsed.startDate);
           if (parsed.studentCount) setStudentCount(parsed.studentCount);
           if (parsed.schoolDurationType) setSchoolDurationType(parsed.schoolDurationType);
-          
+
           // Restore medical fields
           if (parsed.pickupLocation) setPickupLocation(parsed.pickupLocation);
           if (parsed.dropoffLocation) setDropoffLocation(parsed.dropoffLocation);
@@ -191,7 +156,7 @@ export function Hero() {
           if (parsed.appointmentTime) setAppointmentTime(parsed.appointmentTime);
           if (parsed.serviceLevel) setServiceLevel(parsed.serviceLevel);
           if (parsed.tripType) setTripType(parsed.tripType);
-          
+
           // Restore wedding fields
           if (parsed.guestCount) setGuestCount(parsed.guestCount);
           if (parsed.eventDate) setEventDate(parsed.eventDate);
@@ -222,8 +187,8 @@ export function Hero() {
       sessionStorage.setItem('businto_form_draft', JSON.stringify(draft));
     }
   }, [activeTab, pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, studentCount, schoolDurationType,
-      pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
-      guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime, isSubmitted]);
+    pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
+    guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime, isSubmitted]);
 
   const handleSubmit = async () => {
     // Reset errors
@@ -247,9 +212,9 @@ export function Hero() {
         parent_name: user?.name,
         parent_email: user?.email,
       };
-      
+
       const { metadata_safe, metadata_private } = splitMetadataByServiceType('school', schoolMetadata);
-      
+
       requestData = {
         service_type: 'school' as const,
         pickup_address: pickupZip,
@@ -275,9 +240,9 @@ export function Hero() {
         patient_name: user?.name || 'Patient',
         contact_email: user?.email,
       };
-      
+
       const { metadata_safe, metadata_private } = splitMetadataByServiceType('medical', medicalMetadata);
-      
+
       requestData = {
         service_type: 'medical' as const,
         pickup_address: pickupLocation,
@@ -305,9 +270,9 @@ export function Hero() {
         contact_phone: '555-0000', // Phone not available in user object
         contact_email: user?.email || 'event@example.com',
       };
-      
+
       const { metadata_safe, metadata_private } = splitMetadataByServiceType('wedding', weddingMetadata);
-      
+
       requestData = {
         service_type: 'wedding' as const,
         pickup_address: hotelZip,
@@ -325,7 +290,7 @@ export function Hero() {
 
     // Validate the request data
     const validation = validateTransportRequest(requestData);
-    
+
     if (!validation.success) {
       setValidationErrors(validation.errors);
       setSubmitError('Please fix the errors below');
@@ -335,7 +300,7 @@ export function Hero() {
     // Submit to API
     try {
       setIsSubmitting(true);
-      
+
       const response = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -348,17 +313,6 @@ export function Hero() {
         throw new Error(data.error || 'Failed to submit request');
       }
 
-      // Dispatch event for live feed
-      const serviceName = activeTab === 'school' ? 'School Run' : activeTab === 'medical' ? 'Care Ride' : 'Event Shuttle';
-      const event = new CustomEvent('new-transport-request', {
-        detail: {
-          city: "Local Area",
-          service: serviceName,
-          time: "Just now",
-          request: data.request
-        }
-      });
-      window.dispatchEvent(event);
 
       // Clear draft from sessionStorage after successful submission
       if (typeof window !== 'undefined') {
@@ -402,8 +356,7 @@ export function Hero() {
             {!user && (
               <>
                 <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-neutral-900 mb-6 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
-                  Smarter routing <br />
-                  <span className="text-neutral-400">for private rides.</span>
+                  Smarter routing for private rides.
                 </h1>
                 <p className="text-base md:text-lg text-neutral-500 mb-10 leading-relaxed font-medium max-w-lg">
                   School runs, medical transports, and full-day charters managed by one intelligent platform.
@@ -1031,8 +984,8 @@ export function Hero() {
                         trip.service_type === 'wedding' && "bg-indigo-100 text-indigo-600"
                       )}>
                         {trip.service_type === 'school' ? <Bus className="h-4 w-4" /> :
-                         trip.service_type === 'medical' ? <HeartPulse className="h-4 w-4" /> :
-                         <Plane className="h-4 w-4" />}
+                          trip.service_type === 'medical' ? <HeartPulse className="h-4 w-4" /> :
+                            <Plane className="h-4 w-4" />}
                       </div>
                       <div>
                         <div className="font-mono text-xs text-neutral-500">#{trip.id.slice(0, 8)}</div>
@@ -1043,7 +996,7 @@ export function Hero() {
                           trip.service_type === 'wedding' && "bg-indigo-50 text-indigo-700"
                         )}>
                           {trip.service_type === 'school' ? 'School Run' :
-                           trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
+                            trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
                         </Badge>
                       </div>
                     </div>
