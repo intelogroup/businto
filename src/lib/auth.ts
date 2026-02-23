@@ -132,8 +132,22 @@ export async function registerUser(
 }
 
 export async function signOutUser(supabaseClient = supabase) {
-  const { error } = await supabaseClient.auth.signOut();
-  if (error) {
-    throw error;
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+      const message = (error as any).message ?? '';
+      if (message.includes('Auth session missing')) {
+        console.warn('[Auth] Sign-out skipped because no session was present.');
+        return;
+      }
+      throw error;
+    }
+  } catch (err) {
+    const message = (err as any)?.message ?? '';
+    if (message.includes('Auth session missing')) {
+      console.warn('[Auth] Sign-out skipped because no session was present.');
+      return;
+    }
+    throw err;
   }
 }

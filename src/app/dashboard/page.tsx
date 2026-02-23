@@ -215,8 +215,6 @@ function DashboardContent() {
             await createRequest(validation.data as any);
             addNotification({ title: "Request Submitted!", message: "Operators are being notified. Quotes will appear below.", type: "success" });
 
-            // Dispatch event for tracking panel to refresh
-            window.dispatchEvent(new CustomEvent('new-transport-request'));
         } catch (error: any) {
             addNotification({ title: "Error", message: error.message || "Failed to submit request", type: "error" });
         } finally {

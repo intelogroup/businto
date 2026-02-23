@@ -7,8 +7,6 @@ export const metadata: Metadata = {
 };
 
 import { Footer } from "@/components/footer";
-import { TripsSidebar } from "@/components/trips-sidebar";
-import { SimulationProvider } from "@/components/simulation-provider";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { Toaster } from "@/components/ui/toaster";
@@ -27,16 +25,12 @@ export default function RootLayout({
         <AuthProvider>
           <NotificationProvider>
             <Toaster />
-            <TripsSidebar>
-              <SimulationProvider>
-                <div className="flex flex-col min-h-screen">
-                  <main className="flex-grow">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-              </SimulationProvider>
-            </TripsSidebar>
+            <div className="flex flex-col min-h-screen">
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </div>
           </NotificationProvider>
         </AuthProvider>
       </body>
