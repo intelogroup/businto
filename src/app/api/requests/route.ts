@@ -8,7 +8,13 @@ import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
   try {
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+    // Base URL for links (prefer env var, then origin)
+    let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+
+    // Safety check: never allow localhost URLs in operator emails
+    if (appBaseUrl.includes('localhost') || appBaseUrl.includes('127.0.0.1')) {
+      appBaseUrl = 'https://businto.vercel.app';
+    }
     const body = await request.json();
     const {
       service_type,
@@ -123,7 +129,7 @@ export async function POST(request: NextRequest) {
           .select('email, full_name')
           .eq('id', user_id)
           .single();
-        
+
         if (profileError) {
           console.error('Failed to fetch user profile:', profileError);
         } else if (profile?.email) {
@@ -185,10 +191,10 @@ export async function POST(request: NextRequest) {
       console.log('\n🔔 ==========================================');
       console.log(`🔔 Notifying ${operators.length} matching operators for request ${data.id}`);
       console.log('🔔 ==========================================\n');
-      
+
       const serviceTypeMap: Record<string, string> = {
         school: 'School Transportation',
-        medical: 'Medical Transportation', 
+        medical: 'Medical Transportation',
         wedding: 'Event Shuttle'
       };
 
@@ -205,7 +211,7 @@ export async function POST(request: NextRequest) {
             'quote',
             7
           );
-          
+
           const emailResult = await sendEmail({
             to: operator.company_email,
             ...emailTemplates.operatorNewRequest({
@@ -216,9 +222,9 @@ export async function POST(request: NextRequest) {
               dropoffAddress: dropoff_address,
               pickupFuzzy: pickup_fuzzy || pickup_address.split(',')[0],
               dropoffFuzzy: dropoff_fuzzy || dropoff_address.split(',')[0],
-              date: new Date(start_date).toLocaleDateString('en-US', { 
+              date: new Date(start_date).toLocaleDateString('en-US', {
                 weekday: 'short',
-                month: 'short', 
+                month: 'short',
                 day: 'numeric',
                 year: 'numeric'
               }),
@@ -243,7 +249,7 @@ export async function POST(request: NextRequest) {
               message_id: emailResult?.id,
             },
           });
-          
+
           if (emailResult.previewUrl) {
             emailPreviewUrls.push(emailResult.previewUrl);
           }
@@ -254,7 +260,7 @@ export async function POST(request: NextRequest) {
             type: 'new_request_available',
             title: `New ${serviceTypeDisplay} Request`,
             message: `${pickup_fuzzy || pickup_address.split(',')[0]} → ${dropoff_fuzzy || dropoff_address.split(',')[0]}`,
-            data: { 
+            data: {
               request_id: data.id,
               service_type,
               pickup_fuzzy: pickup_fuzzy || pickup_address.split(',')[0],

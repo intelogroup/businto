@@ -18,7 +18,13 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+    // Base URL for links (prefer env var, then origin)
+    let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+
+    // Safety check: never allow localhost URLs in emails
+    if (appBaseUrl.includes('localhost') || appBaseUrl.includes('127.0.0.1')) {
+      appBaseUrl = 'https://businto.vercel.app';
+    }
     const body = await request.json();
     const {
       request_id,
@@ -144,34 +150,34 @@ export async function POST(request: NextRequest) {
         .select('user_id, metadata_private')
         .eq('id', request_id)
         .single();
-      
+
       if (reqError) {
         console.error('Failed to fetch request for quote email:', reqError);
       } else {
         let userEmail = null;
         let userName = null;
-        
+
         if (transportRequest?.user_id) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('email, full_name')
             .eq('id', transportRequest.user_id)
             .single();
-          
+
           userEmail = profile?.email;
           userName = profile?.full_name;
         }
-        
+
         // Fallback: check if contact email is in metadata_private
         const privateMetadata = transportRequest?.metadata_private || {};
         if (!userEmail && (privateMetadata?.parent_email || privateMetadata?.contact_email)) {
           userEmail = privateMetadata.parent_email || privateMetadata.contact_email;
           userName = privateMetadata.parent_name || privateMetadata.contact_name || 'Parent';
         }
-        
+
         if (userEmail) {
           const operatorName = data.operator?.company_name || data.operator?.full_name || 'An operator';
-          
+
           try {
             const result = await sendEmail({
               to: userEmail,
