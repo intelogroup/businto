@@ -19,6 +19,7 @@ export const schoolSafeMetadataSchema = z.object({
   schedule_type: z.enum(['round-trip', 'am-only', 'pm-only']),
   am_pickup_time: z.string().optional(),
   pm_pickup_time: z.string().optional(),
+  duration_type: z.string().optional(),
   special_needs: z.string().optional(),
   needs_wheelchair: z.boolean().optional(),
   needs_car_seat: z.boolean().optional(),
