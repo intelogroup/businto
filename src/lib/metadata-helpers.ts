@@ -11,12 +11,11 @@
 export interface SchoolMetadata {
   // Safe fields
   school_name?: string;
-  grade_level: string;
+  grade_level?: string;
   student_count: number;
   schedule_type: 'round-trip' | 'am-only' | 'pm-only';
   am_pickup_time?: string;
   pm_pickup_time?: string;
-  duration_type: 'daily' | 'weekly' | 'monthly' | 'semester' | 'custom';
   needs_wheelchair?: boolean;
   needs_car_seat?: boolean;
   special_requirements?: string;
