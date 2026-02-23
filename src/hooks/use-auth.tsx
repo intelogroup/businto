@@ -32,51 +32,53 @@ function normalizeRole(rawRole: unknown): User["role"] {
 }
 
 async function mapSupabaseUser(authUser: SupabaseAuthUser): Promise<User> {
-    console.log("[Auth] mapSupabaseUser called for:", authUser.id);
-    let profileName: string | undefined;
-    let profileRole: User["role"] = "user";
-    let profileAvatar: string | undefined;
+    console.log("[Auth] mapSupabaseUser (metadata-only) for:", authUser.id);
 
-    try {
-        console.log("[Auth] Querying profiles table...");
-        const { data: profile, error } = await supabase
-            .from("profiles")
-            .select("full_name, role, avatar_url")
-            .eq("id", authUser.id)
-            .maybeSingle();
-
-        if (error) {
-            console.warn("[Auth] Profile query error (continuing with metadata):", error.message);
-        } else if (profile) {
-            console.log("[Auth] Profile data retrieved:", profile);
-            profileName = profile.full_name || undefined;
-            profileRole = normalizeRole(profile.role);
-            profileAvatar = profile.avatar_url || undefined;
-        } else {
-            console.log("[Auth] No profile record found for this user.");
-        }
-    } catch (err) {
-        console.error("[Auth] Critical error in mapSupabaseUser query:", err);
-    }
-
+    // Return metadata version immediately, profile will be merged if needed elsewhere
+    // or we can fetch it separately to avoid blocking the main auth flow
     const derivedName =
-        profileName ||
         authUser.user_metadata?.full_name ||
         authUser.email?.split("@")[0] ||
         "User";
-
-    console.log("[Auth] Mapping complete for:", derivedName);
 
     return {
         id: authUser.id,
         name: derivedName,
         email: authUser.email || "",
-        role: profileRole,
+        role: (authUser.app_metadata?.role as any) || "user",
         avatar:
-            profileAvatar ||
             authUser.user_metadata?.avatar_url ||
             `https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email || authUser.id}`,
     };
+}
+
+// Separate function to fetch extra profile data without blocking initial auth
+async function fetchProfileData(userId: string): Promise<Partial<User>> {
+    console.log("[Auth] Background fetching profile for:", userId);
+    try {
+        const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("full_name, role, avatar_url")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (error) {
+            console.warn("[Auth] Background profile fetch error:", error.message);
+            return {};
+        }
+
+        if (profile) {
+            console.log("[Auth] Background profile data received:", profile);
+            return {
+                name: profile.full_name || undefined,
+                role: normalizeRole(profile.role),
+                avatar: profile.avatar_url || undefined,
+            };
+        }
+    } catch (err) {
+        console.error("[Auth] Background profile fetch critical error:", err);
+    }
+    return {};
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -96,10 +98,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 setSession(data.session);
                 if (data.session?.user) {
-                    console.log("[Auth] Session found for user:", data.session.user.id);
-                    const mapped = await mapSupabaseUser(data.session.user);
+                    console.log("[Auth] Session found, updating user state immediately...");
+                    const baseUser = await mapSupabaseUser(data.session.user);
                     if (!isMounted) return;
-                    setUser(mapped);
+                    setUser(baseUser);
+
+                    // Fetch profile details in background
+                    fetchProfileData(data.session.user.id).then(extra => {
+                        if (isMounted && Object.keys(extra).length > 0) {
+                            setUser(prev => prev ? { ...prev, ...extra } : null);
+                        }
+                    });
                 } else {
                     console.log("[Auth] No active session.");
                     setUser(null);
@@ -120,19 +129,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(nextSession);
             try {
                 if (nextSession?.user) {
-                    console.log("[Auth] User found in state change, mapping...");
-                    const mapped = await mapSupabaseUser(nextSession.user);
+                    const baseUser = await mapSupabaseUser(nextSession.user);
                     if (!isMounted) return;
-                    setUser(mapped);
-                    console.log("[Auth] User state updated.");
+                    setUser(baseUser);
+
+                    // Fetch profile details in background
+                    fetchProfileData(nextSession.user.id).then(extra => {
+                        if (isMounted && Object.keys(extra).length > 0) {
+                            setUser(prev => prev ? { ...prev, ...extra } : null);
+                        }
+                    });
                 } else {
-                    console.log("[Auth] No user in state change, clearing user state.");
                     setUser(null);
                 }
-            } catch (err) {
-                console.error("[Auth] Error in onAuthStateChange handler:", err);
             } finally {
-                console.log("[Auth] Loading finished.");
                 setIsLoading(false);
             }
         });
