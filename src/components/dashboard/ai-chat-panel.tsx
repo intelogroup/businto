@@ -114,7 +114,7 @@ export function AIChatPanel() {
     };
 
     return (
-        <Card className="h-full flex flex-col border-none shadow-2xl bg-white rounded-2xl overflow-hidden relative">
+        <Card className="h-full flex flex-col border-none shadow-none bg-white rounded-2xl overflow-hidden relative">
             {/* Base Background Layers - Fully contained */}
             <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none z-0" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/40 via-white to-white z-0" />
