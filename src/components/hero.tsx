@@ -355,10 +355,10 @@ export function Hero() {
 
             {!user && (
               <>
-                <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-neutral-900 mb-6 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
+                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-neutral-900 mb-6 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
                   Smarter routing for private rides.
                 </h1>
-                <p className="text-base md:text-lg text-neutral-500 mb-10 leading-relaxed font-medium max-w-lg">
+                <p className="text-sm md:text-base text-neutral-500 mb-10 leading-relaxed font-medium max-w-lg">
                   School runs, medical transports, and full-day charters managed by one intelligent platform.
                 </p>
               </>
@@ -1050,6 +1050,6 @@ export function Hero() {
           </div>
         )}
       </div>
-    </section>
+    </section >
   );
 }
