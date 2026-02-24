@@ -138,8 +138,15 @@ export async function registerUser(
 }
 
 /**
- * Sends a password reset email. The link in the email will redirect to
- * `/api/auth/callback?code=...&next=/login/reset-password`
+ * Sends a password reset email. The link redirects directly to
+ * `/login/reset-password` so the browser receives the #access_token fragment
+ * and the Supabase client fires the PASSWORD_RECOVERY auth state event.
+ *
+ * IMPORTANT: `https://businto.vercel.app/login/reset-password` (and the
+ * localhost equivalent) must be listed in Supabase Dashboard →
+ * Authentication → URL Configuration → Redirect URLs, otherwise Supabase
+ * will reject the redirectTo and send the user to the site root with an
+ * `error=access_denied` query param.
  */
 export async function resetPasswordForEmail(
   email: string,
