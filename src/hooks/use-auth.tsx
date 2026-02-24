@@ -7,9 +7,11 @@ import {
     AuthUser,
     mapSupabaseUser,
     registerUser,
+    resetPasswordForEmail,
     sendMagicLink,
     signInWithPassword,
     signOutUser,
+    updatePassword,
 } from "@/lib/auth";
 
 interface AuthContextType {
@@ -19,6 +21,8 @@ interface AuthContextType {
     login: (email: string, password?: string) => Promise<{ mode: "password" | "magic_link" }>;
     signup: (email: string, password: string, fullName: string) => Promise<void>;
     logout: () => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
+    updateUserPassword: (newPassword: string) => Promise<void>;
     isAuthenticated: boolean;
 }
 
@@ -36,19 +40,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log("[Auth] Initializing session...");
             setIsLoading(true);
             try {
-                const { data } = await supabase.auth.getSession();
+                // getClaims() validates the JWT signature — never trust getSession() in server code.
+                // On the client we still use it to hydrate initial state, but prefer getClaims.
+                const { data, error } = await supabase.auth.getClaims();
+                const claims = data?.claims;
+                console.log("[Auth] Initial claims check:", {
+                    hasClaims: !!claims,
+                    userId: claims?.sub,
+                    error
+                });
+
+                if (error) {
+                    console.error("[Auth] getClaims error:", error);
+                }
+
                 if (!isMounted) return;
 
-                setSession(data.session);
-                if (data.session?.user) {
-                    const mapped = await mapSupabaseUser(data.session.user);
-                    if (!isMounted) return;
-                    setUser(mapped);
+                if (claims?.sub) {
+                    // Build a minimal SupabaseAuthUser shape from claims to pass to mapSupabaseUser
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    setSession(sessionData.session);
+                    if (sessionData.session?.user) {
+                        console.log("[Auth] Mapping user profile for:", sessionData.session.user.id);
+                        const mapped = await mapSupabaseUser(sessionData.session.user);
+                        console.log("[Auth] Mapped user:", mapped);
+                        if (!isMounted) return;
+                        setUser(mapped);
+                    }
                 } else {
+                    setSession(null);
                     setUser(null);
                 }
             } catch (err) {
-                console.error("[Auth] Initialization error:", err);
+                console.error("[Auth] initialization catch block:", err);
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -83,21 +107,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const login = async (email: string, password?: string) => {
-        console.log("[Auth] Login attempt for:", email);
+        console.log("[Auth] login method called for:", email, "with password:", !!password);
         setIsLoading(true);
         try {
             if (password && password.trim().length > 0) {
+                console.log("[Auth] Executing signInWithPassword...");
                 const data = await signInWithPassword(email, password);
+                console.log("[Auth] signInWithPassword result session:", !!data.session);
+
                 setSession(data.session);
                 if (data.user) {
+                    console.log("[Auth] Mapping user profile...");
                     const mapped = await mapSupabaseUser(data.user);
+                    console.log("[Auth] Final user object set:", mapped);
                     setUser(mapped);
                 }
                 return { mode: "password" as const };
             }
 
+            console.log("[Auth] Executing sendMagicLink...");
             await sendMagicLink(email);
             return { mode: "magic_link" as const };
+        } catch (err) {
+            console.error("[Auth] login method error:", err);
+            throw err;
         } finally {
             setIsLoading(false);
         }
@@ -136,6 +169,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const resetPassword = async (email: string) => {
+        await resetPasswordForEmail(email);
+    };
+
+    const updateUserPassword = async (newPassword: string) => {
+        await updatePassword(newPassword);
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -145,6 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 login,
                 signup,
                 logout,
+                resetPassword,
+                updateUserPassword,
                 isAuthenticated: !!user,
             }}
         >

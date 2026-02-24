@@ -41,9 +41,12 @@ export async function mapSupabaseUser(
     if (error) {
       console.warn("[Auth] Profile query error (continuing with metadata):", error.message);
     } else if (profile) {
+      console.log("[Auth] Profile found:", profile);
       profileName = profile.full_name || undefined;
       profileRole = normalizeRole(profile.role);
       profileAvatar = profile.avatar_url || undefined;
+    } else {
+      console.log("[Auth] No profile found for user ID:", authUser.id);
     }
   } catch (err) {
     console.error("[Auth] Critical error in mapSupabaseUser query:", err);
@@ -72,15 +75,18 @@ export async function signInWithPassword(
   password: string,
   supabaseClient = supabase
 ) {
+  console.log("[Auth] signInWithPassword started for:", email);
   const { data, error } = await supabaseClient.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
+    console.error("[Auth] signInWithPassword Supabase error:", error);
     throw error;
   }
 
+  console.log("[Auth] signInWithPassword success, user ID:", data.user?.id);
   return data;
 }
 
@@ -128,6 +134,40 @@ export async function registerUser(
     });
   }
 
+  return data;
+}
+
+/**
+ * Sends a password reset email. The link in the email will redirect to
+ * `/api/auth/callback?code=...&next=/login/reset-password`
+ */
+export async function resetPasswordForEmail(
+  email: string,
+  supabaseClient = supabase
+) {
+  const redirectTo = `${getFrontendOrigin()}/api/auth/callback?next=/login/reset-password`;
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+  if (error) {
+    throw error;
+  }
+}
+
+/**
+ * Updates the authenticated user's password. Must be called after the user
+ * has clicked the reset link and has an active session (via auth callback).
+ */
+export async function updatePassword(
+  newPassword: string,
+  supabaseClient = supabase
+) {
+  const { data, error } = await supabaseClient.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) {
+    throw error;
+  }
   return data;
 }
 

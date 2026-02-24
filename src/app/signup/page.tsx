@@ -9,25 +9,38 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Mail, Lock, ArrowRight, User, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+
+function mapSignupError(message?: string): string {
+    if (!message) return "Signup failed. Please try again.";
+    if (message.includes("already registered") || message.includes("already been registered"))
+        return "An account with this email already exists. Try signing in instead.";
+    if (message.includes("weak") || message.includes("password"))
+        return "Password is too weak. Use at least 8 characters with a mix of letters and numbers.";
+    if (message.includes("valid email") || message.includes("invalid email"))
+        return "Please enter a valid email address.";
+    if (message.includes("rate limit") || message.includes("too many"))
+        return "Too many attempts. Please wait a moment and try again.";
+    return message;
+}
 
 function SignupContent() {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [notice, setNotice] = useState<string | null>(null);
     const { signup } = useAuth();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setNotice(null);
         try {
             await signup(email, password, fullName);
+            toast.success("Account created! Welcome to Businto.");
             router.push("/dashboard");
         } catch (error: any) {
-            setNotice(error?.message || "Signup failed. Please try again.");
+            toast.error(mapSignupError(error?.message));
         } finally {
             setIsSubmitting(false);
         }
@@ -60,11 +73,6 @@ function SignupContent() {
                     </CardHeader>
                     <CardContent className="grid gap-6">
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            {notice && (
-                                <div className="text-xs rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-neutral-700">
-                                    {notice}
-                                </div>
-                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="fullName" className="text-xs font-semibold text-neutral-600 ml-1">Full Name</Label>
                                 <div className="relative group">

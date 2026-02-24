@@ -1,21 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Server-side client with service role key for API routes
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+// Service role client for internal API routes (bypasses RLS)
+// Never expose this to the browser or client-side code
+export const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
   }
-});
+);
 
-// For server components using user's session
-export function createServerClient(accessToken?: string) {
-  return createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: {
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
-    }
-  });
-}
+// For server-side code that needs a user-session-aware client,
+// use `createClient` from `@/lib/supabase/server` instead.
+// This legacy export is kept for backward compatibility.
+export { createClient as createServerClient } from '@/lib/supabase/server';
