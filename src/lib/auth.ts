@@ -144,18 +144,20 @@ export async function registerUser(
  *
  * IMPORTANT — two things required in Supabase Dashboard:
  *
- * 1. Auth → Email Templates → "Reset Password" — change the link to:
- *      {{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/login/reset-password
+ * 1. Auth → URL Configuration → Redirect URLs — add:
+ *      https://businto.vercel.app/api/auth/callback
+ *      http://localhost:3000/api/auth/callback
+ *    (the default email template already sends ?code= to this route)
  *
  * 2. Auth → URL Configuration → Redirect URLs — add:
- *      https://businto.vercel.app/api/auth/confirm
- *      http://localhost:3000/api/auth/confirm
+ *      https://businto.vercel.app/api/auth/callback
+ *      http://localhost:3000/api/auth/callback
  */
 export async function resetPasswordForEmail(
   email: string,
   supabaseClient = supabase
 ) {
-  const redirectTo = `${getFrontendOrigin()}/api/auth/confirm?next=/login/reset-password`;
+  const redirectTo = `${getFrontendOrigin()}/api/auth/callback?next=/login/reset-password`;
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
     redirectTo,
   });
