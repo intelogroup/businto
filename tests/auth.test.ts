@@ -171,7 +171,7 @@ describe("resetPasswordForEmail", () => {
     await resetPasswordForEmail("user@test.com", supabaseMock);
 
     expect(resetPw).toHaveBeenCalledWith("user@test.com", {
-      redirectTo: "https://app.test/login/reset-password",
+      redirectTo: "https://app.test/api/auth/callback?next=/login/reset-password",
     });
   });
 
