@@ -14,8 +14,12 @@ export default async function Home({ searchParams }: Props) {
   // redirectTo URL isn't whitelisted. Forward it to the auth callback so the
   // reset-password flow still works.
   if (params.code) {
+    // Supabase password reset emails deliver ?code= to the site root because
+    // the redirectTo URL isn't whitelisted yet. The `next` param will not be
+    // present in the original Supabase email URL, so always default to the
+    // reset-password page (magic-link emails don't hit this path).
     const next = params.next ?? "/login/reset-password";
-    redirect(`/api/auth/callback?code=${params.code}&next=${next}`);
+    redirect(`/api/auth/callback?code=${encodeURIComponent(params.code)}&next=${next}`);
   }
 
   return (

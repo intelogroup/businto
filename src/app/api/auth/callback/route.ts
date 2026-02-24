@@ -33,10 +33,8 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
-      const redirectTo = (isLocalEnv || !forwardedHost)
-        ? `${origin}${next}`
-        : `https://${forwardedHost}${next}`;
-
+      const base = (isLocalEnv || !forwardedHost) ? origin : `https://${forwardedHost}`;
+      const redirectTo = `${base}${next}`;
       console.log('[Auth Callback] Session exchange success, redirecting to:', redirectTo);
       return NextResponse.redirect(redirectTo);
     }
