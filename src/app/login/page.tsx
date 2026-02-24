@@ -1,42 +1,61 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail, Lock, ArrowRight, Github } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
+
+function mapAuthError(message?: string): string {
+    if (!message) return "Sign in failed. Please try again.";
+    if (message.includes("Invalid login credentials") || message.includes("invalid_credentials"))
+        return "Incorrect email or password. Please check your credentials.";
+    if (message.includes("Email not confirmed"))
+        return "Please verify your email before signing in.";
+    if (message.includes("rate limit") || message.includes("too many"))
+        return "Too many attempts. Please wait a moment and try again.";
+    if (message.includes("network") || message.includes("fetch"))
+        return "Network error. Check your connection and try again.";
+    return message;
+}
 
 function LoginContent() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [notice, setNotice] = useState<string | null>(null);
     const { login } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
     const redirect = searchParams.get("redirect");
 
+    useEffect(() => {
+        if (searchParams.get("error") === "auth_callback_failed") {
+            toast.error("The link has expired or is invalid. Please request a new one.");
+        }
+    }, [searchParams]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setNotice(null);
         try {
+            console.log("[Login Page] Form submitted for:", email);
             const result = await login(email, password);
+            console.log("[Login Page] Login result:", result);
+
             if (result.mode === "password") {
-                if (redirect) {
-                    router.push(redirect);
-                } else {
-                    router.push("/dashboard");
-                }
+                console.log("[Login Page] Password login successful, redirecting to:", redirect || "/dashboard");
+                router.push(redirect || "/dashboard");
             } else {
-                setNotice("Check your email for a secure login link.");
+                toast.success("Check your email for a secure sign-in link.");
             }
         } catch (error: any) {
-            setNotice(error?.message || "Login failed. Please try again.");
+            console.error("[Login Page] Login error caught:", error);
+            toast.error(mapAuthError(error?.message));
         } finally {
             setIsSubmitting(false);
         }
@@ -69,11 +88,6 @@ function LoginContent() {
                     </CardHeader>
                     <CardContent className="grid gap-6">
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            {notice && (
-                                <div className="text-xs rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-neutral-700">
-                                    {notice}
-                                </div>
-                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="email" className="text-xs font-semibold text-neutral-600 ml-1">Email</Label>
                                 <div className="relative group">
@@ -92,7 +106,7 @@ function LoginContent() {
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between ml-1">
                                     <Label htmlFor="password" className="text-xs font-semibold text-neutral-600">Password</Label>
-                                    <a href="#" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Forgot?</a>
+                                    <Link href="/login/forgot-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Forgot?</Link>
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors duration-150" size={18} />

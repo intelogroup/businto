@@ -3,9 +3,11 @@ import {
   mapSupabaseUser,
   normalizeRole,
   registerUser,
+  resetPasswordForEmail,
   sendMagicLink,
   signInWithPassword,
   signOutUser,
+  updatePassword,
 } from "@/lib/auth";
 
 const sampleAuthUser = {
@@ -152,5 +154,55 @@ describe("auth helpers", () => {
     const supabaseMock = { auth: { signOut } } as any;
 
     await expect(signOutUser(supabaseMock)).rejects.toEqual({ message: "nope" });
+  });
+});
+
+describe("resetPasswordForEmail", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (globalThis as any).window;
+  });
+
+  it("calls resetPasswordForEmail with correct redirectTo", async () => {
+    (globalThis as any).window = { location: { origin: "https://app.test" } };
+    const resetPw = vi.fn().mockResolvedValue({ error: null });
+    const supabaseMock = { auth: { resetPasswordForEmail: resetPw } } as any;
+
+    await resetPasswordForEmail("user@test.com", supabaseMock);
+
+    expect(resetPw).toHaveBeenCalledWith("user@test.com", {
+      redirectTo: "https://app.test/api/auth/callback?next=/login/reset-password",
+    });
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    (globalThis as any).window = { location: { origin: "https://app.test" } };
+    const resetPw = vi.fn().mockResolvedValue({ error: { message: "rate limited" } });
+    const supabaseMock = { auth: { resetPasswordForEmail: resetPw } } as any;
+
+    await expect(resetPasswordForEmail("user@test.com", supabaseMock)).rejects.toEqual({
+      message: "rate limited",
+    });
+  });
+});
+
+describe("updatePassword", () => {
+  it("calls updateUser with new password and returns data", async () => {
+    const updateUser = vi.fn().mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
+    const supabaseMock = { auth: { updateUser } } as any;
+
+    const result = await updatePassword("newSecret123", supabaseMock);
+
+    expect(updateUser).toHaveBeenCalledWith({ password: "newSecret123" });
+    expect(result).toEqual({ user: { id: "u1" } });
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    const updateUser = vi.fn().mockResolvedValue({ data: null, error: { message: "session expired" } });
+    const supabaseMock = { auth: { updateUser } } as any;
+
+    await expect(updatePassword("newSecret123", supabaseMock)).rejects.toEqual({
+      message: "session expired",
+    });
   });
 });

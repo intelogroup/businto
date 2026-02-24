@@ -10,6 +10,7 @@ import { Footer } from "@/components/footer";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -25,6 +26,7 @@ export default function RootLayout({
         <AuthProvider>
           <NotificationProvider>
             <Toaster />
+            <SonnerToaster position="top-right" richColors closeButton />
             <div className="flex flex-col min-h-screen">
               <main className="flex-grow">
                 {children}
