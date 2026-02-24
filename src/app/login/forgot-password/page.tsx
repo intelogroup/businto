@@ -17,14 +17,21 @@ function ForgotPasswordContent() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("[ForgotPassword] Submitting reset request for:", email);
         setIsSubmitting(true);
         try {
             await resetPasswordForEmail(email);
+            console.log("[ForgotPassword] Reset email sent successfully to:", email);
             setSent(true);
         } catch (error: any) {
+            console.error("[ForgotPassword] resetPasswordForEmail failed:", {
+                message: error?.message,
+                status: error?.status,
+                code: error?.code,
+                error,
+            });
             // Intentionally vague — don't reveal whether email exists
             toast.error("Something went wrong. Please try again.");
-            console.error("[ForgotPassword] Error:", error);
         } finally {
             setIsSubmitting(false);
         }

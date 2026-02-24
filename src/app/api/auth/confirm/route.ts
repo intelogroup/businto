@@ -17,16 +17,32 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') as EmailOtpType | null;
   const next = searchParams.get('next') ?? '/dashboard';
 
+  console.log('[Auth Confirm] Received request:', {
+    hasTokenHash: !!token_hash,
+    type,
+    next,
+    origin,
+  });
+
   if (token_hash && type) {
     const supabase = await createClient();
+    console.log('[Auth Confirm] Calling verifyOtp...');
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
 
     if (!error) {
+      console.log('[Auth Confirm] verifyOtp success, redirecting to:', `${origin}${next}`);
       return NextResponse.redirect(`${origin}${next}`);
     }
 
-    console.error('[Auth Confirm] verifyOtp error:', error.message);
+    console.error('[Auth Confirm] verifyOtp error:', {
+      message: error.message,
+      status: (error as any).status,
+      code: (error as any).code,
+    });
+  } else {
+    console.warn('[Auth Confirm] Missing token_hash or type param');
   }
 
+  console.warn('[Auth Confirm] Falling back to error redirect');
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
 }

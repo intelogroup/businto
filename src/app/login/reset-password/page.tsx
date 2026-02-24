@@ -22,20 +22,26 @@ function ResetPasswordContent() {
     const router = useRouter();
 
     useEffect(() => {
-        // /api/auth/confirm already exchanged the token server-side and set the
+        console.log("[ResetPassword] Page mounted, checking session...");
+        // /api/auth/callback already exchanged the PKCE code and set the
         // session cookie before redirecting here. Just check if a session exists.
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
+                console.log("[ResetPassword] Session found, user:", session.user?.email);
                 setSessionReady(true);
             } else {
+                console.warn("[ResetPassword] No session found — waiting for PASSWORD_RECOVERY event (3s timeout)...");
                 // Also listen for PASSWORD_RECOVERY in case of legacy implicit flow
-                const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                    console.log("[ResetPassword] onAuthStateChange:", event, session?.user?.email);
                     if (event === "PASSWORD_RECOVERY") {
+                        console.log("[ResetPassword] PASSWORD_RECOVERY received, showing form");
                         setSessionReady(true);
                     }
                 });
                 // Give it 3s then declare expired
                 const timeout = setTimeout(() => {
+                    console.warn("[ResetPassword] Timeout — no session or recovery event received. Link may be expired.");
                     setSessionReady((prev) => prev === null ? false : prev);
                 }, 3000);
                 return () => {
@@ -59,14 +65,21 @@ function ResetPasswordContent() {
         }
 
         setIsSubmitting(true);
+        console.log("[ResetPassword] Submitting new password...");
         try {
             await updatePassword(password);
+            console.log("[ResetPassword] Password updated successfully");
             toast.success("Password updated! Redirecting to sign in…");
             setTimeout(() => router.push("/login"), 1500);
         } catch (error: any) {
+            console.error("[ResetPassword] updatePassword failed:", {
+                message: error?.message,
+                status: error?.status,
+                code: error?.code,
+                error,
+            });
             const msg = friendlyPasswordError(error?.message);
             toast.error(msg);
-            console.error("[ResetPassword] Error:", error);
         } finally {
             setIsSubmitting(false);
         }

@@ -15,27 +15,39 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   let next = searchParams.get('next') ?? '/dashboard';
 
+  console.log('[Auth Callback] Received request:', {
+    hasCode: !!code,
+    next,
+    origin,
+    forwardedHost: request.headers.get('x-forwarded-host'),
+  });
+
   // Ensure next is a relative path to prevent open-redirect attacks
   if (!next.startsWith('/')) next = '/dashboard';
 
   if (code) {
     const supabase = await createClient();
+    console.log('[Auth Callback] Exchanging code for session...');
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // On Vercel the actual public hostname comes from x-forwarded-host,
-      // not from `origin` (which would be the internal load-balancer address).
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
+      const redirectTo = (isLocalEnv || !forwardedHost)
+        ? `${origin}${next}`
+        : `https://${forwardedHost}${next}`;
 
-      if (isLocalEnv || !forwardedHost) {
-        return NextResponse.redirect(`${origin}${next}`);
-      } else {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      }
+      console.log('[Auth Callback] Session exchange success, redirecting to:', redirectTo);
+      return NextResponse.redirect(redirectTo);
     }
 
-    console.error('[Auth Callback] exchangeCodeForSession error:', error.message);
+    console.error('[Auth Callback] exchangeCodeForSession error:', {
+      message: error.message,
+      status: (error as any).status,
+      code: (error as any).code,
+    });
+  } else {
+    console.warn('[Auth Callback] No code param found in request');
   }
 
   // If no code or exchange failed, redirect to login with error flag
@@ -43,5 +55,6 @@ export async function GET(request: NextRequest) {
   const base = (process.env.NODE_ENV !== 'development' && forwardedHost)
     ? `https://${forwardedHost}`
     : origin;
+  console.warn('[Auth Callback] Falling back to error redirect:', `${base}/login?error=auth_callback_failed`);
   return NextResponse.redirect(`${base}/login?error=auth_callback_failed`);
 }
