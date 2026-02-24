@@ -1,21 +1,52 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Lock, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { updatePassword } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 function ResetPasswordContent() {
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // null = waiting for auth event, true = session ready, false = expired/invalid
+    const [sessionReady, setSessionReady] = useState<boolean | null>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        // Supabase fires PASSWORD_RECOVERY when the user arrives via reset email link.
+        // Without this the client Supabase instance has no session and updatePassword fails.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === "PASSWORD_RECOVERY") {
+                setSessionReady(true);
+            }
+        });
+
+        // Fallback: if a session already exists (e.g. page was refreshed after the
+        // auth callback set a cookie), treat it as ready.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                setSessionReady((prev) => prev === null ? true : prev);
+            } else {
+                // Give the PASSWORD_RECOVERY event up to 4 s to arrive before
+                // declaring the link expired.
+                const timeout = setTimeout(() => {
+                    setSessionReady((prev) => prev === null ? false : prev);
+                }, 4000);
+                return () => clearTimeout(timeout);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -64,58 +95,86 @@ function ResetPasswordContent() {
                     <CardHeader className="space-y-1 pb-8 text-center">
                         <CardTitle className="text-2xl font-bold tracking-tight text-neutral-900">Set new password</CardTitle>
                         <CardDescription className="text-neutral-500 font-medium">
-                            Choose a strong password of at least 8 characters.
+                            {sessionReady === false
+                                ? "This link has expired or already been used."
+                                : "Choose a strong password of at least 8 characters."}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="space-y-2">
-                                <Label htmlFor="password" className="text-xs font-semibold text-neutral-600 ml-1">New password</Label>
-                                <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors" size={18} />
-                                    <Input
-                                        id="password"
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Minimum 8 characters"
-                                        required
-                                        minLength={8}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="h-10 pl-12 pr-12 bg-white border-neutral-200 focus:border-black focus:ring-0 rounded-md"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword((v) => !v)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
-                                        tabIndex={-1}
-                                    >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
+                        {/* Waiting for Supabase PASSWORD_RECOVERY event */}
+                        {sessionReady === null && (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="animate-spin text-neutral-400" size={28} />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="confirm" className="text-xs font-semibold text-neutral-600 ml-1">Confirm password</Label>
-                                <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors" size={18} />
-                                    <Input
-                                        id="confirm"
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Repeat your password"
-                                        required
-                                        value={confirm}
-                                        onChange={(e) => setConfirm(e.target.value)}
-                                        className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 rounded-md"
-                                    />
-                                </div>
+                        )}
+
+                        {/* Link expired or already used */}
+                        {sessionReady === false && (
+                            <div className="flex flex-col items-center gap-4 py-4 text-center">
+                                <AlertCircle className="text-red-400" size={40} />
+                                <p className="text-sm text-neutral-600">
+                                    Please request a new reset link.
+                                </p>
+                                <Link
+                                    href="/login/forgot-password"
+                                    className="text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+                                >
+                                    Send a new link →
+                                </Link>
                             </div>
-                            <Button
-                                type="submit"
-                                className="w-full h-10 bg-neutral-950 hover:bg-black text-white font-semibold rounded-md transition-colors"
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Update password"}
-                            </Button>
-                        </form>
+                        )}
+
+                        {/* Session confirmed — show the form */}
+                        {sessionReady === true && (
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div className="space-y-2">
+                                    <Label htmlFor="password" className="text-xs font-semibold text-neutral-600 ml-1">New password</Label>
+                                    <div className="relative group">
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors" size={18} />
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Minimum 8 characters"
+                                            required
+                                            minLength={8}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="h-10 pl-12 pr-12 bg-white border-neutral-200 focus:border-black focus:ring-0 rounded-md"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword((v) => !v)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
+                                            tabIndex={-1}
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="confirm" className="text-xs font-semibold text-neutral-600 ml-1">Confirm password</Label>
+                                    <div className="relative group">
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors" size={18} />
+                                        <Input
+                                            id="confirm"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="Repeat your password"
+                                            required
+                                            value={confirm}
+                                            onChange={(e) => setConfirm(e.target.value)}
+                                            className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 rounded-md"
+                                        />
+                                    </div>
+                                </div>
+                                <Button
+                                    type="submit"
+                                    className="w-full h-10 bg-neutral-950 hover:bg-black text-white font-semibold rounded-md transition-colors"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : "Update password"}
+                                </Button>
+                            </form>
+                        )}
                     </CardContent>
                 </Card>
             </div>

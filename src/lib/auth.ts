@@ -145,7 +145,11 @@ export async function resetPasswordForEmail(
   email: string,
   supabaseClient = supabase
 ) {
-  const redirectTo = `${getFrontendOrigin()}/api/auth/callback?next=/login/reset-password`;
+  // Redirect directly to the reset page so the client SDK can process the
+  // #access_token fragment and fire the PASSWORD_RECOVERY auth state event.
+  // Do NOT route through /api/auth/callback — the server cannot pass the
+  // fragment to the client, which would prevent the form from appearing.
+  const redirectTo = `${getFrontendOrigin()}/login/reset-password`;
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
     redirectTo,
   });
