@@ -138,21 +138,24 @@ export async function registerUser(
 }
 
 /**
- * Sends a password reset email. The link redirects directly to
- * `/login/reset-password` so the browser receives the #access_token fragment
- * and the Supabase client fires the PASSWORD_RECOVERY auth state event.
+ * Sends a password reset email. The link redirects to /api/auth/confirm
+ * which calls verifyOtp server-side (sets a session cookie), then redirects
+ * the user to /login/reset-password.
  *
- * IMPORTANT: `https://businto.vercel.app/login/reset-password` (and the
- * localhost equivalent) must be listed in Supabase Dashboard →
- * Authentication → URL Configuration → Redirect URLs, otherwise Supabase
- * will reject the redirectTo and send the user to the site root with an
- * `error=access_denied` query param.
+ * IMPORTANT — two things required in Supabase Dashboard:
+ *
+ * 1. Auth → Email Templates → "Reset Password" — change the link to:
+ *      {{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/login/reset-password
+ *
+ * 2. Auth → URL Configuration → Redirect URLs — add:
+ *      https://businto.vercel.app/api/auth/confirm
+ *      http://localhost:3000/api/auth/confirm
  */
 export async function resetPasswordForEmail(
   email: string,
   supabaseClient = supabase
 ) {
-  const redirectTo = `${getFrontendOrigin()}/api/auth/callback?next=/login/reset-password`;
+  const redirectTo = `${getFrontendOrigin()}/api/auth/confirm?next=/login/reset-password`;
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
     redirectTo,
   });

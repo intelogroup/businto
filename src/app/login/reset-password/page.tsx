@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,49 +17,34 @@ function ResetPasswordContent() {
     const [confirm, setConfirm] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    // null = waiting, true = session ready, false = expired/invalid
+    // null = checking, true = session ready, false = no session/expired
     const [sessionReady, setSessionReady] = useState<boolean | null>(null);
     const router = useRouter();
-    const searchParams = useSearchParams();
 
     useEffect(() => {
-        const code = searchParams.get("code");
-
-        if (code) {
-            // PKCE flow: exchange the code for a session directly on this page.
-            // This handles the case where Supabase appends ?code= to the redirectTo URL.
-            supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-                if (error) {
-                    console.error("[ResetPassword] exchangeCodeForSession error:", error.message);
-                    setSessionReady(false);
-                } else {
-                    setSessionReady(true);
-                }
-            });
-            return;
-        }
-
-        // Implicit/fragment flow: listen for PASSWORD_RECOVERY event.
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-            if (event === "PASSWORD_RECOVERY") {
-                setSessionReady(true);
-            }
-        });
-
-        // If session already exists (e.g. page refresh after code exchange), show form.
+        // /api/auth/confirm already exchanged the token server-side and set the
+        // session cookie before redirecting here. Just check if a session exists.
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-                setSessionReady((prev) => prev === null ? true : prev);
+                setSessionReady(true);
             } else {
+                // Also listen for PASSWORD_RECOVERY in case of legacy implicit flow
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+                    if (event === "PASSWORD_RECOVERY") {
+                        setSessionReady(true);
+                    }
+                });
+                // Give it 3s then declare expired
                 const timeout = setTimeout(() => {
                     setSessionReady((prev) => prev === null ? false : prev);
-                }, 4000);
-                return () => clearTimeout(timeout);
+                }, 3000);
+                return () => {
+                    subscription.unsubscribe();
+                    clearTimeout(timeout);
+                };
             }
         });
-
-        return () => subscription.unsubscribe();
-    }, [searchParams]);
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
