@@ -57,6 +57,9 @@ export interface MedicalMetadata {
   service_animal?: boolean;
   attendant_needed?: boolean;
   medical_notes?: string;
+  // Recurring ride date range (safe — no PII)
+  medical_start_date?: string;
+  medical_end_date?: string;
   note?: string;
 
   // Private fields

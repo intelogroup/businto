@@ -67,6 +67,9 @@ export const medicalSafeMetadataSchema = z.object({
   wheelchair_type: z.string().optional(),
   attendant_needed: z.boolean().optional(),
   medical_notes: z.string().optional(),
+  // Recurring medical ride date range (safe — no PII)
+  medical_start_date: z.string().optional(),
+  medical_end_date: z.string().optional(),
   note: z.string().optional(),
 }).strict();
 

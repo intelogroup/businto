@@ -74,7 +74,7 @@ interface EmailOptions {
 export async function sendEmail({ to, subject, html }: EmailOptions) {
   try {
     const transport = await getTransporter();
-    
+
     const info = await transport.sendMail({
       from: FROM_EMAIL,
       to,
@@ -83,7 +83,7 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
-    
+
     console.log('\n==============================================');
     console.log('✅ EMAIL SENT SUCCESSFULLY!');
     if (previewUrl) {
@@ -94,7 +94,7 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
       console.log(`🆔 Message ID: ${info.messageId}`);
     }
     console.log('==============================================\n');
-    
+
     if (previewUrl) {
       // Also write preview URLs to file for easy access in test mode
       const fs = require('fs');
@@ -123,6 +123,7 @@ export const emailTemplates = {
     dropoffAddress: string;
     date: string;
     requestId: string;
+    appBaseUrl?: string;
   }) => ({
     subject: 'Your Transport Request Has Been Submitted',
     html: `
@@ -173,10 +174,10 @@ export const emailTemplates = {
 
               <p>You'll receive an email when operators submit quotes. You can also check your dashboard for real-time updates.</p>
 
-              <a href="https://businto.com/dashboard" class="button">View Dashboard</a>
+              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/dashboard" class="button">View Dashboard</a>
 
               <div class="footer">
-                <p>&copy; 2024 Businto. All rights reserved.</p>
+                <p>&copy; 2026 Businto. All rights reserved.</p>
               </div>
             </div>
           </div>
@@ -229,10 +230,10 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/api/quotes/${data.quoteId}/accept" class="button">Accept Quote</a>
+              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/dashboard/requests" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
-                <p>&copy; 2024 Businto. All rights reserved.</p>
+                <p>&copy; 2026 Businto. All rights reserved.</p>
               </div>
             </div>
           </div>
@@ -313,7 +314,7 @@ export const emailTemplates = {
               </div>
 
               <div class="footer">
-                <p>&copy; 2024 Businto. All rights reserved.</p>
+                <p>&copy; 2026 Businto. All rights reserved.</p>
               </div>
             </div>
           </div>
@@ -332,6 +333,7 @@ export const emailTemplates = {
     date: string;
     time?: string;
     amount: number;
+    appBaseUrl?: string;
   }) => ({
     subject: `Booking Confirmed: ${data.confirmationCode}`,
     html: `
@@ -391,10 +393,10 @@ export const emailTemplates = {
 
               <p>The operator will contact you before your trip. You can also message them directly through your dashboard.</p>
 
-              <a href="https://businto.com/dashboard/bookings" class="button">Manage Booking</a>
+              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/dashboard/bookings" class="button">Manage Booking</a>
 
               <div class="footer">
-                <p>&copy; 2024 Businto. All rights reserved.</p>
+                <p>&copy; 2026 Businto. All rights reserved.</p>
               </div>
             </div>
           </div>
@@ -464,7 +466,7 @@ export const emailTemplates = {
               <p>A receipt has been sent to your email. Thank you for using Businto!</p>
 
               <div class="footer">
-                <p>&copy; 2024 Businto. All rights reserved.</p>
+                <p>&copy; 2026 Businto. All rights reserved.</p>
               </div>
             </div>
           </div>

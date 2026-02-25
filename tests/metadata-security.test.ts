@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { splitMetadataByServiceType } from '@/lib/metadata-helpers';
-import { 
-  splitAndValidateMetadata, 
-  detectPrivateFieldsInSafe 
+import {
+  splitAndValidateMetadata,
+  detectPrivateFieldsInSafe
 } from '@/lib/validation-split';
 
 describe('Metadata Security - Split Functionality', () => {
@@ -83,7 +83,7 @@ describe('Metadata Security - Split Functionality', () => {
       };
 
       const leaked = detectPrivateFieldsInSafe(metadata_safe, 'school');
-      
+
       expect(leaked).toContain('parent_email');
       expect(leaked.length).toBeGreaterThan(0);
     });
@@ -95,7 +95,7 @@ describe('Metadata Security - Split Functionality', () => {
       };
 
       const leaked = detectPrivateFieldsInSafe(metadata_safe, 'wedding');
-      
+
       expect(leaked).toContain('contact_phone');
     });
 
@@ -106,7 +106,7 @@ describe('Metadata Security - Split Functionality', () => {
       };
 
       const leaked = detectPrivateFieldsInSafe(metadata_safe, 'medical');
-      
+
       expect(leaked).toContain('patient_name');
     });
 
@@ -118,7 +118,7 @@ describe('Metadata Security - Split Functionality', () => {
       };
 
       const leaked = detectPrivateFieldsInSafe(metadata_safe, 'school');
-      
+
       expect(leaked).toHaveLength(0);
     });
   });
@@ -231,3 +231,98 @@ describe('Metadata Security - Architectural Boundary Tests', () => {
     }).toThrow();
   });
 });
+
+describe('Find Care Ride Button - Form Payload Validation', () => {
+  it('should NOT throw for a one-way medical ride (single appointment)', () => {
+    const medicalMetadata = {
+      mobility_level: 'ambulatory' as const,
+      service_level: 'curb-to-curb' as const,
+      trip_type: 'one-way' as const,
+      appointment_time: '10:00',
+      oxygen_use: false,
+      is_bariatric: false,
+      stair_factor: 'none' as const,
+      service_animal: false,
+      medical_start_date: '2026-02-25',
+    };
+
+    expect(() => splitAndValidateMetadata(medicalMetadata, 'medical')).not.toThrow();
+  });
+
+  it('should NOT throw for a round-trip ride with return_time and contact PII in private', () => {
+    const medicalMetadata = {
+      mobility_level: 'manual-wheelchair' as const,
+      service_level: 'door-to-door' as const,
+      trip_type: 'round-trip' as const,
+      appointment_time: '09:30',
+      return_status: 'fixed' as const,
+      return_time: '13:00',
+      oxygen_use: true,
+      is_bariatric: false,
+      facility_details: 'Suite 400',
+      stair_factor: 'none' as const,
+      additional_passengers: 1,
+      service_animal: false,
+      medical_start_date: '2026-03-01',
+      note: 'Please ring doorbell',
+      patient_name: 'Jane Smith',
+      contact_name: 'Jane Smith',
+      contact_phone: '617-555-0100',
+      contact_email: 'jane@example.com',
+    };
+
+    expect(() => splitAndValidateMetadata(medicalMetadata, 'medical')).not.toThrow();
+
+    const { metadata_safe, metadata_private } = splitAndValidateMetadata(medicalMetadata, 'medical');
+
+    // PII must not leak into safe
+    expect(metadata_safe).not.toHaveProperty('patient_name');
+    expect(metadata_safe).not.toHaveProperty('contact_name');
+    expect(metadata_safe).not.toHaveProperty('contact_phone');
+    expect(metadata_safe).not.toHaveProperty('contact_email');
+
+    // PII must be in private
+    expect(metadata_private).toHaveProperty('patient_name', 'Jane Smith');
+    expect(metadata_private).toHaveProperty('contact_phone', '617-555-0100');
+  });
+
+  it('REGRESSION: should NOT throw for recurring ride with medical_start_date + medical_end_date', () => {
+    // This was the exact failing scenario — recurring rides send both date fields
+    // which were previously unknown to the strict schema
+    const medicalMetadata = {
+      mobility_level: 'ambulatory' as const,
+      service_level: 'curb-to-curb' as const,
+      trip_type: 'one-way' as const,
+      appointment_time: '08:00',
+      oxygen_use: false,
+      is_bariatric: false,
+      stair_factor: 'none' as const,
+      service_animal: false,
+      medical_start_date: '2026-03-01',
+      medical_end_date: '2026-06-30', // ← was causing the "Unknown metadata fields" error
+      patient_name: 'Recurring Patient',
+      contact_name: 'Caregiver',
+      contact_phone: '617-555-9999',
+      contact_email: 'caregiver@example.com',
+    };
+
+    expect(() => splitAndValidateMetadata(medicalMetadata, 'medical')).not.toThrow();
+
+    const { metadata_safe } = splitAndValidateMetadata(medicalMetadata, 'medical');
+    expect(metadata_safe).toHaveProperty('medical_start_date', '2026-03-01');
+    expect(metadata_safe).toHaveProperty('medical_end_date', '2026-06-30');
+  });
+
+  it('should still BLOCK unknown fields in medical metadata', () => {
+    const badMetadata = {
+      mobility_level: 'ambulatory' as const,
+      service_level: 'curb-to-curb' as const,
+      trip_type: 'one-way' as const,
+      appointment_time: '10:00',
+      random_unknown_field: 'value',
+    };
+
+    expect(() => splitAndValidateMetadata(badMetadata, 'medical')).toThrow(/Unknown metadata fields/);
+  });
+});
+
