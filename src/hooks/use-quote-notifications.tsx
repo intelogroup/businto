@@ -81,49 +81,8 @@ export function useQuoteNotifications({ userId, enabled = true }: QuoteNotificat
     };
     */
 
-    // For demo purposes, simulate receiving quotes
-    const simulateQuotes = () => {
-      const mockOperators = [
-        { name: "Quick Transit", price: 62 },
-        { name: "Premium Rides", price: 75 },
-        { name: "EcoWay Transport", price: 58 },
-      ];
-
-      const randomOperator = mockOperators[Math.floor(Math.random() * mockOperators.length)];
-
-      const mockQuote: Quote = {
-        id: `quote-${Date.now()}`,
-        tripRequestId: 'demo-trip',
-        operatorId: 'demo-operator',
-        operatorName: randomOperator.name,
-        operatorRating: 4.5 + Math.random() * 0.5,
-        operatorReviewCount: Math.floor(50 + Math.random() * 100),
-        totalPrice: randomOperator.price,
-        baseFare: 45,
-        distanceCharge: randomOperator.price - 45,
-        additionalFees: [],
-        vehicleType: "Mercedes Sprinter",
-        vehicleYear: 2022,
-        vehicleCapacity: 14,
-        coriCertified: true,
-        insuranceVerified: true,
-        wheelchairAccessible: true,
-        responseTime: Math.floor(3 + Math.random() * 10),
-        status: 'pending',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
-      };
-
-      // Only trigger occasionally to not overwhelm
-      if (Math.random() > 0.7) {
-        handleNewQuote(mockQuote, 'demo-trip');
-      }
-    };
-
-    // Simulate quotes every 30 seconds
-    const interval = setInterval(simulateQuotes, 30000);
-
-    return () => clearInterval(interval);
+    // No simulation in production
+    return () => { };
   }, [enabled, userId, handleNewQuote]);
 
   const requestNotificationPermission = useCallback(async () => {

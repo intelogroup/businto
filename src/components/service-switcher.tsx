@@ -11,8 +11,8 @@ interface ServiceTab {
 }
 
 const tabs: ServiceTab[] = [
-    { id: "school", label: "School Run", icon: BusFront, color: "#F59E0B" },
     { id: "medical", label: "Care Ride", icon: HeartPulse, color: "#10B981" },
+    { id: "school", label: "School Run", icon: BusFront, color: "#F59E0B" },
     { id: "wedding", label: "Event Shuttle", icon: Gem, color: "#6366F1" },
 ];
 

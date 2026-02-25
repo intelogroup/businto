@@ -28,26 +28,39 @@ export interface SchoolSafeMetadata {
 }
 
 export interface MedicalSafeMetadata {
-  mobility_level: 'ambulatory' | 'wheelchair' | 'stretcher';
-  service_level: 'curb-to-curb' | 'door-to-door' | 'door-through-door';
+  mobility_level: 'ambulatory' | 'wheelchair' | 'manual-wheelchair' | 'electric-wheelchair' | 'stretcher';
+  service_level: 'curb-to-curb' | 'door-to-door' | 'door-through-door' | 'hand-to-hand';
   trip_type: 'one-way' | 'round-trip' | 'wait-and-return';
   appointment_time: string;
   return_time?: string;
+  return_status?: 'fixed' | 'will-call';
   special_equipment?: string;
   oxygen_required?: boolean;
-  wheelchair_type?: string;
+  oxygen_use?: boolean; // Form uses this
+  is_bariatric?: boolean;
+  facility_details?: string;
+  stair_factor?: 'none' | '1-5' | 'flight';
+  additional_passengers?: number;
+  service_animal?: boolean;
   attendant_needed?: boolean;
   medical_notes?: string;
   note?: string;
 }
 
 export interface WeddingSafeMetadata {
+  event_category?: 'wedding' | 'corporate' | 'party' | 'other';
   guest_count: number;
-  vehicle_style: 'shuttle' | 'coach' | 'limo' | 'party-bus';
+  vehicle_style: 'shuttle' | 'coach' | 'limo' | 'party-bus' | 'school-bus' | 'vintage';
   itinerary_type: 'hotel-to-venue' | 'venue-to-hotel' | 'shuttle-service' | 'full-day';
+  shuttle_mode?: 'single-trip' | 'continuous' | 'end-of-night';
   event_name?: string;
   pickup_time: string;
+  event_start_time?: string;
   return_time?: string;
+  alcohol_allowed?: boolean;
+  refreshments_provided?: boolean;
+  av_needs?: boolean;
+  special_decor?: boolean;
   special_requests?: string;
   duration_hours?: number;
   service_level?: string;
@@ -94,6 +107,8 @@ export interface WeddingPrivateMetadata {
   contact_name: string;
   contact_phone: string;
   contact_email: string;
+  day_of_contact_name?: string;
+  day_of_contact_phone?: string;
 }
 
 export interface CorporatePrivateMetadata {

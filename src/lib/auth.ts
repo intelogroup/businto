@@ -20,7 +20,12 @@ function getFrontendOrigin() {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  return process.env.NEXT_PUBLIC_APP_URL || "https://businto.vercel.app";
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl) {
+    // Remove trailing slash if present
+    return envUrl.replace(/\/$/, "");
+  }
+  return "https://businto.vercel.app";
 }
 
 export async function mapSupabaseUser(
@@ -119,6 +124,7 @@ export async function registerUser(
       data: {
         full_name: fullName,
       },
+      emailRedirectTo: `${getFrontendOrigin()}/api/auth/callback`,
     },
   });
 
@@ -174,12 +180,24 @@ export async function updatePassword(
   newPassword: string,
   supabaseClient = supabase
 ) {
+  console.log("[Auth] updatePassword started...");
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  console.log("[Auth] Current session state:", {
+    hasSession: !!session,
+    userEmail: session?.user?.email,
+    userId: session?.user?.id
+  });
+
   const { data, error } = await supabaseClient.auth.updateUser({
     password: newPassword,
   });
+
   if (error) {
+    console.error("[Auth] updatePassword error:", error);
     throw error;
   }
+
+  console.log("[Auth] updatePassword success");
   return data;
 }
 

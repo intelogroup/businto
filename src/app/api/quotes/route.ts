@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
+import { validateQuote } from '@/lib/quote-validation';
 
 // Service role client for quote operations (bypasses RLS for anonymous operator submissions)
 const supabaseAdmin = createClient(
@@ -26,6 +27,20 @@ export async function POST(request: NextRequest) {
       appBaseUrl = 'https://businto.vercel.app';
     }
     const body = await request.json();
+    
+    // VALIDATE INPUT with Zod schema
+    const validation = validateQuote(body);
+    if (!validation.success) {
+      console.error('🔴 Quote Validation Failed:', validation.error.format());
+      return NextResponse.json(
+        { 
+          error: 'Invalid quote data', 
+          details: validation.error.format() 
+        },
+        { status: 400 }
+      );
+    }
+
     const {
       request_id,
       operator_id,
@@ -39,15 +54,7 @@ export async function POST(request: NextRequest) {
       vehicle_photo_url,
       wheelchair_accessible,
       note
-    } = body;
-
-    // For MVP: operator_id is optional (anonymous quotes allowed)
-    if (!request_id || !total_price || !vehicle_type) {
-      return NextResponse.json(
-        { error: 'Missing required fields: request_id, total_price, vehicle_type' },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     // MARKETPLACE INTEGRITY: Request is locked once a quote is accepted
     const { data: acceptedQuote } = await supabaseAdmin

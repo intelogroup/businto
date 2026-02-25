@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, Shield, ChevronDown, LayoutDashboard, Menu, X, Bus } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -62,13 +62,15 @@ export function Navbar() {
               <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
             </a>
           ))}
-          <Link
-            href="/trips"
-            className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
-          >
-            My Trips
-            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
-          </Link>
+          {isAuthenticated && (
+            <Link
+              href="/trips"
+              className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
+            >
+              My Trips
+              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -81,14 +83,19 @@ export function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[280px] p-0">
-                <div className="p-6 border-b border-neutral-100">
-                  <Link href="/" className="font-semibold text-xl tracking-tighter text-neutral-900 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-                      <Image src="/brand-mark.svg" width={24} height={24} alt="Businto" />
-                    </div>
-                    <span>Businto</span>
-                  </Link>
-                </div>
+                <SheetHeader className="p-6 border-b border-neutral-100">
+                  <SheetTitle asChild>
+                    <Link href="/" className="font-semibold text-xl tracking-tighter text-neutral-900 flex items-center gap-3 text-left">
+                      <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                        <Image src="/brand-mark.svg" width={24} height={24} alt="Businto" />
+                      </div>
+                      <span>Businto</span>
+                    </Link>
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Navigation menu for mobile users.
+                  </SheetDescription>
+                </SheetHeader>
                 <div className="p-6 space-y-1">
                   {["Operators", "Pricing"].map((item) => (
                     <SheetClose asChild key={item}>
@@ -100,14 +107,16 @@ export function Navbar() {
                       </a>
                     </SheetClose>
                   ))}
-                  <SheetClose asChild>
-                    <Link
-                      href="/trips"
-                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
-                    >
-                      My Trips
-                    </Link>
-                  </SheetClose>
+                  {isAuthenticated && (
+                    <SheetClose asChild>
+                      <Link
+                        href="/trips"
+                        className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                      >
+                        My Trips
+                      </Link>
+                    </SheetClose>
+                  )}
                 </div>
                 <div className="p-6 border-t border-neutral-100 space-y-3">
                   {!isAuthenticated && (

@@ -24,14 +24,21 @@ function ForgotPasswordContent() {
             console.log("[ForgotPassword] Reset email sent successfully to:", email);
             setSent(true);
         } catch (error: any) {
-            console.error("[ForgotPassword] resetPasswordForEmail failed:", {
+            console.error("[ForgotPassword] resetPasswordForEmail failed:", error);
+            const errorDetails = {
                 message: error?.message,
                 status: error?.status,
+                name: error?.name,
                 code: error?.code,
-                error,
-            });
-            // Intentionally vague — don't reveal whether email exists
-            toast.error("Something went wrong. Please try again.");
+                ...error
+            };
+            console.error("[ForgotPassword] Formatted Error Details:", errorDetails);
+
+            if (error?.code === "over_email_send_rate_limit") {
+                toast.error("Too many requests. Please wait a few minutes before trying again.");
+            } else {
+                toast.error("Something went wrong. Please try again.");
+            }
         } finally {
             setIsSubmitting(false);
         }

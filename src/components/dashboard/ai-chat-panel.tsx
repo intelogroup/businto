@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Mic, Bot, User, Sparkles, Bus, ArrowRight, BrainCircuit, Waves } from "lucide-react";
+import { Send, Mic, Sparkles, Bus, ArrowRight, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 interface Message {
     id: string;
@@ -62,6 +64,8 @@ export function AIChatPanel() {
             timestamp: new Date()
         }
     ]);
+    const { user } = useAuth();
+    const router = useRouter();
     const [inputValue, setInputValue] = useState("");
     const [isListening, setIsListening] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
@@ -75,6 +79,11 @@ export function AIChatPanel() {
 
     const handleSendMessage = async (text: string) => {
         if (!text.trim()) return;
+
+        if (!user) {
+            router.push('/login?next=/');
+            return;
+        }
 
         const newUserMsg: Message = {
             id: Date.now().toString(),
@@ -114,7 +123,7 @@ export function AIChatPanel() {
     };
 
     return (
-        <Card className="h-full flex flex-col border border-neutral-200 shadow-none bg-white rounded-2xl overflow-hidden relative">
+        <Card className="h-full flex flex-col border border-neutral-200 shadow-none bg-white rounded-2xl overflow-hidden relative" style={{ boxShadow: 'none' }}>
 
             <div className="flex-1 relative overflow-hidden flex flex-col h-full">
                 {/* Header - Overlaid with backdrop blur - Reduced height */}
@@ -126,19 +135,16 @@ export function AIChatPanel() {
                             </div>
                         </div>
                         <div>
-                            <CardTitle className="text-sm font-bold text-neutral-900 tracking-tight flex items-center gap-2">
+                            <CardTitle className="text-sm font-bold text-neutral-900 tracking-tight">
                                 Businto AI
-                                <span className="bg-indigo-50 text-indigo-600 text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">v2</span>
                             </CardTitle>
                         </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-400 hover:text-indigo-600 rounded-lg">
-                        <BrainCircuit className="h-4 w-4" />
-                    </Button>
+
                 </CardHeader>
 
                 {/* Chat Area - Full height with spacer for header */}
-                <div className="flex-1 overflow-hidden relative z-10">
+                <div className="flex-1 overflow-hidden relative z-10 bg-neutral-50">
                     <ScrollArea className="h-full w-full" style={{ overscrollBehaviorY: 'contain' }}>
                         {/* Header Spacer - approximately 52px (py-2 + content) */}
                         <div className="h-[52px]" />
@@ -172,7 +178,6 @@ export function AIChatPanel() {
                                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest" suppressHydrationWarning>
                                                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
-                                                {msg.role === "ai" && <Sparkles className="h-2.5 w-2.5 text-indigo-400" />}
                                             </div>
                                         </div>
                                     </motion.div>

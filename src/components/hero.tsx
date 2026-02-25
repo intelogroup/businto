@@ -20,6 +20,7 @@ import { LocationInput } from "./location-input";
 import { motion, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
 import { AIChatPanel } from "@/components/dashboard/ai-chat-panel";
 import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
 
 const OPERATORS = [
   "Alpha Transit", "Boston Coach", "SafeWay Vans", "CareRide Express",
@@ -36,6 +37,7 @@ const INITIAL_REQUESTS = [
 
 export function Hero() {
   const { user } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("school");
   const [feedIndex, setFeedIndex] = useState(0);
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
@@ -82,25 +84,54 @@ export function Hero() {
   const [pickupZip, setPickupZip] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
-  const [scheduleType, setScheduleType] = useState("round-trip");
-  const [amTime, setAmTime] = useState("07:45");
-  const [pmTime, setPmTime] = useState("15:00");
+  const [scheduleType, setScheduleType] = useState("");
+  const [amTime, setAmTime] = useState("");
+  const [pmTime, setPmTime] = useState("");
   const [startDate, setStartDate] = useState("");
   const [studentCount, setStudentCount] = useState("");
   const [endDate, setEndDate] = useState("");
+  // School - Student Details
+  const [studentAge, setStudentAge] = useState("");
+  const [specialNeeds, setSpecialNeeds] = useState(false);
+  const [boosterSeat, setBoosterSeat] = useState("none");
+  // School - Route Schedule
+  const [schoolRecurring, setSchoolRecurring] = useState("");
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [schoolStartTime, setSchoolStartTime] = useState("");
+  const [schoolDismissalTime, setSchoolDismissalTime] = useState("");
+  const [earlyDismissalNotes, setEarlyDismissalNotes] = useState("");
+  // School - Guardian & Security
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [authorizedPickups, setAuthorizedPickups] = useState("");
+  const [noAdultRelease, setNoAdultRelease] = useState(false);
+  const [safeWord, setSafeWord] = useState("");
+  // School - Locations
 
   // Medical fields
+  const [medicalContactName, setMedicalContactName] = useState("");
+  const [medicalContactPhone, setMedicalContactPhone] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [mobilityLevel, setMobilityLevel] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [isPt1, setIsPt1] = useState(false);
-  const [serviceLevel, setServiceLevel] = useState("curb-to-curb");
-  const [tripType, setTripType] = useState("one-way");
-  const [medicalDurationType, setMedicalDurationType] = useState("one-time");
+  const [serviceLevel, setServiceLevel] = useState("");
+  const [tripType, setTripType] = useState("");
+  const [medicalDurationType, setMedicalDurationType] = useState("");
   const [medicalDurationValue, setMedicalDurationValue] = useState("");
   const [medicalCustomDates, setMedicalCustomDates] = useState<Date[]>([]);
+  const [medicalStartDate, setMedicalStartDate] = useState("");
+  const [medicalEndDate, setMedicalEndDate] = useState("");
+  const [oxygenUse, setOxygenUse] = useState(false);
+  const [isBariatric, setIsBariatric] = useState(false);
+  const [facilityDetails, setFacilityDetails] = useState("");
+  const [stairFactor, setStairFactor] = useState("none");
+  const [returnStatus, setReturnStatus] = useState("");
+  const [medicalReturnTime, setMedicalReturnTime] = useState("");
+  const [additionalPassengers, setAdditionalPassengers] = useState("");
+  const [serviceAnimal, setServiceAnimal] = useState(false);
 
   // Event fields
   const [guestCount, setGuestCount] = useState("");
@@ -108,11 +139,23 @@ export function Hero() {
   const [hotelZip, setHotelZip] = useState("");
   const [venueZip, setVenueZip] = useState("");
   const [vehicleStyle, setVehicleStyle] = useState("");
-  const [itineraryType, setItineraryType] = useState("hotel-to-venue");
+  const [itineraryType, setItineraryType] = useState("");
   const [pickupTime, setPickupTime] = useState("");
-  const [eventDurationType, setEventDurationType] = useState("single-day");
+  const [weddingReturnTime, setWeddingReturnTime] = useState("");
+  const [eventDurationType, setEventDurationType] = useState("");
   const [eventDurationDays, setEventDurationDays] = useState("");
   const [eventCustomDates, setEventCustomDates] = useState<Date[]>([]);
+
+  // Event Enhancements
+  const [eventCategory, setEventCategory] = useState("");
+  const [shuttleMode, setShuttleMode] = useState("");
+  const [eventStartTime, setEventStartTime] = useState("");
+  const [alcoholAllowed, setAlcoholAllowed] = useState(false);
+  const [refreshmentsProvided, setRefreshmentsProvided] = useState(false);
+  const [avNeeds, setAvNeeds] = useState(false);
+  const [specialDecor, setSpecialDecor] = useState(false);
+  const [dayOfContactName, setDayOfContactName] = useState("");
+  const [dayOfContactPhone, setDayOfContactPhone] = useState("");
 
   // Shared fields
   const [note, setNote] = useState("");
@@ -153,6 +196,16 @@ export function Hero() {
           if (parsed.appointmentTime) setAppointmentTime(parsed.appointmentTime);
           if (parsed.serviceLevel) setServiceLevel(parsed.serviceLevel);
           if (parsed.tripType) setTripType(parsed.tripType);
+          if (parsed.oxygenUse !== undefined) setOxygenUse(parsed.oxygenUse);
+          if (parsed.isBariatric !== undefined) setIsBariatric(parsed.isBariatric);
+          if (parsed.facilityDetails) setFacilityDetails(parsed.facilityDetails);
+          if (parsed.stairFactor) setStairFactor(parsed.stairFactor);
+          if (parsed.returnStatus) setReturnStatus(parsed.returnStatus);
+          if (parsed.medicalReturnTime) setMedicalReturnTime(parsed.medicalReturnTime);
+          if (parsed.additionalPassengers) setAdditionalPassengers(parsed.additionalPassengers);
+          if (parsed.serviceAnimal !== undefined) setServiceAnimal(parsed.serviceAnimal);
+          if (parsed.medicalContactName) setMedicalContactName(parsed.medicalContactName);
+          if (parsed.medicalContactPhone) setMedicalContactPhone(parsed.medicalContactPhone);
 
           // Restore wedding fields
           if (parsed.guestCount) setGuestCount(parsed.guestCount);
@@ -162,6 +215,18 @@ export function Hero() {
           if (parsed.vehicleStyle) setVehicleStyle(parsed.vehicleStyle);
           if (parsed.itineraryType) setItineraryType(parsed.itineraryType);
           if (parsed.pickupTime) setPickupTime(parsed.pickupTime);
+          if (parsed.weddingReturnTime) setWeddingReturnTime(parsed.weddingReturnTime);
+
+          // Restore event enhancement fields
+          if (parsed.eventCategory) setEventCategory(parsed.eventCategory);
+          if (parsed.shuttleMode) setShuttleMode(parsed.shuttleMode);
+          if (parsed.eventStartTime) setEventStartTime(parsed.eventStartTime);
+          if (parsed.alcoholAllowed !== undefined) setAlcoholAllowed(parsed.alcoholAllowed);
+          if (parsed.refreshmentsProvided !== undefined) setRefreshmentsProvided(parsed.refreshmentsProvided);
+          if (parsed.avNeeds !== undefined) setAvNeeds(parsed.avNeeds);
+          if (parsed.specialDecor !== undefined) setSpecialDecor(parsed.specialDecor);
+          if (parsed.dayOfContactName) setDayOfContactName(parsed.dayOfContactName);
+          if (parsed.dayOfContactPhone) setDayOfContactPhone(parsed.dayOfContactPhone);
         } catch (e) {
           console.error('Failed to restore form draft:', e);
         }
@@ -176,37 +241,74 @@ export function Hero() {
         activeTab,
         // School fields
         pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, endDate, studentCount,
+        studentAge, specialNeeds, boosterSeat,
+        schoolRecurring, selectedDays, schoolStartTime, schoolDismissalTime, earlyDismissalNotes,
+        guardianName, guardianPhone, authorizedPickups, noAdultRelease, safeWord,
         // Medical fields
-        pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
-        // Wedding fields
-        guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime
+        medicalContactName, medicalContactPhone, pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
+        oxygenUse, isBariatric, facilityDetails, stairFactor, returnStatus, medicalReturnTime, additionalPassengers, serviceAnimal,
+        // Wedding/Event fields
+        guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime, weddingReturnTime,
+        eventDurationType, eventDurationDays, eventCustomDates: eventCustomDates.map(d => d.toISOString()),
+        eventCategory, shuttleMode, eventStartTime, alcoholAllowed, refreshmentsProvided, avNeeds, specialDecor,
+        dayOfContactName, dayOfContactPhone,
+        // Shared fields
+        note,
       };
       sessionStorage.setItem('businto_form_draft', JSON.stringify(draft));
     }
   }, [activeTab, pickupZip, schoolName, gradeLevel, scheduleType, amTime, pmTime, startDate, endDate, studentCount,
-    pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, serviceLevel, tripType,
-    guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime, isSubmitted]);
+    studentAge, specialNeeds, boosterSeat,
+    schoolRecurring, selectedDays, schoolStartTime, schoolDismissalTime, earlyDismissalNotes,
+    guardianName, guardianPhone, authorizedPickups, noAdultRelease, safeWord,
+    medicalContactName, medicalContactPhone, pickupLocation, dropoffLocation, mobilityLevel, appointmentDate, appointmentTime, isPt1, serviceLevel, tripType,
+    medicalDurationType, medicalDurationValue, medicalCustomDates, medicalStartDate, medicalEndDate, oxygenUse, isBariatric, facilityDetails, stairFactor, returnStatus, medicalReturnTime, additionalPassengers, serviceAnimal,
+    guestCount, eventDate, hotelZip, venueZip, vehicleStyle, itineraryType, pickupTime, weddingReturnTime,
+    eventDurationType, eventDurationDays, eventCustomDates,
+    eventCategory, shuttleMode, eventStartTime, alcoholAllowed, refreshmentsProvided, avNeeds, specialDecor,
+    dayOfContactName, dayOfContactPhone,
+    note, isSubmitted]);
 
   const handleSubmit = async () => {
     // Reset errors
     setValidationErrors({});
     setSubmitError(null);
 
+    // Require auth
+    if (!user) {
+      router.push('/login?next=/');
+      return;
+    }
+
     // Build request data based on service type
     let requestData: any;
 
     if (activeTab === 'school') {
       const schoolMetadata = {
+        // Safe — operator-visible
         school_name: schoolName,
         grade_level: gradeLevel || undefined,
-        student_count: parseInt(studentCount) || 1,
+        student_count: studentCount ? parseInt(studentCount) : undefined,
+        student_age: parseInt(studentAge) || undefined,
         schedule_type: scheduleType,
+        school_recurring: schoolRecurring,
+        selected_days: selectedDays.length > 0 ? selectedDays.join(',') : undefined,
+        school_start_time: schoolStartTime || undefined,
+        school_dismissal_time: schoolDismissalTime || undefined,
+        early_dismissal_notes: earlyDismissalNotes || undefined,
         am_pickup_time: (scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : undefined,
         pm_pickup_time: (scheduleType === 'round-trip' || scheduleType === 'pm-only') ? pmTime : undefined,
+        special_needs: specialNeeds,
+        booster_seat: boosterSeat !== 'none' ? boosterSeat : undefined,
+        no_adult_release: noAdultRelease,
         note: note || undefined,
-        // Private fields - will be split out
-        parent_name: user?.name,
-        parent_email: user?.email,
+        // Private — PII, split into metadata_private by splitSchoolMetadata
+        parent_name: user?.name || undefined,
+        parent_email: user?.email || undefined,
+        guardian_name: guardianName || undefined,    // classified as private
+        guardian_phone: guardianPhone || undefined,  // classified as private
+        authorized_pickups: authorizedPickups || undefined, // classified as private
+        safe_word: safeWord || undefined,             // classified as private
       };
 
       const { metadata_safe, metadata_private } = splitMetadataByServiceType('school', schoolMetadata);
@@ -220,21 +322,34 @@ export function Hero() {
         start_date: startDate,
         end_date: endDate || undefined,
         start_time: (scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : pmTime,
-        is_recurring: true,
-        recurrence_pattern: 'weekdays',
+        is_recurring: schoolRecurring === 'recurring',
+        recurrence_pattern: schoolRecurring === 'recurring' ? 'weekdays' : 'one-time',
         metadata: schoolMetadata, // For backward compatibility
         metadata_safe,
         metadata_private,
       };
     } else if (activeTab === 'medical') {
+      const isRecurringMedical = medicalDurationType === 'recurring';
       const medicalMetadata = {
         mobility_level: mobilityLevel,
         service_level: serviceLevel,
         trip_type: tripType,
         appointment_time: appointmentTime,
+        oxygen_use: oxygenUse,
+        is_bariatric: isBariatric,
+        facility_details: facilityDetails || undefined,
+        stair_factor: stairFactor,
+        return_status: tripType === 'round-trip' ? returnStatus : undefined,
+        return_time: tripType === 'round-trip' ? medicalReturnTime : undefined,
+        additional_passengers: additionalPassengers ? parseInt(additionalPassengers) : undefined,
+        service_animal: serviceAnimal,
+        medical_start_date: isRecurringMedical ? medicalStartDate : appointmentDate,
+        medical_end_date: isRecurringMedical ? medicalEndDate || undefined : undefined,
         note: note || undefined,
         // Private fields - will be split out
         patient_name: user?.name || 'Patient',
+        contact_name: medicalContactName || user?.name || undefined,
+        contact_phone: medicalContactPhone || undefined,
         contact_email: user?.email,
       };
 
@@ -246,26 +361,39 @@ export function Hero() {
         dropoff_address: dropoffLocation,
         pickup_fuzzy: pickupLocation,
         dropoff_fuzzy: dropoffLocation,
-        start_date: appointmentDate,
+        start_date: isRecurringMedical ? medicalStartDate : appointmentDate,
+        end_date: isRecurringMedical ? medicalEndDate || undefined : undefined,
         start_time: appointmentTime,
-        is_recurring: medicalDurationType !== 'one-time',
+        is_recurring: isRecurringMedical,
         recurrence_pattern: medicalDurationType,
         metadata: medicalMetadata, // For backward compatibility
         metadata_safe,
         metadata_private,
       };
     } else {
-      // wedding
+      // wedding / event
       const weddingMetadata = {
-        guest_count: parseInt(guestCount) || 1,
+        // Safe — operator-visible
+        event_category: eventCategory,
+        guest_count: guestCount ? parseInt(guestCount) : undefined,
         vehicle_style: vehicleStyle,
         itinerary_type: itineraryType,
+        shuttle_mode: shuttleMode,
+        event_duration_type: eventDurationType || undefined,
         pickup_time: pickupTime,
+        return_time: (itineraryType === 'shuttle-service' || itineraryType === 'full-day') ? weddingReturnTime : undefined,
+        event_start_time: eventStartTime || undefined,
+        alcohol_allowed: alcoholAllowed,
+        refreshments_provided: refreshmentsProvided,
+        av_needs: avNeeds,
+        special_decor: specialDecor,
         note: note || undefined,
-        // Private fields - will be split out
+        // Private — PII, split into metadata_private by splitWeddingMetadata
         contact_name: user?.name || 'Event Coordinator',
-        contact_phone: '555-0000', // Phone not available in user object
+        contact_phone: dayOfContactPhone || '555-000-0000',
         contact_email: user?.email || 'event@example.com',
+        day_of_contact_name: dayOfContactName || undefined,
+        day_of_contact_phone: dayOfContactPhone || undefined,
       };
 
       const { metadata_safe, metadata_private } = splitMetadataByServiceType('wedding', weddingMetadata);
@@ -346,273 +474,534 @@ export function Hero() {
     >
 
       <div className="container mx-auto max-w-7xl relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-          {/* Left Column - Content */}
+
+        {/* Headline — above the grid so it doesn't offset the form/chat alignment */}
+        {!user && (
+          <div className="mb-12 md:mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out flex flex-col items-center text-center max-w-3xl mx-auto">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-neutral-900 mb-4 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
+              Smarter routing for private rides.
+            </h1>
+            <p className="text-lg md:text-xl text-neutral-500 leading-relaxed font-medium max-w-xl">
+              School runs, medical transports, and full-day charters managed by one intelligent platform.
+            </p>
+          </div>
+        )}
+
+        {/* 2-col grid — form (left) and chat (right) share identical top/bottom edges */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
+          {/* Left Column - Form card */}
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
 
-            {!user && (
-              <>
-                <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-neutral-900 mb-6 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
-                  Smarter routing for private rides.
-                </h1>
-                <p className="text-sm md:text-base text-neutral-500 mb-10 leading-relaxed font-medium max-w-lg">
-                  School runs, medical transports, and full-day charters managed by one intelligent platform.
-                </p>
-              </>
-            )}
-
-            <div className="mb-14 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both">
-              <div className="bg-white rounded-lg p-7 md:p-10 shadow-sm ring-1 ring-black/[0.02] relative transition-colors duration-150">
+            <div className="animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both h-full">
+              <div className="bg-white rounded-xl p-7 md:p-10 shadow-none border border-neutral-200 relative transition-colors duration-150 h-full flex flex-col">
 
                 <ServiceSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
                 <div className="mt-12 min-h-[120px] transition-all duration-300">
                   {activeTab === "school" && (
-                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500">
-                      {/* Row 1: Locations */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 min-w-[160px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Pickup Address</label>
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+
+                      {/* Section: Locations */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pickup Address</label>
                           <LocationInput
                             placeholder="Your home address..."
                             value={pickupZip}
                             onSelect={(addr) => setPickupZip(addr)}
-                            className="h-9 rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        <div className="flex-1 min-w-[160px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Target School</label>
+                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">School Name & Campus</label>
                           <LocationInput
-                            placeholder="Search for school..."
+                            placeholder="e.g. Malden Catholic, Main Entrance..."
                             value={schoolName}
                             onSelect={(addr) => setSchoolName(addr)}
-                            className="h-9 rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        <div className="w-[120px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Grade Level</label>
-                          <Select value={gradeLevel} onValueChange={setGradeLevel}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
-                              <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="k" className="rounded-md py-3 px-4">Kindergarten</SelectItem>
-                              <SelectItem value="elem" className="rounded-md py-3 px-4">Elementary (1-5)</SelectItem>
-                              <SelectItem value="middle" className="rounded-md py-3 px-4">Middle (6-8)</SelectItem>
-                              <SelectItem value="high" className="rounded-md py-3 px-4">High (9-12)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
-                      {/* Row 2: Schedule, Students, Times */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="w-[120px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Schedule</label>
-                          <Select value={scheduleType} onValueChange={setScheduleType}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+
+                      {/* Section: Student Details */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Grade Level</label>
+                          <Select value={gradeLevel} onValueChange={setGradeLevel}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="round-trip" className="rounded-md py-3 px-4">Round Trip</SelectItem>
-                              <SelectItem value="am-only" className="rounded-md py-3 px-4">AM Only</SelectItem>
-                              <SelectItem value="pm-only" className="rounded-md py-3 px-4">PM Only</SelectItem>
+                              <SelectItem value="k" className="rounded-md py-3 px-4 text-xs font-bold">Kindergarten</SelectItem>
+                              <SelectItem value="elem" className="rounded-md py-3 px-4 text-xs font-bold">Elementary 1–5</SelectItem>
+                              <SelectItem value="middle" className="rounded-md py-3 px-4 text-xs font-bold">Middle 6–8</SelectItem>
+                              <SelectItem value="high" className="rounded-md py-3 px-4 text-xs font-bold">High 9–12</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="w-[70px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Students</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Age</label>
+                          <Input
+                            type="number"
+                            placeholder="9"
+                            min="4"
+                            max="18"
+                            value={studentAge}
+                            onChange={(e) => setStudentAge(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Students</label>
                           <Input
                             type="number"
                             placeholder="1"
                             min="1"
                             value={studentCount}
                             onChange={(e) => setStudentCount(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        {(scheduleType === 'round-trip' || scheduleType === 'am-only') && (
-                          <div className="w-[110px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">AM Pickup</label>
-                            <Input
-                              type="time"
-                              value={amTime}
-                              onChange={(e) => setAmTime(e.target.value)}
-                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                            />
-                          </div>
-                        )}
-                        {(scheduleType === 'round-trip' || scheduleType === 'pm-only') && (
-                          <div className="w-[110px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">PM Pickup</label>
-                            <Input
-                              type="time"
-                              value={pmTime}
-                              onChange={(e) => setPmTime(e.target.value)}
-                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                            />
-                          </div>
-                        )}
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Car Seat Needed</label>
+                          <Select value={boosterSeat} onValueChange={setBoosterSeat}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="none" className="rounded-md py-3 px-4 text-xs font-bold">None</SelectItem>
+                              <SelectItem value="booster" className="rounded-md py-3 px-4 text-xs font-bold">Booster Seat</SelectItem>
+                              <SelectItem value="forward-facing" className="rounded-md py-3 px-4 text-xs font-bold">Forward-Facing Seat</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      {/* Row 3: Start Date & End Date */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="w-[140px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Start Date</label>
+
+                      {/* Section: Route Schedule */}
+                      <div className="grid grid-cols-4 gap-3 pt-1">
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Frequency</label>
+                          <Select
+                            value={schoolRecurring}
+                            onValueChange={(v) => {
+                              setSchoolRecurring(v);
+                              if (v === 'one-time') {
+                                setEndDate('');
+                                setSelectedDays(['M', 'T', 'W', 'Th', 'F']);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="one-time" className="rounded-md py-3 px-4 text-xs font-bold">One-Time</SelectItem>
+                              <SelectItem value="recurring" className="rounded-md py-3 px-4 text-xs font-bold">Recurring</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Start Date</label>
                           <Input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        <div className="w-[140px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">End Date <span className="normal-case font-normal text-neutral-400">(optional)</span></label>
-                          <Input
-                            type="date"
-                            value={endDate}
-                            min={startDate || undefined}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">AM/PM</label>
+                          <Select value={scheduleType} onValueChange={setScheduleType}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="round-trip" className="rounded-md py-3 px-4 text-xs font-bold">Round Trip</SelectItem>
+                              <SelectItem value="am-only" className="rounded-md py-3 px-4 text-xs font-bold">AM Only</SelectItem>
+                              <SelectItem value="pm-only" className="rounded-md py-3 px-4 text-xs font-bold">PM Only</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
+                        {(scheduleType === 'round-trip' || scheduleType === 'am-only') && (
+                          <div className="col-span-1 space-y-2">
+                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Bell Time</label>
+                            <Input
+                              type="time"
+                              value={schoolStartTime || amTime}
+                              onChange={(e) => { setSchoolStartTime(e.target.value); setAmTime(e.target.value); }}
+                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                            />
+                          </div>
+                        )}
+                        {(scheduleType === 'round-trip' || scheduleType === 'pm-only') && (
+                          <div className="col-span-1 space-y-2">
+                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Dismissal Time</label>
+                            <Input
+                              type="time"
+                              value={schoolDismissalTime || pmTime}
+                              onChange={(e) => { setSchoolDismissalTime(e.target.value); setPmTime(e.target.value); }}
+                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                            />
+                          </div>
+                        )}
                       </div>
-                      {/* Row 4: Note */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Additional Note (Optional)</label>
+
+                      {/* Days of Week - only for recurring */}
+                      {schoolRecurring === 'recurring' && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Days of the Week</label>
+                          <div className="flex gap-2">
+                            {(['M', 'T', 'W', 'Th', 'F'] as const).map((day) => (
+                              <button
+                                key={day}
+                                type="button"
+                                onClick={() => setSelectedDays(prev =>
+                                  prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                                )}
+                                className={`h-9 w-9 rounded-lg text-[10px] font-black border transition-all duration-150 ${selectedDays.includes(day)
+                                  ? 'bg-amber-500 border-amber-500 text-white'
+                                  : 'bg-white border-neutral-200 text-neutral-400 hover:border-neutral-300'
+                                  }`}
+                              >
+                                {day}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* End date + early dismissal notes */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        {schoolRecurring === 'recurring' && (
+                          <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                              End Date
+                              <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                            </label>
+                            <Input
+                              type="date"
+                              value={endDate}
+                              min={startDate || undefined}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Section: Guardian & Security */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
+
+                        <div className="col-span-1 sm:col-span-2 md:col-span-4 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Parent's Name
+                            <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                          </label>
                           <Input
                             type="text"
-                            placeholder="Any special requirements or instructions..."
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            placeholder="Parent Name"
+                            value={authorizedPickups}
+                            onChange={(e) => setAuthorizedPickups(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Phone Number
+                            <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                          </label>
+                          <Input
+                            type="tel"
+                            placeholder="555-000-0000"
+                            value={guardianPhone}
+                            onChange={(e) => setGuardianPhone(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
                       </div>
+
+                      {/* Checkboxes Row */}
+                      <div className="flex flex-wrap gap-6 px-1 pt-1">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={specialNeeds}
+                            onChange={(e) => setSpecialNeeds(e.target.checked)}
+                            className="w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500"
+                          />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Special Needs / IEP</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={noAdultRelease}
+                            onChange={(e) => setNoAdultRelease(e.target.checked)}
+                            className="w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500"
+                          />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">No-Adult Release OK</span>
+                        </label>
+                      </div>
+
+                      {/* Note */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        <div className="col-span-2 sm:col-span-4 md:col-span-6 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Additional Note
+                            <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                          </label>
+                          <Input
+                            type="text"
+                            placeholder={`"Child is shy, please wait at the front porch."`}
+                            value={note}
+                            onChange={(e) => setNote(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                      </div>
+
                     </div>
                   )}
 
+
                   {activeTab === "medical" && (
-                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
                       {/* Row 1: Locations */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 min-w-[200px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Pickup Location</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        <div className="col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pickup Location</label>
                           <LocationInput
-                            placeholder="Home address..."
+                            placeholder="Home, hospice, etc..."
                             value={pickupLocation}
                             onSelect={(addr) => setPickupLocation(addr)}
-                            className="h-9 rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        <div className="flex-1 min-w-[200px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Dropoff Location</label>
+                        <div className="col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Dropoff Location</label>
                           <LocationInput
                             placeholder="Hospital or clinic..."
                             value={dropoffLocation}
                             onSelect={(addr) => setDropoffLocation(addr)}
-                            className="h-9 rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
                       </div>
                       {/* Row 2: Mobility & Service Details */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Access Type</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Access Type</label>
                           <Select value={mobilityLevel} onValueChange={setMobilityLevel}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="ambulatory" className="rounded-md py-3 px-4 font-bold">Ambulatory</SelectItem>
-                              <SelectItem value="wheelchair" className="rounded-md py-3 px-4 font-bold">Wheelchair</SelectItem>
-                              <SelectItem value="stretcher" className="rounded-md py-3 px-4 font-bold">Stretcher</SelectItem>
+                              <SelectItem value="ambulatory" className="rounded-md py-3 px-4 text-xs font-bold">Ambulatory</SelectItem>
+                              <SelectItem value="manual-wheelchair" className="rounded-md py-3 px-4 text-xs font-bold">Manual Wheelchair</SelectItem>
+                              <SelectItem value="electric-wheelchair" className="rounded-md py-3 px-4 text-xs font-bold">Electric Wheelchair</SelectItem>
+                              <SelectItem value="stretcher" className="rounded-md py-3 px-4 text-xs font-bold">Stretcher</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="w-[120px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Service Level</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Service Level</label>
                           <Select value={serviceLevel} onValueChange={setServiceLevel}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="curb-to-curb" className="rounded-md py-3 px-4 font-bold">Curb-to-Curb</SelectItem>
-                              <SelectItem value="door-to-door" className="rounded-md py-3 px-4 font-bold">Door-to-Door</SelectItem>
-                              <SelectItem value="door-through-door" className="rounded-md py-3 px-4 font-bold">Door-Through-Door</SelectItem>
+                              <SelectItem value="curb-to-curb" className="rounded-md py-3 px-4 text-xs font-bold">Curb-to-Curb</SelectItem>
+                              <SelectItem value="door-to-door" className="rounded-md py-3 px-4 text-xs font-bold">Door-to-Door</SelectItem>
+                              <SelectItem value="hand-to-hand" className="rounded-md py-3 px-4 text-xs font-bold">Hand-to-Hand</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="w-[100px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Trip Type</label>
-                          <Select value={tripType} onValueChange={setTripType}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
-                              <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="one-way" className="rounded-md py-3 px-4 font-bold">One-Way</SelectItem>
-                              <SelectItem value="round-trip" className="rounded-md py-3 px-4 font-bold">Round Trip</SelectItem>
-                              <SelectItem value="wait-and-return" className="rounded-md py-3 px-4 font-bold">Wait & Return</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Service Type</label>
-                          <Select value={medicalDurationType} onValueChange={setMedicalDurationType}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
-                              <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="one-time" className="rounded-md py-3 px-4 font-bold">One-Time</SelectItem>
-                              <SelectItem value="recurring" className="rounded-md py-3 px-4 font-bold">Recurring</SelectItem>
-                              <SelectItem value="weekly" className="rounded-md py-3 px-4 font-bold">Weekly</SelectItem>
-                              <SelectItem value="custom" className="rounded-md py-3 px-4 font-bold">Custom Dates</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="col-span-2 sm:col-span-2 md:col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Facility (Room/Suite)</label>
+                          <Input
+                            placeholder="Room #, Suite, Wing..."
+                            value={facilityDetails}
+                            onChange={(e) => setFacilityDetails(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
                         </div>
                       </div>
+
+                      {/* Row 2b: Trip details — equal width 4-col grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Trip Type</label>
+                          <Select value={tripType} onValueChange={setTripType}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="one-way" className="rounded-md py-3 px-4 text-xs font-bold">One-Way</SelectItem>
+                              <SelectItem value="round-trip" className="rounded-md py-3 px-4 text-xs font-bold">Round Trip</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {tripType === 'round-trip' && (
+                          <>
+                            <div className="col-span-1 space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                              <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Return Status</label>
+                              <Select value={returnStatus} onValueChange={setReturnStatus}>
+                                <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                                  <SelectValue placeholder="Select..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                                  <SelectItem value="fixed" className="rounded-md py-3 px-4 text-xs font-bold">Fixed Time</SelectItem>
+                                  <SelectItem value="will-call" className="rounded-md py-3 px-4 text-xs font-bold">Will-Call</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {returnStatus === 'fixed' && (
+                              <div className="col-span-1 space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                                <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Return Time</label>
+                                <Input
+                                  type="time"
+                                  value={medicalReturnTime}
+                                  onChange={(e) => setMedicalReturnTime(e.target.value)}
+                                  className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Stairs</label>
+                          <Select value={stairFactor} onValueChange={setStairFactor}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="none" className="rounded-md py-3 px-4 text-xs font-bold">No Stairs</SelectItem>
+                              <SelectItem value="1-5" className="rounded-md py-3 px-4 text-xs font-bold">1-5 Stairs</SelectItem>
+                              <SelectItem value="flight" className="rounded-md py-3 px-4 text-xs font-bold">Full Flight</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Service Type</label>
+                          <Select
+                            value={medicalDurationType}
+                            onValueChange={(v) => {
+                              setMedicalDurationType(v);
+                              if (v === 'one-time') {
+                                setMedicalStartDate('');
+                                setMedicalEndDate('');
+                              } else {
+                                setAppointmentDate('');
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="one-time" className="rounded-md py-3 px-4 text-xs font-bold">One-Time</SelectItem>
+                              <SelectItem value="recurring" className="rounded-md py-3 px-4 text-xs font-bold">Recurring</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Addl. Passeng.</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={additionalPassengers}
+                            onChange={(e) => setAdditionalPassengers(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Toggles Row */}
+                      <div className="flex flex-wrap gap-6 px-1 pt-1">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={oxygenUse}
+                            onChange={(e) => setOxygenUse(e.target.checked)}
+                            className="w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500"
+                          />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Oxygen Use</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={isBariatric}
+                            onChange={(e) => setIsBariatric(e.target.checked)}
+                            className="w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500"
+                          />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Bariatric</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={serviceAnimal}
+                            onChange={(e) => setServiceAnimal(e.target.checked)}
+                            className="w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500"
+                          />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Service Animal</span>
+                        </label>
+                      </div>
+
                       {/* Row 3: Times & Dates */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Appt Time</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
+                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Appt Time</label>
                           <Input
                             type="time"
                             value={appointmentTime}
                             onChange={(e) => setAppointmentTime(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
                           />
                         </div>
-                        {medicalDurationType !== "one-time" && medicalDurationType !== "custom" && (
-                          <div className="w-[100px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">
-                              {medicalDurationType === "recurring" ? "# of Trips" : "# of Weeks"}
-                            </label>
+                        {medicalDurationType === "recurring" ? (
+                          <>
+                            <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Start Date</label>
+                              <Input
+                                type="date"
+                                value={medicalStartDate}
+                                onChange={(e) => setMedicalStartDate(e.target.value)}
+                                className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                              />
+                            </div>
+                            <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                                End Date
+                                <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                              </label>
+                              <Input
+                                type="date"
+                                value={medicalEndDate}
+                                min={medicalStartDate || undefined}
+                                onChange={(e) => setMedicalEndDate(e.target.value)}
+                                className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2">
+                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Appt Date</label>
                             <Input
-                              type="number"
-                              placeholder="Enter"
-                              min="1"
-                              value={medicalDurationValue}
-                              onChange={(e) => setMedicalDurationValue(e.target.value)}
-                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                              type="date"
+                              value={appointmentDate}
+                              onChange={(e) => setAppointmentDate(e.target.value)}
+                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                             />
                           </div>
                         )}
-                        <div className="w-[140px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Appt Date</label>
-                          <Input
-                            type="date"
-                            value={appointmentDate}
-                            onChange={(e) => setAppointmentDate(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
                         {medicalDurationType === "custom" && (
-                          <div className="w-[150px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Pick Dates</label>
+                          <div className="col-span-2 space-y-2">
+                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pick Dates</label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="h-9 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-white"
+                                  className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold justify-start transition-colors duration-150 hover:bg-white"
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {medicalCustomDates.length > 0 ? `${medicalCustomDates.length} dates` : "Select"}
@@ -630,16 +1019,47 @@ export function Hero() {
                           </div>
                         )}
                       </div>
-                      {/* Row 4: Note */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Additional Note (Optional)</label>
+
+                      {/* Row 4: Requester Info */}
+                      <div className="grid grid-cols-2 gap-3 pb-2 pt-2 border-t">
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Requester Name
+                          </label>
+                          <Input
+                            type="text"
+                            placeholder="Your Name"
+                            value={medicalContactName}
+                            onChange={(e) => setMedicalContactName(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Phone Number
+                          </label>
+                          <Input
+                            type="tel"
+                            placeholder="555-000-0000"
+                            value={medicalContactPhone}
+                            onChange={(e) => setMedicalContactPhone(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 5: Note */}
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Additional Note <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                          </label>
                           <Input
                             type="text"
                             placeholder="Any special requirements or instructions..."
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
                       </div>
@@ -647,74 +1067,171 @@ export function Hero() {
                   )}
 
                   {activeTab === "wedding" && (
-                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500">
-                      {/* Row 1: Locations */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 min-w-[200px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Hotel / Pickup</label>
-                          <LocationInput
-                            placeholder="Hotel or starting point..."
-                            value={hotelZip}
-                            onSelect={(addr) => setHotelZip(addr)}
-                            className="h-9 rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                      {/* Row 1: Category & Basic Info */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        <div className="col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Event Category</label>
+                          <Select value={eventCategory} onValueChange={setEventCategory}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="wedding" className="rounded-md py-3 px-4 font-bold">Wedding</SelectItem>
+                              <SelectItem value="corporate" className="rounded-md py-3 px-4 font-bold">Corporate Event</SelectItem>
+                              <SelectItem value="party" className="rounded-md py-3 px-4 font-bold">Private Party</SelectItem>
+                              <SelectItem value="other" className="rounded-md py-3 px-4 font-bold">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div className="flex-1 min-w-[200px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Venue Location</label>
-                          <LocationInput
-                            placeholder="Event venue..."
-                            value={venueZip}
-                            onSelect={(addr) => setVenueZip(addr)}
-                            className="h-9 rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
-                      </div>
-                      {/* Row 2: Event Details */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="w-[80px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Guests</label>
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Guests</label>
                           <Input
                             type="number"
                             placeholder="0"
                             min="1"
                             value={guestCount}
                             onChange={(e) => setGuestCount(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Vehicle Style</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Vehicle Preference</label>
                           <Select value={vehicleStyle} onValueChange={setVehicleStyle}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="shuttle" className="rounded-md py-3 px-4 font-bold">Shuttle Bus</SelectItem>
-                              <SelectItem value="coach" className="rounded-md py-3 px-4 font-bold">Motor Coach</SelectItem>
-                              <SelectItem value="limo" className="rounded-md py-3 px-4 font-bold">Limousine</SelectItem>
+                              <SelectItem value="school-bus" className="rounded-md py-3 px-4 font-bold">School Bus (Budget Hack)</SelectItem>
+                              <SelectItem value="shuttle" className="rounded-md py-3 px-4 font-bold">Executive Shuttle/Sprinter</SelectItem>
+                              <SelectItem value="coach" className="rounded-md py-3 px-4 font-bold">Motor Coach (55+ Pax)</SelectItem>
+                              <SelectItem value="limo" className="rounded-md py-3 px-4 font-bold">Limousine / Luxury Van</SelectItem>
                               <SelectItem value="party-bus" className="rounded-md py-3 px-4 font-bold">Party Bus</SelectItem>
-                              <SelectItem value="vintage" className="rounded-md py-3 px-4 font-bold">Vintage/Classic</SelectItem>
+                              <SelectItem value="vintage" className="rounded-md py-3 px-4 font-bold">Vintage / Classic</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="w-[130px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Itinerary</label>
-                          <Select value={itineraryType} onValueChange={setItineraryType}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                      </div>
+
+                      {/* Row 2: Locations */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        <div className="col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pickup (e.g. Hotel)</label>
+                          <LocationInput
+                            placeholder="Hotel or starting point..."
+                            value={hotelZip}
+                            onSelect={(addr) => setHotelZip(addr)}
+                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                        <div className="col-span-3 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Venue Location</label>
+                          <LocationInput
+                            placeholder="Event venue..."
+                            value={venueZip}
+                            onSelect={(addr) => setVenueZip(addr)}
+                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 3a: Logistics — Shuttle Mode + Itinerary Type + Event Date */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Shuttle Mode</label>
+                          <Select value={shuttleMode} onValueChange={setShuttleMode}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="hotel-to-venue" className="rounded-md py-3 px-4 font-bold">Hotel to Venue</SelectItem>
-                              <SelectItem value="venue-to-hotel" className="rounded-md py-3 px-4 font-bold">Venue to Hotel</SelectItem>
-                              <SelectItem value="shuttle-service" className="rounded-md py-3 px-4 font-bold">Shuttle Service</SelectItem>
+                              <SelectItem value="single-trip" className="rounded-md py-3 px-4 font-bold">Single Trip (Drop & Leave)</SelectItem>
+                              <SelectItem value="continuous" className="rounded-md py-3 px-4 font-bold">Continuous Loop (2-3 hrs)</SelectItem>
+                              <SelectItem value="end-of-night" className="rounded-md py-3 px-4 font-bold">End-of-Night Return Trip</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Itinerary Type</label>
+                          <Select value={itineraryType} onValueChange={setItineraryType}>
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
+                              <SelectItem value="hotel-to-venue" className="rounded-md py-3 px-4 font-bold">Hotel → Venue</SelectItem>
+                              <SelectItem value="venue-to-hotel" className="rounded-md py-3 px-4 font-bold">Venue → Hotel</SelectItem>
+                              <SelectItem value="shuttle-service" className="rounded-md py-3 px-4 font-bold">Shuttle Loop</SelectItem>
                               <SelectItem value="full-day" className="rounded-md py-3 px-4 font-bold">Full Day Charter</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Event Type</label>
+                        {(itineraryType === 'shuttle-service' || itineraryType === 'full-day') && (
+                          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Return Time</label>
+                            <Input
+                              type="time"
+                              value={weddingReturnTime}
+                              onChange={(e) => setWeddingReturnTime(e.target.value)}
+                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Event Date</label>
+                          <Input
+                            type="date"
+                            value={eventDate}
+                            onChange={(e) => setEventDate(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 3b: Departs + Ceremony */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Departs</label>
+                          <Input
+                            type="time"
+                            value={pickupTime}
+                            onChange={(e) => setPickupTime(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                          />
+                        </div>
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Ceremony</label>
+                          <Input
+                            type="time"
+                            value={eventStartTime}
+                            onChange={(e) => setEventStartTime(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 4: Coordinator & Extras */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Planner Name</label>
+                          <Input
+                            placeholder="Name..."
+                            value={dayOfContactName}
+                            onChange={(e) => setDayOfContactName(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                        <div className="col-span-1 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Contact</label>
+                          <Input
+                            placeholder="555-000-0000"
+                            value={dayOfContactPhone}
+                            onChange={(e) => setDayOfContactPhone(e.target.value)}
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                          />
+                        </div>
+                        <div className="col-span-2 space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Duration/Type</label>
                           <Select value={eventDurationType} onValueChange={setEventDurationType}>
-                            <SelectTrigger className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
@@ -726,74 +1243,39 @@ export function Hero() {
                           </Select>
                         </div>
                       </div>
-                      {/* Row 3: Times & Dates */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="w-[110px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Pickup Time</label>
-                          <Input
-                            type="time"
-                            value={pickupTime}
-                            onChange={(e) => setPickupTime(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
-                        {eventDurationType === "multi-day" && (
-                          <div className="w-[100px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1"># of Days</label>
-                            <Input
-                              type="number"
-                              placeholder="Enter"
-                              min="2"
-                              value={eventDurationDays}
-                              onChange={(e) => setEventDurationDays(e.target.value)}
-                              className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                            />
-                          </div>
-                        )}
-                        <div className="w-[140px] space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Event Date</label>
-                          <Input
-                            type="date"
-                            value={eventDate}
-                            onChange={(e) => setEventDate(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
-                        {eventDurationType === "custom" && (
-                          <div className="w-[150px] space-y-2">
-                            <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Pick Dates</label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="h-9 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-white"
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {eventCustomDates.length > 0 ? `${eventCustomDates.length} dates` : "Select"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <DayPicker
-                                  mode="multiple"
-                                  selected={eventCustomDates}
-                                  onSelect={(dates) => setEventCustomDates(dates || [])}
-                                  className="p-3"
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        )}
+
+                      {/* Row 5: Amenities Toggles */}
+                      <div className="flex flex-wrap gap-5 px-1 pt-1">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox" checked={alcoholAllowed} onChange={(e) => setAlcoholAllowed(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Alcohol OK</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox" checked={refreshmentsProvided} onChange={(e) => setRefreshmentsProvided(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Refreshments</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox" checked={avNeeds} onChange={(e) => setAvNeeds(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Bluetooth/AUX</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox" checked={specialDecor} onChange={(e) => setSpecialDecor(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
+                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Decorations</span>
+                        </label>
                       </div>
+
                       {/* Row 4: Note */}
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex-1 space-y-2">
-                          <label className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.15em] ml-1">Additional Note (Optional)</label>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            Additional Note <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                          </label>
                           <Input
                             type="text"
                             placeholder="Any special requirements or instructions..."
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
-                            className="h-9 w-full rounded-lg bg-neutral-50 border border-neutral-200 focus-visible:ring-0 px-4 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
                           />
                         </div>
                       </div>
@@ -872,6 +1354,15 @@ export function Hero() {
                           <p className="text-neutral-400 text-sm">
                             Broadcasting to 50+ local operators. You'll be notified when quotes arrive.
                           </p>
+                          {activeTab === 'medical' && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {mobilityLevel && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">{mobilityLevel}</Badge>}
+                              {oxygenUse && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Oxygen</Badge>}
+                              {isBariatric && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Bariatric</Badge>}
+                              {serviceAnimal && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Service Animal</Badge>}
+                              {parseInt(additionalPassengers) > 0 && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">+{additionalPassengers} Passengers</Badge>}
+                            </div>
+                          )}
                         </div>
                         <div className={cn(
                           "p-4 text-center border-t",
@@ -912,10 +1403,8 @@ export function Hero() {
           </div>
 
           {/* Right Column - AI Dispatch Interface */}
-          <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000 delay-400 ease-out lg:pl-10">
-            <div className="relative z-10 h-[640px]">
-              <AIChatPanel />
-            </div>
+          <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000 delay-400 ease-out lg:pl-10 h-full">
+            <AIChatPanel />
           </div>
         </div>
 

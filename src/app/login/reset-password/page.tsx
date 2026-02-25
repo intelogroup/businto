@@ -23,43 +23,61 @@ function ResetPasswordContent() {
 
     useEffect(() => {
         console.log("[ResetPassword] Page mounted, checking session...");
-        // /api/auth/callback already exchanged the PKCE code and set the
-        // session cookie before redirecting here. Just check if a session exists.
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        let isMounted = true;
+
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!isMounted) return;
+
             if (session) {
-                console.log("[ResetPassword] Session found, user:", session.user?.email);
+                console.log("[ResetPassword] Session found immediately, user:", session.user?.email);
                 setSessionReady(true);
             } else {
-                console.warn("[ResetPassword] No session found — waiting for PASSWORD_RECOVERY event (3s timeout)...");
-                // Also listen for PASSWORD_RECOVERY in case of legacy implicit flow
+                console.warn("[ResetPassword] No session found yet — listening for onAuthStateChange...");
+
                 const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-                    console.log("[ResetPassword] onAuthStateChange:", event, session?.user?.email);
-                    if (event === "PASSWORD_RECOVERY") {
-                        console.log("[ResetPassword] PASSWORD_RECOVERY received, showing form");
+                    console.log("[ResetPassword] onAuthStateChange event:", event, session?.user?.email);
+                    if (!isMounted) return;
+
+                    if (session || event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+                        console.log("[ResetPassword] Valid session or recovery event received, showing form");
                         setSessionReady(true);
                     }
                 });
-                // Give it 3s then declare expired
+
+                // Give it 5s then declare expired/failed
                 const timeout = setTimeout(() => {
-                    console.warn("[ResetPassword] Timeout — no session or recovery event received. Link may be expired.");
-                    setSessionReady((prev) => prev === null ? false : prev);
-                }, 3000);
+                    if (isMounted) {
+                        console.warn("[ResetPassword] Timeout reached. Still no session. Link may be expired or cross-site issues.");
+                        setSessionReady((prev) => prev === null ? false : prev);
+                    }
+                }, 5000);
+
                 return () => {
                     subscription.unsubscribe();
                     clearTimeout(timeout);
                 };
             }
-        });
+        };
+
+        checkSession();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log("[ResetPassword] handleSubmit triggered");
 
         if (password.length < 8) {
+            console.warn("[ResetPassword] Validation failed: password too short");
             toast.error("Password must be at least 8 characters.");
             return;
         }
         if (password !== confirm) {
+            console.warn("[ResetPassword] Validation failed: passwords mismatch");
             toast.error("Passwords do not match.");
             return;
         }
@@ -67,20 +85,28 @@ function ResetPasswordContent() {
         setIsSubmitting(true);
         console.log("[ResetPassword] Submitting new password...");
         try {
+            console.log("[ResetPassword] Calling updatePassword core function...");
             await updatePassword(password);
-            console.log("[ResetPassword] Password updated successfully");
+            console.log("[ResetPassword] Password updated successfully, showing toast and redirecting...");
             toast.success("Password updated! Redirecting to sign in…");
-            setTimeout(() => router.push("/login"), 1500);
+            setTimeout(() => {
+                console.log("[ResetPassword] Executing programmatic redirect to /login");
+                router.push("/login");
+            }, 1500);
         } catch (error: any) {
-            console.error("[ResetPassword] updatePassword failed:", {
+            console.error("[ResetPassword] updatePassword caught error in handleSubmit:", error);
+            const errorDetails = {
                 message: error?.message,
                 status: error?.status,
+                name: error?.name,
                 code: error?.code,
-                error,
-            });
+                ...error
+            };
+            console.error("[ResetPassword] Formatted Error Details:", errorDetails);
             const msg = friendlyPasswordError(error?.message);
             toast.error(msg);
         } finally {
+            console.log("[ResetPassword] handleSubmit finished, setting isSubmitting to false");
             setIsSubmitting(false);
         }
     };

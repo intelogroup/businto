@@ -348,14 +348,29 @@ export function extractRequirements(
     if (metadata.schedule_type) requirements.push(`Schedule: ${metadata.schedule_type}`);
     if (metadata.special_needs) requirements.push(`Special needs: ${metadata.special_needs}`);
   } else if (service_type === 'medical') {
-    if (metadata.mobility_level) requirements.push(`Mobility: ${metadata.mobility_level}`);
-    if (metadata.service_level) requirements.push(`Service level: ${metadata.service_level}`);
-    if (metadata.wheelchair_type) requirements.push(`Wheelchair: ${metadata.wheelchair_type}`);
-    if (metadata.oxygen_required) requirements.push('Oxygen required');
+    if (metadata.mobility_level) requirements.push(`Mobility: ${metadata.mobility_level.replace('-', ' ')}`);
+    if (metadata.service_level) requirements.push(`Service: ${metadata.service_level.replace(/-/g, ' ')}`);
+    if (metadata.stair_factor && metadata.stair_factor !== 'none') requirements.push(`Stairs: ${metadata.stair_factor}`);
+    if (metadata.oxygen_required || metadata.oxygen_use) requirements.push('Portable Oxygen');
+    if (metadata.is_bariatric) requirements.push('Bariatric (250+ lbs)');
+    if (metadata.service_animal) requirements.push('Service Animal');
+    if (metadata.additional_passengers) requirements.push(`+${metadata.additional_passengers} Escort(s)`);
+    if (metadata.return_status) requirements.push(`Return: ${metadata.return_status}`);
   } else if (service_type === 'wedding') {
+    if (metadata.event_category) requirements.push(`Category: ${metadata.event_category}`);
     if (metadata.guest_count) requirements.push(`${metadata.guest_count} guests`);
     if (metadata.vehicle_style) requirements.push(`Vehicle: ${metadata.vehicle_style}`);
-    if (metadata.itinerary_type) requirements.push(`Type: ${metadata.itinerary_type}`);
+    if (metadata.itinerary_type) requirements.push(`Itinerary: ${metadata.itinerary_type}`);
+    if (metadata.shuttle_mode) requirements.push(`Mode: ${metadata.shuttle_mode.replace('-', ' ')}`);
+    if (metadata.event_start_time) requirements.push(`Event Start: ${metadata.event_start_time}`);
+    
+    // Amenities
+    const amenities = [];
+    if (metadata.alcohol_allowed) amenities.push('Alcohol OK');
+    if (metadata.refreshments_provided) amenities.push('Refreshments');
+    if (metadata.av_needs) amenities.push('AV/Bluetooth');
+    if (metadata.special_decor) amenities.push('Custom Decor');
+    if (amenities.length > 0) requirements.push(`Amenities: ${amenities.join(', ')}`);
   }
 
   // Add note if provided (applies to all service types)

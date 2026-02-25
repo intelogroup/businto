@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { quoteSchema } from "@/lib/quote-validation";
 
 interface TransportRequest {
   id: string;
@@ -140,37 +141,31 @@ function SubmitQuoteContent() {
     setError(null);
 
     const priceNum = parseFloat(price);
-    console.log('💰 Price validation:', { price, priceNum, valid: !isNaN(priceNum) && priceNum > 0 });
-    
-    if (isNaN(priceNum) || priceNum <= 0) {
-      console.error('❌ Invalid price');
-      setError("Please enter a valid price");
-      setSubmitting(false);
-      return;
-    }
+    const quotePayload = {
+      request_id: request.id,
+      operator_id: null, // Anonymous quote for MVP
+      total_price: priceNum,
+      vehicle_type: vehicleType.trim(),
+      note: message.trim() || undefined,
+    };
 
-    if (!vehicleType.trim()) {
-      console.error('❌ Missing vehicle type');
-      setError("Please enter a vehicle type");
+    // Use Zod for client-side validation
+    const validation = quoteSchema.safeParse(quotePayload);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Invalid quote data";
+      console.error('❌ Quote validation failed:', validation.error.format());
+      setError(firstError);
       setSubmitting(false);
       return;
     }
 
     try {
-      const quotePayload = {
-        request_id: request.id,
-        operator_id: null, // Anonymous quote for MVP
-        total_price: priceNum,
-        vehicle_type: vehicleType.trim(),
-        note: message.trim() || undefined,
-      };
-      
-      console.log('📋 Quote payload:', quotePayload);
+      console.log('📋 Quote payload:', validation.data);
       
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(quotePayload),
+        body: JSON.stringify(validation.data),
       });
 
       console.log('📡 Quote submission response:', response.status, response.statusText);
@@ -355,6 +350,117 @@ function SubmitQuoteContent() {
                 </span>
               </div>
             )}
+
+            {request.service_type === "medical" && (
+              <div className="space-y-0.5 pt-1 pb-2">
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Mobility</span>
+                  <span className="text-sm font-bold text-neutral-900 capitalize">
+                    {request.metadata_safe.mobility_level?.replace('-', ' ')}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Service Level</span>
+                  <span className="text-sm font-medium text-neutral-900 capitalize">
+                    {request.metadata_safe.service_level?.replace(/-/g, ' ')}
+                  </span>
+                </div>
+                {request.metadata_safe.facility_details && (
+                  <div className="flex justify-between py-2.5">
+                    <span className="text-xs text-neutral-500 uppercase tracking-wide">Facility Info</span>
+                    <span className="text-sm font-medium text-neutral-900">
+                      {request.metadata_safe.facility_details}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Stairs</span>
+                  <span className="text-sm font-medium text-neutral-900">
+                    {request.metadata_safe.stair_factor === 'none' ? 'No Stairs' : 
+                     request.metadata_safe.stair_factor === '1-5' ? '1-5 Stairs' : 
+                     request.metadata_safe.stair_factor === 'flight' ? 'Full Flight' : 'Not specified'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Timing</span>
+                  <span className="text-sm font-medium text-neutral-900">
+                    {request.metadata_safe.trip_type === 'round-trip' ? 'Round Trip' : 'One Way'}
+                    {request.metadata_safe.return_status && ` (${request.metadata_safe.return_status === 'will-call' ? 'Will-Call' : 'Fixed Return'})`}
+                  </span>
+                </div>
+                
+                {/* Critical Flags */}
+                <div className="flex flex-wrap gap-2 py-3">
+                  {request.metadata_safe.oxygen_use && (
+                    <Badge className="bg-sky-50 text-sky-700 border-sky-100 shadow-none hover:bg-sky-50">PORTABLE OXYGEN</Badge>
+                  )}
+                  {request.metadata_safe.is_bariatric && (
+                    <Badge className="bg-red-50 text-red-700 border-red-100 shadow-none hover:bg-red-50">BARIATRIC (250+ LBS)</Badge>
+                  )}
+                  {request.metadata_safe.service_animal && (
+                    <Badge className="bg-amber-50 text-amber-700 border-amber-100 shadow-none hover:bg-amber-50">SERVICE ANIMAL</Badge>
+                  )}
+                  {request.metadata_safe.additional_passengers > 0 && (
+                    <Badge className="bg-neutral-50 text-neutral-700 border-neutral-100 shadow-none hover:bg-neutral-50">
+                      +{request.metadata_safe.additional_passengers} ESCORT(S)
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {request.service_type === "wedding" && (
+              <div className="space-y-0.5 pt-1 pb-2">
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Event Category</span>
+                  <span className="text-sm font-bold text-neutral-900 capitalize">
+                    {request.metadata_safe.event_category || 'Event'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Guest Count</span>
+                  <span className="text-sm font-medium text-neutral-900">
+                    {request.metadata_safe.guest_count} passengers
+                  </span>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Shuttle Mode</span>
+                  <span className="text-sm font-medium text-neutral-900 capitalize">
+                    {request.metadata_safe.shuttle_mode?.replace('-', ' ')}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Vehicle Pref.</span>
+                  <span className="text-sm font-medium text-neutral-900 capitalize">
+                    {request.metadata_safe.vehicle_style?.replace('-', ' ')}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2.5">
+                  <span className="text-xs text-neutral-500 uppercase tracking-wide">Timing</span>
+                  <span className="text-sm font-medium text-neutral-900">
+                    Starts: {request.metadata_safe.pickup_time}
+                    {request.metadata_safe.event_start_time && ` · Ceremony: ${request.metadata_safe.event_start_time}`}
+                  </span>
+                </div>
+                
+                {/* Amenities Flags */}
+                <div className="flex flex-wrap gap-2 py-3">
+                  {request.metadata_safe.alcohol_allowed && (
+                    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-100 shadow-none hover:bg-indigo-50">ALCOHOL ALLOWED</Badge>
+                  )}
+                  {request.metadata_safe.refreshments_provided && (
+                    <Badge className="bg-green-50 text-green-700 border-green-100 shadow-none hover:bg-green-50">REFRESHMENTS</Badge>
+                  )}
+                  {request.metadata_safe.av_needs && (
+                    <Badge className="bg-violet-50 text-violet-700 border-violet-100 shadow-none hover:bg-violet-50">AV / BLUETOOTH</Badge>
+                  )}
+                  {request.metadata_safe.special_decor && (
+                    <Badge className="bg-rose-50 text-rose-700 border-rose-100 shadow-none hover:bg-rose-50">CUSTOM DECOR</Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
             {request.metadata_safe?.note && (
               <div className="py-3">
                 <span className="text-xs text-neutral-500 uppercase tracking-wide block mb-1.5">

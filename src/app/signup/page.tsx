@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail, Lock, ArrowRight, User, ShieldCheck } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowRight, User, ShieldCheck, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -29,18 +29,20 @@ function SignupContent() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const { signup } = useAuth();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setErrorMsg(null);
         try {
             await signup(email, password, fullName);
             toast.success("Account created! Welcome to Businto.");
             router.push("/dashboard");
         } catch (error: any) {
-            toast.error(mapSignupError(error?.message));
+            setErrorMsg(mapSignupError(error?.message));
         } finally {
             setIsSubmitting(false);
         }
@@ -72,6 +74,12 @@ function SignupContent() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-6">
+                        {errorMsg && (
+                            <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <span>{errorMsg}</span>
+                            </div>
+                        )}
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="space-y-2">
                                 <Label htmlFor="fullName" className="text-xs font-semibold text-neutral-600 ml-1">Full Name</Label>

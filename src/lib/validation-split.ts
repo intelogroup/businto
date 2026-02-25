@@ -16,35 +16,56 @@ export const schoolSafeMetadataSchema = z.object({
   school_name: z.string().optional(),
   grade_level: z.string().optional(),
   student_count: z.number().min(1, 'At least 1 student is required').max(100),
+  student_age: z.number().optional(),
   schedule_type: z.enum(['round-trip', 'am-only', 'pm-only']),
   am_pickup_time: z.string().optional(),
   pm_pickup_time: z.string().optional(),
-  duration_type: z.string().optional(),
-  special_needs: z.string().optional(),
+  // Schedule details
+  school_recurring: z.string().optional(),
+  selected_days: z.string().optional(),
+  school_start_time: z.string().optional(),
+  school_dismissal_time: z.string().optional(),
+  early_dismissal_notes: z.string().optional(),
+  // Student needs
+  special_needs: z.boolean().optional(),        // fixed: was z.string()
+  booster_seat: z.string().optional(),
+  no_adult_release: z.boolean().optional(),
   needs_wheelchair: z.boolean().optional(),
   needs_car_seat: z.boolean().optional(),
   special_requirements: z.string().optional(),
+  duration_type: z.string().optional(),
   note: z.string().optional(),
-}).strict(); // .strict() ensures NO extra fields
+}).strict();
 
 // School service - PRIVATE metadata (PII)
 export const schoolPrivateMetadataSchema = z.object({
   parent_name: z.string().optional(),
   parent_phone: z.string().optional(),
   parent_email: z.string().email().optional(),
+  guardian_name: z.string().optional(),
+  guardian_phone: z.string().optional(),
+  authorized_pickups: z.string().optional(),   // who may receive student — PII
+  safe_word: z.string().optional(),             // family security word — sensitive
 }).strict();
 
 // Medical service - SAFE metadata
 export const medicalSafeMetadataSchema = z.object({
-  mobility_level: z.enum(['ambulatory', 'wheelchair', 'stretcher']),
-  service_level: z.enum(['curb-to-curb', 'door-to-door', 'door-through-door']),
+  mobility_level: z.enum(['ambulatory', 'wheelchair', 'manual-wheelchair', 'electric-wheelchair', 'stretcher']),
+  service_level: z.enum(['curb-to-curb', 'door-to-door', 'door-through-door', 'hand-to-hand']),
   trip_type: z.enum(['one-way', 'round-trip', 'wait-and-return']),
   appointment_time: z.string().min(1, 'Appointment time is required'),
   return_time: z.string().optional(),
+  return_status: z.enum(['fixed', 'will-call']).optional(),
   special_equipment: z.string().optional(),
-  oxygen_required: z.boolean().default(false),
+  oxygen_required: z.boolean().optional(),
+  oxygen_use: z.boolean().optional(),
+  is_bariatric: z.boolean().optional(),
+  facility_details: z.string().optional(),
+  stair_factor: z.enum(['none', '1-5', 'flight']).optional(),
+  additional_passengers: z.number().optional(),
+  service_animal: z.boolean().optional(),
   wheelchair_type: z.string().optional(),
-  attendant_needed: z.boolean().default(false),
+  attendant_needed: z.boolean().optional(),
   medical_notes: z.string().optional(),
   note: z.string().optional(),
 }).strict();
@@ -61,12 +82,20 @@ export const medicalPrivateMetadataSchema = z.object({
 
 // Wedding service - SAFE metadata
 export const weddingSafeMetadataSchema = z.object({
+  event_category: z.enum(['wedding', 'corporate', 'party', 'other']).optional(),
   guest_count: z.number().min(1, 'At least 1 guest is required').max(500),
-  vehicle_style: z.enum(['shuttle', 'coach', 'limo', 'party-bus']),
+  vehicle_style: z.enum(['shuttle', 'coach', 'limo', 'party-bus', 'school-bus', 'vintage']),
   itinerary_type: z.enum(['hotel-to-venue', 'venue-to-hotel', 'shuttle-service', 'full-day']),
+  shuttle_mode: z.enum(['single-trip', 'continuous', 'end-of-night']).optional(),
+  event_duration_type: z.enum(['single-day', 'multi-day', 'weekend', 'custom']).optional(),
   event_name: z.string().optional(),
   pickup_time: z.string().min(1, 'Pickup time is required'),
+  event_start_time: z.string().optional(),
   return_time: z.string().optional(),
+  alcohol_allowed: z.boolean().optional(),
+  refreshments_provided: z.boolean().optional(),
+  av_needs: z.boolean().optional(),
+  special_decor: z.boolean().optional(),
   special_requests: z.string().optional(),
   duration_hours: z.number().min(1).max(24).optional(),
   service_level: z.string().optional(),
@@ -78,6 +107,8 @@ export const weddingPrivateMetadataSchema = z.object({
   contact_name: z.string().min(1, 'Contact name is required'),
   contact_phone: z.string().min(1, 'Contact phone is required'),
   contact_email: z.string().email('Valid email is required'),
+  day_of_contact_name: z.string().optional(),
+  day_of_contact_phone: z.string().optional(),
 }).strict();
 
 // Corporate service - SAFE metadata
@@ -112,7 +143,7 @@ export function splitAndValidateMetadata(
   metadata: Record<string, any>,
   serviceType: 'school' | 'medical' | 'wedding' | 'corporate'
 ): { metadata_safe: Record<string, any>; metadata_private: Record<string, any> } {
-  
+
   // Get appropriate schemas for service type
   const schemas = {
     school: {
