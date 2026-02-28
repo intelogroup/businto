@@ -257,10 +257,11 @@ function SubmitQuoteContent() {
             <CheckCircle2 className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-xl font-bold text-neutral-900 mb-2">
-            Quote submitted
+            Details Submitted!
           </h1>
           <p className="text-sm text-neutral-500 mb-8">
-            Your quote has been sent to the customer. They will be in touch if interested.
+            Your claim/quote has been sent to the customer. They will be in touch if interested.<br /><br />
+            <strong>Note:</strong> The customer is the only one who can lock a job. If they proceed with another operator, this request will be closed.
           </p>
           <button
             onClick={handleWithdraw}
@@ -288,7 +289,7 @@ function SubmitQuoteContent() {
         <div className="border border-neutral-200 rounded-md px-4 py-3 mb-6 flex items-start gap-2.5">
           <AlertCircle className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0" />
           <p className="text-xs text-neutral-500 leading-relaxed">
-            Non-binding inquiry — no commitment required. The parent may contact multiple operators.
+            <strong>Important:</strong> Claiming this job notifies the parent of your interest, but the parent makes the final decision. If they choose another operator first, this request will be closed.
           </p>
         </div>
 
