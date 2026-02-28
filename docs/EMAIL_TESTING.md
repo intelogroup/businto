@@ -39,8 +39,8 @@ Navigate to: **http://localhost:3000/test-email**
 
 #### 3. **Booking Confirmation**
 - **When**: User accepts a quote and creates a booking
-- **Contains**: Confirmation code, full trip details, operator info
-- **Purpose**: Confirm booking and provide trip reference
+- **Contains**: Confirmation code, full trip details, **operator contact info (phone/email)**
+- **Purpose**: Confirm booking and provide immediate reference for coordination
 
 #### 4. **Payment Success**
 - **When**: Payment is processed successfully

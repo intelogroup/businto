@@ -9,9 +9,10 @@ The platform has been significantly refactored into a **Managed Brokerage Model*
 ### ✅ Verified Features & Logic
 *   **Split Identity Model**: Clean separation between standard users (`profiles`) and business staff (`operator_profiles`) using a high-performance `unified_profiles` database view for instant role resolution.
 *   **Managed Brokerage Routing**: All operator communications are centralized. Partners are routed to `support@tabronai.com` and Standard operators to `sales@tabronai.com`.
-*   **One-Way Gate Security**: Hardened PII protection. Customer contact details (Name, Phone, Exact Address) are **revealed only to the winning operator** via a secure email manifest *after* a quote is accepted.
+*   **One-Way Gate Security**: Hardened PII protection. Customer contact details (Name, Phone, Exact Address) are **revealed only to the winning operator** via a secure email manifest *after* a quote is accepted. Conversely, operator contact details are now revealed to the customer in-app and via email once the booking is confirmed to facilitate direct coordination.
 *   **Persistent Auth Guard**: Fixed the "login loop" issue. Implemented auto-redirects for authenticated users and session-first data fetching to eliminate auth flickering.
-*   **Robust Operator Matching**: 
+*   **Robust Operator Matching & De-duplication**: 
+    *   **Smart De-duplication**: Prevents notification spam by ensuring each operator company receives only one notification per request, even if they have multiple fleet records.
     *   Integration with **Photon/OpenStreetMap API** for privacy-first address autocomplete.
     *   Local **Haversine Formula** implementation for precise, uncapped distance calculations between requests and operators.
     *   Global Fallback: **Boston Rapid Response Transit** implemented as a 150-mile radius "all-rounder" fallback.
