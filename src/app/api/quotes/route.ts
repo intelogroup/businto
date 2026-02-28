@@ -84,11 +84,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Determine the actual profile ID.
+    // The tokens might contain the `operators` table ID instead of the `profiles` table ID.
+    let actual_profile_id = operator_id || null;
+    if (operator_id) {
+      // Check if the provided ID is an `operators` table ID
+      const { data: operatorCheck } = await supabaseAdmin
+        .from('operators')
+        .select('profile_id')
+        .eq('id', operator_id)
+        .maybeSingle();
+
+      if (operatorCheck?.profile_id) {
+        // It WAS an operator's ID! So map it to their actual profile ID.
+        actual_profile_id = operatorCheck.profile_id;
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('quotes')
       .insert({
         request_id,
-        operator_id: operator_id || null,
+        operator_id: actual_profile_id,
         total_price,
         base_fare,
         distance_charge,
