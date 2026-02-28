@@ -10,6 +10,15 @@ This document serves as the foundational mandate for all AI engineering assistan
 4.  **Marketplace Locking**: Once a quote is accepted, the `transport_request` status must move to `booked` and all other quotes for that request must be set to `declined`. This state is final and immutable.
 5.  **Persistence First Auth**: The `AuthProvider` must rely on `onAuthStateChange` as the single source of truth. Always prioritize the active session over temporary tokens to prevent login loops.
 
+## 🚀 Onboarding Tips for New Agents
+
+1.  **PII Gate**: `metadata_private` (Name, Phone, Exact Address) is revealed *only* to the winning operator post-acceptance. Matching uses `metadata_safe`.
+2.  **Identity Strategy**: Always use the `unified_profiles` view for role/user resolution.
+3.  **Testing Strategy**: Run `npm run test:production` to verify marketplace integrity (locking, de-duplication, URL consistency).
+4.  **Deployment**: The production domain is `businto.com`. Ensure all URL fallbacks in `src/lib/` (email, auth, sms) point here.
+5.  **Managed Brokerage**: Partners get a 15–60 min "Affiliate Priority Window" before the standard network is notified.
+6.  **Email Testing**: In dev mode, check logs for **Ethereal Email** preview links for instant verification.
+
 ## ✅ Verified Project Memories (Feb 2026)
 
 *   **Migration Reconciliation**: Successfully mapped and synchronized local migration timestamps with live Supabase environment (e.g., `20260228161713_marketplace_schema_refactor`).

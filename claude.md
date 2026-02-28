@@ -18,5 +18,14 @@ You are a senior engineer who prioritizes structural simplicity over quick fixes
 4.  **Auth Persistence**: Rely on `onAuthStateChange` in the `AuthProvider`. Never implement manual state updates that conflict with this listener.
 5.  **Marketplace Integrity**: Ensure requests remain locked once an acceptance event has occurred.
 
+## 🚀 Onboarding Tips for New Agents
+
+1.  **PII Strategy**: Private metadata (`metadata_private`) is revealed *only* to the winning operator after quote acceptance. All initial matching uses `metadata_safe`.
+2.  **Identity**: Always use the `unified_profiles` view for user/role lookups; do not query `profiles` directly.
+3.  **Testing**: Run `npm run test:production` before deploying. Key integrity tests are in `tests/marketplace-integrity.test.ts` and `tests/operator-deduplication.test.ts`.
+4.  **Deployment**: The production domain is `businto.com`. Ensure all hardcoded URL fallbacks in `src/lib/` point to this domain, not `.vercel.app`.
+5.  **Matching**: We use an **Affiliate Priority Window** (15-60 mins) where only partners are notified initially.
+6.  **Email**: In dev, check the console for **Ethereal Email** preview links. No SMTP config is needed for local testing.
+
 ---
 *Updated: Feb 2026*

@@ -40,6 +40,15 @@ tests/                # Vitest Integrity & Security Suite
 supabase/             # Migrations & Database Configuration
 ```
 
+## 🚥 Onboarding Tips for New Agents
+
+-   **PII Security**: Private metadata (`metadata_private`) is revealed *only* to the winning operator after quote acceptance. All initial matching and quoting happens via `metadata_safe`.
+-   **Identity Strategy**: Use the `unified_profiles` database view for user/role lookups. Do not query `profiles` directly.
+-   **Testing Strategy**: Run `npm run test:production` to verify core marketplace logic, locking, and de-duplication.
+-   **Deployment**: The production domain is `businto.com`. Ensure all URL fallbacks in `src/lib/` (email, auth, etc.) point here, not to `.vercel.app`.
+-   **Managed Brokerage**: New requests follow an **Affiliate Priority Window** (15-60 mins). Partners are notified first.
+-   **Email Testing**: In dev, check the terminal for **Ethereal Email** preview links. No SMTP keys are required for local testing.
+
 ## 🚦 Getting Started
 1.  **Install**: `npm install`
 2.  **Environment**: Ensure `.env.local` contains Supabase, OpenAI, Brevo, and Google Maps keys.
