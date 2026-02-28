@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { stripe } from '@/lib/stripe';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendSMS, smsTemplates } from '@/lib/sms';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
 import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/validation';
 import { generateOperatorViewToken } from '@/lib/tokens';
@@ -378,7 +379,27 @@ export async function POST(request: NextRequest) {
             }
           });
 
-          console.log(`✓ Notified operator: ${operator.company_name} (Partner: ${operator.is_partner})`);
+          console.log(`✓ Notified operator via email: ${operator.company_name} (Partner: ${operator.is_partner})`);
+
+          // SMS Notification (Fire and forget)
+          if (operator.phone || (operator as any).company_phone) {
+            try {
+              const operatorPhone = operator.phone || (operator as any).company_phone;
+              await sendSMS({
+                to: operatorPhone,
+                ...smsTemplates.newRequestAlert({
+                  serviceType: service_type,
+                  location: pickup_fuzzy || pickup_address.split(',')[0],
+                  requestId: data.id,
+                  token: accessToken,
+                  appUrl: appBaseUrl
+                })
+              });
+              console.log(`✓ Notified operator via SMS: ${operator.company_name}`);
+            } catch (smsErr) {
+              console.error(`Failed to send SMS to ${operator.company_name}:`, smsErr);
+            }
+          }
         } catch (err) {
           console.error(`Failed to notify operator ${operator.company_name}:`, err);
         }

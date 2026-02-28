@@ -11,13 +11,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 
-interface Message {
-    id: string;
-    role: "user" | "ai";
-    content: string;
-    widget?: React.ReactNode;
-    timestamp: Date;
-}
+import { useChat } from "@ai-sdk/react";
+
+type Message = any;
 
 const MOCK_WIDGET = (
     <motion.div
@@ -56,66 +52,41 @@ const MOCK_WIDGET = (
 );
 
 export function AIChatPanel() {
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: "1",
-            role: "ai",
-            content: "Smarter routing for private rides. How can I help today?",
-            timestamp: new Date()
-        }
-    ]);
     const { user } = useAuth();
     const router = useRouter();
-    const [inputValue, setInputValue] = useState("");
+    const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat({
+        api: '/api/chat',
+        initialMessages: [
+            {
+                id: "initial-1",
+                role: "assistant",
+                content: "Smarter routing for private rides. How can I help today?",
+            }
+        ],
+        onResponse: (response: Response) => {
+            if (response.status === 401) {
+                router.push('/login?next=/');
+            }
+        }
+    } as any) as any;
+
     const [isListening, setIsListening] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [messages, isTyping]);
-
-    const handleSendMessage = async (text: string) => {
-        if (!text.trim()) return;
-
-        if (!user) {
-            router.push('/login?next=/');
-            return;
-        }
-
-        const newUserMsg: Message = {
-            id: Date.now().toString(),
-            role: "user",
-            content: text,
-            timestamp: new Date()
-        };
-
-        setMessages(prev => [...prev, newUserMsg]);
-        setInputValue("");
-        setIsListening(false);
-        setIsTyping(true);
-
-        // Mock AI Response
-        setTimeout(() => {
-            const newAiMsg: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "ai",
-                content: "I've analyzed the available operators in your area. Based on your fleet requirements and pickup window, I found these optimizations.",
-                widget: MOCK_WIDGET,
-                timestamp: new Date()
-            };
-            setMessages(prev => [...prev, newAiMsg]);
-            setIsTyping(false);
-        }, 2000);
-    };
+    }, [messages, isLoading]);
 
     const toggleListening = () => {
         if (!isListening) {
             setIsListening(true);
+            // In a real app, this would use the Web Speech API
+            // For this demo, we'll just simulate a recognized command
             setTimeout(() => {
-                handleSendMessage("Find me a school bus for tomorrow morning.");
+                setInput("Find me a school bus for tomorrow morning.");
+                setIsListening(false);
             }, 3000);
         } else {
             setIsListening(false);
@@ -151,7 +122,7 @@ export function AIChatPanel() {
 
                         <div className="px-5 py-5 space-y-6 min-h-full flex flex-col">
                             <div className="flex-1 space-y-6">
-                                {messages.map((msg) => (
+                                {messages.map((msg: Message) => (
                                     <motion.div
                                         key={msg.id}
                                         initial={{ opacity: 0, y: 15, scale: 0.98 }}
@@ -164,26 +135,26 @@ export function AIChatPanel() {
                                     >
                                         <div className={cn(
                                             "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed tracking-tight transition-all duration-300",
-                                            msg.role === "ai"
+                                            msg.role === "assistant"
                                                 ? "bg-white border border-neutral-200 text-neutral-800 rounded-tl-none"
                                                 : "bg-neutral-900 text-white rounded-tr-none ml-auto"
                                         )}>
                                             {msg.content}
-                                            {msg.widget && (
+                                            {msg.role === "assistant" && msg.content.includes("Vehicles Found") && (
                                                 <div className="w-full">
-                                                    {msg.widget}
+                                                    {MOCK_WIDGET}
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-1.5 px-1 mt-1 opacity-40 hover:opacity-100 transition-opacity">
                                                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest" suppressHydrationWarning>
-                                                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
                                         </div>
                                     </motion.div>
                                 ))}
 
-                                {isTyping && (
+                                {isLoading && (
                                     <motion.div
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
@@ -258,14 +229,10 @@ export function AIChatPanel() {
                     </AnimatePresence>
                 </div>
 
-                {/* Input Area - Reduced height, removed powered-by */}
                 <CardFooter className="px-5 py-2 bg-white border-t border-neutral-100 flex flex-col gap-2 relative z-30">
                     <form
                         className="flex w-full items-center gap-2 group transition-all duration-300"
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSendMessage(inputValue);
-                        }}
+                        onSubmit={handleSubmit}
                     >
                         <div className="flex-1 relative flex items-center">
                             <Button
@@ -282,15 +249,15 @@ export function AIChatPanel() {
                             </Button>
                             <Input
                                 placeholder="How can I help you?"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                value={input}
+                                onChange={handleInputChange}
                                 className="pl-10 pr-4 h-10 rounded-xl bg-white border-neutral-200 focus:bg-white text-sm placeholder:text-neutral-400 shadow-none transition-colors focus-visible:ring-0 focus-visible:border-neutral-900"
                             />
                         </div>
                         <Button
                             type="submit"
                             size="icon"
-                            disabled={!inputValue.trim()}
+                            disabled={!(input || '').trim() || isLoading}
                             className="h-10 w-10 rounded-xl bg-neutral-900 hover:bg-black text-white disabled:opacity-30 shadow-none shrink-0 transition-all hover:scale-105 active:scale-95"
                         >
                             <Send className="h-4.5 w-4.5" />

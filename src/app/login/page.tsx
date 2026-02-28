@@ -10,19 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/auth-errors";
 
-function mapAuthError(message?: string): string {
-    if (!message) return "Sign in failed. Please try again.";
-    if (message.includes("Invalid login credentials") || message.includes("invalid_credentials"))
-        return "Incorrect email or password. Please check your credentials.";
-    if (message.includes("Email not confirmed"))
-        return "Please verify your email before signing in.";
-    if (message.includes("rate limit") || message.includes("too many"))
-        return "Too many attempts. Please wait a moment and try again.";
-    if (message.includes("network") || message.includes("fetch"))
-        return "Network error. Check your connection and try again.";
-    return message;
-}
 
 function LoginContent() {
     const [email, setEmail] = useState("");
@@ -57,7 +46,7 @@ function LoginContent() {
             }
         } catch (error: any) {
             console.error("[Login Page] Login error caught:", error);
-            setErrorMsg(mapAuthError(error?.message));
+            setErrorMsg(getErrorMessage(error?.message, "login"));
         } finally {
             setIsSubmitting(false);
         }
@@ -106,7 +95,10 @@ function LoginContent() {
                                         placeholder="alex@example.com"
                                         required
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            setErrorMsg(null);
+                                        }}
                                         className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
                                     />
                                 </div>
@@ -123,7 +115,10 @@ function LoginContent() {
                                         type="password"
                                         required
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setErrorMsg(null);
+                                        }}
                                         className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
                                     />
                                 </div>

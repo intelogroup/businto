@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMessages, Message } from "@/hooks/use-messages";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 
 interface MessageThreadProps {
   requestId?: string;
@@ -29,6 +30,8 @@ export function MessageThread({
   const { messages, loading, sendMessage, markAsRead } = useMessages({ requestId, bookingId });
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,6 +39,48 @@ export function MessageThread({
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Fetch AI suggestions when new messages arrive
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (messages.length === 0 || loadingSuggestions) return;
+      
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.sender_id === user?.id) {
+        setSuggestions([]); // Don't suggest if user was the last sender
+        return;
+      }
+
+      setLoadingSuggestions(true);
+      try {
+        const response = await fetch('/api/chat/suggestions', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-user-id': user?.id || ''
+          },
+          body: JSON.stringify({
+            messages: messages.slice(-5),
+            requestId,
+            bookingId,
+            role: user?.role === 'operator' ? 'operator' : 'user'
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSuggestions(data.suggestions || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    const timer = setTimeout(fetchSuggestions, 1000); // Debounce
+    return () => clearTimeout(timer);
+  }, [messages, user?.id, user?.role, requestId, bookingId]);
 
   useEffect(() => {
     // Mark unread messages as read
@@ -48,13 +93,15 @@ export function MessageThread({
     }
   }, [messages, user?.id, markAsRead]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || sending) return;
+  const handleSend = async (content?: string) => {
+    const text = content || inputValue.trim();
+    if (!text || sending) return;
 
     try {
       setSending(true);
-      await sendMessage(recipientId, inputValue.trim());
-      setInputValue("");
+      await sendMessage(recipientId, text);
+      if (!content) setInputValue("");
+      setSuggestions([]);
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
@@ -179,6 +226,26 @@ export function MessageThread({
           </div>
         )}
       </ScrollArea>
+
+      {/* Suggestions */}
+      {suggestions.length > 0 && (
+        <div className="px-4 py-2 bg-neutral-50 border-t border-neutral-200 flex flex-wrap gap-2">
+          <div className="w-full flex items-center gap-1.5 mb-1">
+            <Sparkles className="h-3 w-3 text-indigo-500" />
+            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">AI Suggestions</span>
+          </div>
+          {suggestions.map((suggestion, i) => (
+            <button
+              key={i}
+              onClick={() => handleSend(suggestion)}
+              disabled={sending}
+              className="text-xs bg-white border border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50 text-neutral-700 px-3 py-1.5 rounded-full transition-all text-left max-w-full"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Input */}
       <div className="p-3 border-t border-neutral-200">

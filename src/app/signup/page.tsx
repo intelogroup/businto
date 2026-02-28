@@ -10,19 +10,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, Mail, Lock, ArrowRight, User, ShieldCheck, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/auth-errors";
 
-function mapSignupError(message?: string): string {
-    if (!message) return "Signup failed. Please try again.";
-    if (message.includes("already registered") || message.includes("already been registered"))
-        return "An account with this email already exists. Try signing in instead.";
-    if (message.includes("weak") || message.includes("password"))
-        return "Password is too weak. Use at least 8 characters with a mix of letters and numbers.";
-    if (message.includes("valid email") || message.includes("invalid email"))
-        return "Please enter a valid email address.";
-    if (message.includes("rate limit") || message.includes("too many"))
-        return "Too many attempts. Please wait a moment and try again.";
-    return message;
-}
 
 function SignupContent() {
     const [fullName, setFullName] = useState("");
@@ -42,7 +31,7 @@ function SignupContent() {
             toast.success("Account created! Welcome to Businto.");
             router.push("/dashboard");
         } catch (error: any) {
-            setErrorMsg(mapSignupError(error?.message));
+            setErrorMsg(getErrorMessage(error?.message, "signup"));
         } finally {
             setIsSubmitting(false);
         }
@@ -91,7 +80,10 @@ function SignupContent() {
                                         placeholder="Alex Johnson"
                                         required
                                         value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
+                                        onChange={(e) => {
+                                            setFullName(e.target.value);
+                                            setErrorMsg(null);
+                                        }}
                                         className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
                                     />
                                 </div>
@@ -106,7 +98,10 @@ function SignupContent() {
                                         placeholder="alex@example.com"
                                         required
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            setErrorMsg(null);
+                                        }}
                                         className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
                                     />
                                 </div>
@@ -122,7 +117,10 @@ function SignupContent() {
                                         required
                                         minLength={8}
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setErrorMsg(null);
+                                        }}
                                         className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
                                     />
                                 </div>

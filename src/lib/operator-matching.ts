@@ -30,6 +30,7 @@ interface MatchedOperator {
   profile_id: string;
   company_name: string;
   company_email: string;
+  phone?: string; // Added for SMS notifications
   rating: number;
   service_areas: string[];
   vehicle_types: string[];
@@ -213,6 +214,7 @@ export async function findMatchingOperators(
         profile_id, 
         company_name, 
         company_email, 
+        phone,
         rating, 
         service_areas, 
         vehicle_types, 

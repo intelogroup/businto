@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { sendSMS, smsTemplates } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +54,28 @@ export async function POST(request: NextRequest) {
         message: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
         data: { message_id: data.id, sender_id, request_id, booking_id }
       });
+
+    // SMS Notification (Fire and forget)
+    try {
+      const { data: recipientProfile } = await supabase
+        .from('profiles')
+        .select('phone, full_name')
+        .eq('id', recipient_id)
+        .single();
+
+      if (recipientProfile?.phone) {
+        await sendSMS({
+          to: recipientProfile.phone,
+          ...smsTemplates.newMessage({
+            senderName: data.sender?.full_name || 'Someone',
+            requestId: request_id || booking_id || '',
+            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'
+          })
+        });
+      }
+    } catch (smsErr) {
+      console.error('Failed to send message notification SMS:', smsErr);
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
 import { verifyUserTripToken } from '@/lib/tokens';
 
@@ -299,7 +300,7 @@ export async function POST(request: NextRequest) {
     if (booking?.confirmation_code) {
       const { data: userProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .select('email, full_name')
+        .select('email, full_name, phone')
         .eq('id', userId)
         .single();
 
@@ -350,6 +351,23 @@ export async function POST(request: NextRequest) {
             user_id: userId,
             metadata: { to: userProfile.email },
           });
+        }
+
+        // SMS Notification to User (Fire and forget)
+        if (userProfile?.phone) {
+          try {
+            await sendSMS({
+              to: userProfile.phone,
+              ...smsTemplates.quoteAccepted({
+                operatorName,
+                requestId: tripRequestId,
+                appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'
+              })
+            });
+            console.log(`✓ Notified user via SMS: ${userProfile.full_name}`);
+          } catch (smsErr) {
+            console.error('Failed to send user confirmation SMS:', smsErr);
+          }
         }
       }
     }

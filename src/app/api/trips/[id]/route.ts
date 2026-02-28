@@ -32,6 +32,12 @@ export async function GET(
             return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
         }
 
+        // 2b. SECURITY: Verify ownership even with signed token (defense-in-depth)
+        if (trip.user_id !== decoded.userId) {
+            console.error(`[Security Alert] Token for user ${decoded.userId} attempted to access trip owned by ${trip.user_id}`);
+            return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
+        }
+
         // Fetch quotes
         const { data: quotes, error: quotesError } = await supabaseAdmin
             .from('quotes')
