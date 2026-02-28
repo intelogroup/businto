@@ -21,7 +21,7 @@ export interface OperatorViewTokenPayload {
 
 export interface UserTripTokenPayload {
   requestId: string;
-  userId: string;
+  userId?: string;
   purpose: 'view_trip';
   exp: number;
 }
@@ -62,7 +62,7 @@ export async function generateOperatorViewToken(
  */
 export async function generateUserTripToken(
   requestId: string,
-  userId: string,
+  userId?: string,
   expiryDays: number = 30
 ): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + (expiryDays * 24 * 60 * 60);
@@ -135,7 +135,7 @@ export async function verifyUserTripToken(
 
       return {
         requestId: payload.requestId as string,
-        userId: payload.userId as string,
+        userId: payload.userId as string | undefined,
         purpose: 'view_trip',
         exp: payload.exp as number,
       };

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (token) {
       const decoded = await verifyUserTripToken(token);
       if (decoded && decoded.requestId === tripRequestId) {
-        actualUserId = decoded.userId;
+        actualUserId = decoded.userId || null;
       } else if (!actualUserId) {
         return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
       }
@@ -77,11 +77,15 @@ export async function POST(request: NextRequest) {
       .from('quotes')
       .select(`
         *,
-        operator:profiles!quotes_operator_id_fkey (
+        operator:operators (
           id,
-          full_name,
           company_name,
-          email
+          company_email,
+          company_phone,
+          profile:operator_profiles!profile_id (
+            full_name,
+            avatar_url
+          )
         )
       `)
       .eq('id', quoteId)

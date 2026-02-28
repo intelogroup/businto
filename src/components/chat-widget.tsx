@@ -31,6 +31,13 @@ export function ChatWidget() {
         }
     }, [messages]);
 
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log('[ChatWidget] Form submitted with input:', input);
+        if (!input?.trim()) return;
+        handleSubmit(e);
+    };
+
     return (
         <div className="fixed bottom-6 right-6 z-50">
             <AnimatePresence>
@@ -103,7 +110,7 @@ export function ChatWidget() {
                                     </div>
                                 </ScrollArea>
                                 <div className="p-3 border-t border-neutral-200 bg-white">
-                                    <form className="flex gap-2" onSubmit={handleSubmit}>
+                                    <form className="flex gap-2" onSubmit={handleFormSubmit}>
                                         <Button type="button" size="icon" variant="outline" className="shrink-0 bg-white border-neutral-200 hover:bg-neutral-50 hover:text-indigo-600 rounded-xl">
                                             <Mic className="w-4 h-4" />
                                         </Button>

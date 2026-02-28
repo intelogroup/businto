@@ -33,8 +33,15 @@ export async function GET(
         }
 
         // 2b. SECURITY: Verify ownership even with signed token (defense-in-depth)
-        if (trip.user_id !== decoded.userId) {
+        // For anonymous trips, trip.user_id will be null.
+        if (trip.user_id && trip.user_id !== decoded.userId) {
             console.error(`[Security Alert] Token for user ${decoded.userId} attempted to access trip owned by ${trip.user_id}`);
+            return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
+        }
+
+        // If the trip has a user_id but the token doesn't have a userId, reject
+        if (trip.user_id && !decoded.userId) {
+            console.error(`[Security Alert] Anonymous token attempted to access trip owned by ${trip.user_id}`);
             return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
         }
 
@@ -43,12 +50,15 @@ export async function GET(
             .from('quotes')
             .select(`
         *,
-        operator:profiles!quotes_operator_id_fkey (
+        operator:operators (
+          id,
           company_name,
-          full_name,
-          avatar_url,
-          phone,
-          email
+          company_email,
+          company_phone,
+          profile:operator_profiles!profile_id (
+            full_name,
+            avatar_url
+          )
         )
       `)
             .eq('request_id', id)

@@ -92,12 +92,14 @@ export default function TripDetailPage() {
                 .from('quotes')
                 .select(`
           *,
-          operator:profiles!quotes_operator_id_fkey (
+          operator:operators!quotes_operator_id_fkey (
             company_name,
-            full_name,
-            avatar_url,
-            phone,
-            email
+            company_email,
+            company_phone,
+            profile:profiles!profile_id (
+              full_name,
+              avatar_url
+            )
           )
         `)
                 .eq('request_id', id)
@@ -105,8 +107,14 @@ export default function TripDetailPage() {
 
             if (quotesError) throw quotesError;
             setQuotes(quotesData || []);
-        } catch (error) {
-            console.error('Error fetching trip details:', error);
+        } catch (error: any) {
+            console.error('Error fetching trip details details:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code,
+                error
+            });
         } finally {
             setLoading(false);
         }
@@ -312,10 +320,10 @@ export default function TripDetailPage() {
                                         vehicleType: quote.vehicle_type,
                                         vehicleYear: 2023,
                                         vehicleCapacity: 14,
-                                        operatorName: quote.operator?.company_name || quote.operator?.full_name || 'Anonymous Operator',
-                                        operatorAvatar: quote.operator?.avatar_url || '',
-                                        operatorPhone: (quote.operator as any)?.phone || undefined,
-                                        operatorEmail: (quote.operator as any)?.email || undefined,
+                                        operatorName: quote.operator?.company_name || (quote.operator as any)?.profile?.full_name || 'Anonymous Operator',
+                                        operatorAvatar: (quote.operator as any)?.profile?.avatar_url || '',
+                                        operatorPhone: (quote.operator as any)?.company_phone || undefined,
+                                        operatorEmail: (quote.operator as any)?.company_email || undefined,
                                         operatorRating: 4.8,
                                         operatorReviewCount: 12,
                                         responseTime: 15,

@@ -29,20 +29,25 @@ export async function POST(request: NextRequest) {
         recipient_id,
         content
       })
-      .select(`
-        *,
-        sender:profiles!messages_sender_id_fkey (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .single();
 
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Fetch sender info from unified_profiles for the response
+    const { data: senderProfile } = await supabase
+      .from('unified_profiles')
+      .select('*')
+      .eq('id', sender_id)
+      .single();
+
+    const responseData = {
+      ...data,
+      sender: senderProfile
+    };
 
     // Create notification for recipient
     await supabase
@@ -57,17 +62,13 @@ export async function POST(request: NextRequest) {
 
     // SMS Notification (Fire and forget)
     try {
-      const { data: recipientProfile } = await supabase
-        .from('profiles')
-        .select('phone, full_name')
-        .eq('id', recipient_id)
-        .single();
+      const recipientPhone = (await supabase.from('unified_profiles').select('phone').eq('id', recipient_id).single()).data?.phone;
 
-      if (recipientProfile?.phone) {
+      if (recipientPhone) {
         await sendSMS({
-          to: recipientProfile.phone,
+          to: recipientPhone,
           ...smsTemplates.newMessage({
-            senderName: data.sender?.full_name || 'Someone',
+            senderName: senderProfile?.full_name || 'Someone',
             requestId: request_id || booking_id || '',
             appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'
           })
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: data
+      message: responseData
     });
   } catch (error) {
     console.error('Error sending message:', error);
@@ -99,19 +100,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('messages')
-      .select(`
-        *,
-        sender:profiles!messages_sender_id_fkey (
-          id,
-          full_name,
-          avatar_url
-        ),
-        recipient:profiles!messages_recipient_id_fkey (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: true });
 
     if (requestId) {
@@ -124,14 +113,37 @@ export async function GET(request: NextRequest) {
       query = query.or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
     }
 
-    const { data, error } = await query;
+    const { data: messages, error } = await query;
 
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ messages: data });
+    // Enrich messages with profile data from unified_profiles view
+    const userIds = [...new Set(messages.flatMap(m => [m.sender_id, m.recipient_id]))];
+    
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('unified_profiles')
+        .select('*')
+        .in('id', userIds);
+      
+      const profileMap = (profiles || []).reduce((acc, p) => {
+        acc[p.id] = p;
+        return acc;
+      }, {} as Record<string, any>);
+
+      const enrichedMessages = messages.map(m => ({
+        ...m,
+        sender: profileMap[m.sender_id],
+        recipient: profileMap[m.recipient_id]
+      }));
+
+      return NextResponse.json({ messages: enrichedMessages });
+    }
+
+    return NextResponse.json({ messages: [] });
   } catch (error) {
     console.error('Error fetching messages:', error);
     return NextResponse.json(

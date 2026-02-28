@@ -85,20 +85,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine the actual profile ID.
-    // The tokens might contain the `operators` table ID instead of the `profiles` table ID.
-    let actual_profile_id = operator_id || null;
+    // Determine the actual operator company ID.
+    // The tokens might contain the `auth.users` ID (staff member) instead of the `operators` ID (company).
+    let company_id = operator_id || null;
+    let submitted_by = operator_id || null;
+
     if (operator_id) {
-      // Check if the provided ID is an `operators` table ID
-      const { data: operatorCheck } = await supabaseAdmin
-        .from('operators')
-        .select('profile_id')
+      // Check if the provided ID is an Operator Profile ID (Person)
+      const { data: opProfile } = await supabaseAdmin
+        .from('operator_profiles')
+        .select('operator_id')
         .eq('id', operator_id)
         .maybeSingle();
 
-      if (operatorCheck?.profile_id) {
-        // It WAS an operator's ID! So map it to their actual profile ID.
-        actual_profile_id = operatorCheck.profile_id;
+      if (opProfile?.operator_id) {
+        // It WAS a person ID! Map to company and set submitter.
+        company_id = opProfile.operator_id;
+        submitted_by = operator_id;
+      } else {
+        // Check if it's already a company ID
+        const { data: opCheck } = await supabaseAdmin
+          .from('operators')
+          .select('id')
+          .eq('id', operator_id)
+          .maybeSingle();
+        
+        if (opCheck) {
+          company_id = opCheck.id;
+          // Submitter remains whatever was passed (likely the profile_id linked to the company)
+        }
       }
     }
 
@@ -106,7 +121,8 @@ export async function POST(request: NextRequest) {
       .from('quotes')
       .insert({
         request_id,
-        operator_id: actual_profile_id,
+        operator_id: company_id,
+        submitted_by,
         total_price,
         base_fare,
         distance_charge,
@@ -121,11 +137,12 @@ export async function POST(request: NextRequest) {
       })
       .select(`
         *,
-        operator:profiles!quotes_operator_id_fkey (
+        operator:operators (
           id,
-          full_name,
           company_name,
-          avatar_url
+          company_email,
+          company_phone,
+          rating
         )
       `)
       .single();
@@ -201,7 +218,7 @@ export async function POST(request: NextRequest) {
                 vehicleType: vehicle_type,
                 requestId: request_id,
                 quoteId: data.id,
-                accessToken: transportRequest?.user_id ? await generateUserTripToken(request_id, transportRequest.user_id) : undefined,
+                accessToken: await generateUserTripToken(request_id, transportRequest.user_id || undefined),
                 appBaseUrl,
               })
             });
@@ -283,11 +300,12 @@ export async function GET(request: NextRequest) {
       .from('quotes')
       .select(`
         *,
-        operator:profiles!quotes_operator_id_fkey (
+        operator:operators (
           id,
-          full_name,
           company_name,
-          avatar_url
+          company_email,
+          company_phone,
+          rating
         ),
         request:transport_requests (
           id,

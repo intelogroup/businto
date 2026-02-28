@@ -522,11 +522,15 @@ export async function GET(request: NextRequest) {
           note,
           status,
           created_at,
-          operator:profiles!quotes_operator_id_fkey (
+          operator:operators (
             id,
-            full_name,
             company_name,
-            avatar_url
+            company_email,
+            company_phone,
+            profile:operator_profiles!profile_id (
+              full_name,
+              avatar_url
+            )
           )
         )
       `)

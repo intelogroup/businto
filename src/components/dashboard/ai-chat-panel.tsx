@@ -54,8 +54,8 @@ const MOCK_WIDGET = (
 export function AIChatPanel() {
     const { user } = useAuth();
     const router = useRouter();
-    const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat({
-        api: '/api/chat',
+    const [input, setInput] = useState("");
+    const { messages, sendMessage, status, error: chatError } = useChat({
         initialMessages: [
             {
                 id: "initial-1",
@@ -63,12 +63,22 @@ export function AIChatPanel() {
                 content: "Smarter routing for private rides. How can I help today?",
             }
         ],
-        onResponse: (response: Response) => {
-            if (response.status === 401) {
-                router.push('/login?next=/');
-            }
-        }
-    } as any) as any;
+    } as any);
+
+    const isLoading = status === 'streaming' || status === 'submitted';
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInput(e.target.value);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log('[AIChatPanel] Submitting via sendMessage:', input);
+        if (!input.trim() || isLoading) return;
+
+        sendMessage({ text: input });
+        setInput("");
+    };
 
     const [isListening, setIsListening] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,6 +101,13 @@ export function AIChatPanel() {
         } else {
             setIsListening(false);
         }
+    };
+
+    const handleFormSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        console.log('[AIChatPanel] Form submitted with input:', input);
+        if (!input?.trim()) return;
+        handleSubmit(e);
     };
 
     return (
@@ -129,24 +146,34 @@ export function AIChatPanel() {
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         transition={{ type: "spring", damping: 20, stiffness: 100 }}
                                         className={cn(
-                                            "flex gap-3",
-                                            msg.role === "user" ? "flex-row-reverse" : ""
+                                            "flex gap-3 w-full",
+                                            msg.role === "user" ? "flex-row-reverse" : "flex-row"
                                         )}
                                     >
+                                        {msg.role === "assistant" && (
+                                            <div className="h-8 w-8 rounded-full bg-neutral-900 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-neutral-200 mt-1">
+                                                <img src="/brand-mark.svg" alt="AI" className="w-4 h-4 invert" />
+                                            </div>
+                                        )}
                                         <div className={cn(
-                                            "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm leading-relaxed tracking-tight transition-all duration-300",
-                                            msg.role === "assistant"
-                                                ? "bg-white border border-neutral-200 text-neutral-800 rounded-tl-none"
-                                                : "bg-neutral-900 text-white rounded-tr-none ml-auto"
+                                            "max-w-[80%] flex flex-col gap-1",
+                                            msg.role === "user" ? "items-end" : "items-start"
                                         )}>
-                                            {msg.content}
-                                            {msg.role === "assistant" && msg.content.includes("Vehicles Found") && (
-                                                <div className="w-full">
-                                                    {MOCK_WIDGET}
-                                                </div>
-                                            )}
-                                            <div className="flex items-center gap-1.5 px-1 mt-1 opacity-40 hover:opacity-100 transition-opacity">
-                                                <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest" suppressHydrationWarning>
+                                            <div className={cn(
+                                                "rounded-2xl px-4 py-2.5 text-sm shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] leading-relaxed tracking-tight transition-all duration-300",
+                                                msg.role === "assistant"
+                                                    ? "bg-white border border-neutral-100 text-neutral-800 rounded-tl-none font-medium"
+                                                    : "bg-neutral-900 text-white rounded-tr-none px-5 font-medium"
+                                            )}>
+                                                {msg.content}
+                                                {msg.role === "assistant" && msg.content.includes("Vehicles Found") && (
+                                                    <div className="w-full">
+                                                        {MOCK_WIDGET}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2 opacity-50">
+                                                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest" suppressHydrationWarning>
                                                     {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
@@ -257,7 +284,8 @@ export function AIChatPanel() {
                         <Button
                             type="submit"
                             size="icon"
-                            disabled={!(input || '').trim() || isLoading}
+                            disabled={!input?.trim() || isLoading}
+                            onClick={() => console.log('[AIChatPanel] Send button clicked, input:', input)}
                             className="h-10 w-10 rounded-xl bg-neutral-900 hover:bg-black text-white disabled:opacity-30 shadow-none shrink-0 transition-all hover:scale-105 active:scale-95"
                         >
                             <Send className="h-4.5 w-4.5" />

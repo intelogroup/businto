@@ -39,7 +39,16 @@ export async function POST(request: NextRequest) {
         id, service_type, pickup_fuzzy, dropoff_fuzzy, start_date,
         quotes (
           id, total_price, vehicle_type,
-          operator:profiles!quotes_operator_id_fkey ( company_name )
+          operator:operators!quotes_operator_id_fkey (
+          id,
+          company_name,
+          company_email,
+          company_phone,
+          profile:profiles!profile_id (
+            full_name,
+            avatar_url
+          )
+        )
         )
       `)
       .eq('id', tripRequestId)
