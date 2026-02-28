@@ -243,7 +243,7 @@ export const emailTemplates = {
     `
   }),
 
-  quoteAccepted: (data: {
+  operatorOrderDetails: (data: {
     operatorName: string;
     parentName: string;
     parentEmail: string;
@@ -252,10 +252,12 @@ export const emailTemplates = {
     pickup: string;
     dropoff: string;
     date: string;
-    passengers: number;
+    time?: string;
     vehicleType: string;
+    confirmationCode: string;
+    bookingId: string;
   }) => ({
-    subject: 'Quote Accepted - Customer Contact Information',
+    subject: `Order Details - Booking ${data.confirmationCode} Confirmed`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -266,56 +268,76 @@ export const emailTemplates = {
             .header { background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
             .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 12px 12px; }
             .contact-card { background: #ecfdf5; border: 2px solid #10b981; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .contact-info { margin: 10px 0; }
-            .label { font-weight: 600; color: #065f46; }
-            .value { color: #047857; margin-top: 5px; }
-            .trip-details { background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; }
-            .detail-row { margin: 10px 0; }
-            .next-steps { background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .contact-info { margin: 10px 0; border-bottom: 1px solid rgba(16, 185, 129, 0.1); padding-bottom: 8px; }
+            .contact-info:last-child { border-bottom: 0; }
+            .label { font-weight: 800; color: #065f46; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+            .value { color: #047857; margin-top: 4px; font-weight: 600; font-size: 16px; }
+            .trip-details { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .detail-row { display: flex; justify-content: space-between; margin: 12px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+            .detail-row:last-child { border-bottom: 0; }
+            .detail-label { color: #6b7280; font-size: 13px; }
+            .detail-value { font-weight: 600; color: #111827; text-align: right; }
+            .next-steps { background: #fffbeb; border: 1px solid #fcd34d; padding: 15px; border-radius: 8px; margin: 20px 0; color: #92400e; font-size: 14px; }
             .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>🎉 Quote Accepted!</h1>
+              <h1>🎉 Job Confirmed!</h1>
+              <p style="margin: 5px 0 0 0; opacity: 0.9;">Booking #${data.confirmationCode}</p>
             </div>
             <div class="content">
-              <p>Hi ${data.operatorName},</p>
-              <p>Great news! Your ${data.quoteAmount === 0 ? 'job claim (estimate) ' : `quote for <strong>$${data.quoteAmount}</strong> `}has been accepted!</p>
+              <p>Hi <strong>${data.operatorName}</strong>,</p>
+              <p>The customer has accepted your quote. You are now officially booked for this trip.</p>
 
               <div class="contact-card">
-                <h2 style="margin-top: 0; color: #065f46;">📞 Customer Contact Information</h2>
+                <h2 style="margin-top: 0; color: #065f46; font-size: 18px;">📞 Customer Contact Information</h2>
                 <div class="contact-info">
-                  <div class="label">Name:</div>
+                  <div class="label">Primary Contact</div>
                   <div class="value">${data.parentName}</div>
                 </div>
                 <div class="contact-info">
-                  <div class="label">Email:</div>
-                  <div class="value"><a href="mailto:${data.parentEmail}" style="color: #047857;">${data.parentEmail}</a></div>
+                  <div class="label">Email Address</div>
+                  <div class="value"><a href="mailto:${data.parentEmail}" style="color: #047857; text-decoration: none;">${data.parentEmail}</a></div>
                 </div>
                 <div class="contact-info">
-                  <div class="label">Phone:</div>
-                  <div class="value"><a href="tel:${data.parentPhone}" style="color: #047857;">${data.parentPhone}</a></div>
+                  <div class="label">Phone Number</div>
+                  <div class="value"><a href="tel:${data.parentPhone}" style="color: #047857; text-decoration: none;">${data.parentPhone}</a></div>
                 </div>
               </div>
 
               <div class="trip-details">
-                <h3 style="margin-top: 0;">Trip Details</h3>
-                <div class="detail-row">📍 <strong>Pickup:</strong> ${data.pickup}</div>
-                <div class="detail-row">📍 <strong>Drop-off:</strong> ${data.dropoff}</div>
-                <div class="detail-row">📅 <strong>Date:</strong> ${data.date}</div>
-                <div class="detail-row">👥 <strong>Passengers:</strong> ${data.passengers}</div>
-                <div class="detail-row">🚌 <strong>Vehicle:</strong> ${data.vehicleType}</div>
+                <h3 style="margin-top: 0; font-size: 16px;">Trip Logistics</h3>
+                <div class="detail-row">
+                  <span class="detail-label">Pickup Address</span>
+                  <span class="detail-value">${data.pickup}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Drop-off Address</span>
+                  <span class="detail-value">${data.dropoff}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Date & Time</span>
+                  <span class="detail-value">${data.date}${data.time ? ` at ${data.time}` : ''}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Vehicle Booked</span>
+                  <span class="detail-value">${data.vehicleType}</span>
+                </div>
+                <div class="detail-row" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 15px;">
+                  <span class="detail-label" style="font-weight: bold; color: #111827;">Payout Amount</span>
+                  <span class="detail-value" style="font-size: 20px; font-weight: 800; color: #059669;">${data.quoteAmount === 0 ? 'TBD' : `$${data.quoteAmount.toFixed(2)}`}</span>
+                </div>
               </div>
 
               <div class="next-steps">
-                <strong>Next Steps:</strong><br>
-                Please reach out to the customer within 24 hours to confirm details and finalize the booking.
+                <strong>💡 Next Steps:</strong><br>
+                Please contact the customer directly using the information above to finalize any remaining logistical details.
               </div>
 
               <div class="footer">
-                <p>&copy; 2026 Businto. All rights reserved.</p>
+                <p>&copy; 2026 Businto Logistics. All rights reserved.</p>
               </div>
             </div>
           </div>

@@ -99,7 +99,7 @@ export async function GET(
     // Send email to operator with parent contact information
     if (quote.operators?.email) {
       try {
-        const emailData = emailTemplates.quoteAccepted({
+        const emailData = emailTemplates.operatorOrderDetails({
           operatorName: quote.operators.company_name,
           parentName: parentName,
           parentEmail: parentEmail || 'Not provided',
@@ -113,8 +113,9 @@ export async function GET(
             month: 'long',
             day: 'numeric'
           }),
-          passengers: request_data.passenger_count,
-          vehicleType: quote.vehicle_type
+          vehicleType: quote.vehicle_type,
+          confirmationCode: 'N/A', // Legacy route doesn't create booking yet
+          bookingId: 'N/A'
         });
 
         await sendEmail({

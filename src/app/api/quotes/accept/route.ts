@@ -225,48 +225,34 @@ export async function POST(request: NextRequest) {
 
     // ONE-WAY GATE: Reveal parent contact info to winning operator via email
     // This is the ONLY place where private metadata is exposed to operators
-    // No API endpoint returns this data - email only
     const { data: parentProfile } = await supabaseAdmin
       .from('profiles')
       .select('email, full_name, phone')
       .eq('id', lockedRequest.user_id)
       .single();
 
-    if (parentProfile && quote.operator?.email) {
+    if (parentProfile && quote.operator?.company_email) {
       const privateMetadata = lockedRequest.metadata_private || {};
       let revealEmailSent = false;
 
-      // Send email to winning operator with contact info
+      // Send email to winning operator with contact info using professional template
       try {
         await sendEmail({
-          to: quote.operator.email,
-          subject: `Booking Confirmed - Contact Information for Trip Request #${tripRequestId}`,
-          html: `
-            <h2>Congratulations! Your quote has been accepted.</h2>
-            <p><strong>Booking ID:</strong> ${booking?.id}</p>
-            <p><strong>Confirmation Code:</strong> ${booking?.confirmation_code}</p>
-            <p><strong>Amount:</strong> $${quote.total_price}</p>
-            
-            <hr />
-            
-            <h3>Parent/Guardian Contact Information:</h3>
-            <p><strong>Name:</strong> ${privateMetadata.parent_name || privateMetadata.contact_name || parentProfile.full_name || 'Not provided'}</p>
-            <p><strong>Email:</strong> ${privateMetadata.parent_email || privateMetadata.contact_email || parentProfile.email}</p>
-            <p><strong>Phone:</strong> ${privateMetadata.parent_phone || privateMetadata.contact_phone || parentProfile.phone || 'Not provided'}</p>
-            
-            <hr />
-            
-            <h3>Trip Details:</h3>
-            <p><strong>Pickup:</strong> ${transportRequest?.pickup_address || transportRequest?.pickup_fuzzy || 'Not specified'}</p>
-            <p><strong>Dropoff:</strong> ${transportRequest?.dropoff_address || transportRequest?.dropoff_fuzzy || 'Not specified'}</p>
-            <p><strong>Date:</strong> ${transportRequest?.start_date}</p>
-            <p><strong>Time:</strong> ${transportRequest?.start_time || 'Not specified'}</p>
-            
-            <p style="margin-top: 20px; color: #666;">
-              <em>Note: This information is provided to facilitate service delivery. 
-              Please keep this information confidential and use it only for coordinating this trip.</em>
-            </p>
-          `
+          to: quote.operator.company_email,
+          ...emailTemplates.operatorOrderDetails({
+            operatorName: quote.operator.company_name || 'Operator',
+            parentName: privateMetadata.parent_name || privateMetadata.contact_name || parentProfile.full_name || 'Not provided',
+            parentEmail: privateMetadata.parent_email || privateMetadata.contact_email || parentProfile.email,
+            parentPhone: privateMetadata.parent_phone || privateMetadata.contact_phone || parentProfile.phone || 'Not provided',
+            quoteAmount: quote.total_price,
+            pickup: transportRequest?.pickup_address || transportRequest?.pickup_fuzzy || 'Not specified',
+            dropoff: transportRequest?.dropoff_address || transportRequest?.dropoff_fuzzy || 'Not specified',
+            date: transportRequest?.start_date,
+            time: transportRequest?.start_time,
+            vehicleType: quote.vehicle_type,
+            confirmationCode: booking?.confirmation_code || 'N/A',
+            bookingId: booking?.id || 'N/A'
+          })
         });
         revealEmailSent = true;
       } catch (emailErr) {
@@ -294,7 +280,7 @@ export async function POST(request: NextRequest) {
           booking_id: booking?.id || null,
           operator_id: quote.operator_id || null,
           metadata: {
-            to: quote.operator.email,
+            to: quote.operator.company_email,
           },
         });
       }

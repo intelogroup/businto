@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         template = emailTemplates.quoteReceived(data);
         break;
       case 'quote_accepted':
-        template = emailTemplates.quoteAccepted(data);
+        template = emailTemplates.operatorOrderDetails(data);
         break;
       case 'booking_confirmation':
         template = emailTemplates.bookingConfirmation(data);
