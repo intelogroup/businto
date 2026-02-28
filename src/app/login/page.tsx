@@ -46,7 +46,7 @@ function LoginContent() {
         setErrorMsg(null);
         try {
             console.log("[Login Page] Form submitted for:", email);
-            const result = await login(email, password);
+            const result = await login(email, password, redirect || undefined);
             console.log("[Login Page] Login result:", result);
 
             if (result.mode === "password") {

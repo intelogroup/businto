@@ -18,7 +18,7 @@ interface AuthContextType {
     user: AuthUser | null;
     session: Session | null;
     isLoading: boolean;
-    login: (email: string, password?: string) => Promise<{ mode: "password" | "magic_link" }>;
+    login: (email: string, password?: string, redirectTo?: string) => Promise<{ mode: "password" | "magic_link" }>;
     signup: (email: string, password: string, fullName: string) => Promise<void>;
     logout: () => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    const login = async (email: string, password?: string) => {
+    const login = async (email: string, password?: string, redirectTo?: string) => {
         console.log("[Auth] login method called for:", email, "with password:", !!password);
         setIsLoading(true);
         try {
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             console.log("[Auth] Executing sendMagicLink...");
-            await sendMagicLink(email);
+            await sendMagicLink(email, redirectTo);
             return { mode: "magic_link" as const };
         } catch (err) {
             console.error("[Auth] login method error:", err);
@@ -154,18 +154,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = async () => {
         setIsLoading(true);
         try {
-            if (!session) {
-                console.warn('[Auth] Logout request ignored because no active session');
-                setUser(null);
-                setSession(null);
-                return;
-            }
-            console.log('[Auth] Logging out user', user?.id);
+            console.log('[Auth] Initiating sign-out...');
             await signOutUser();
             console.log('[Auth] Sign-out completed');
+        } catch (err) {
+            console.error('[Auth] Logout error:', err);
+        } finally {
             setSession(null);
             setUser(null);
-        } finally {
             setIsLoading(false);
         }
     };

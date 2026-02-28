@@ -147,6 +147,17 @@ export function Navbar() {
                       <Link href="/dashboard/bookings" className="block">
                         <Button variant="outline" className="w-full">My Bookings</Button>
                       </Link>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 font-semibold"
+                        onClick={async () => {
+                          await logout();
+                          window.location.href = "/";
+                        }}
+                      >
+                        <LogOut className="mr-3 h-4 w-4" />
+                        Sign Out
+                      </Button>
                     </>
                   )}
                 </div>
@@ -212,7 +223,7 @@ export function Navbar() {
                     <DropdownMenuItem
                       onClick={async () => {
                         await logout();
-                        router.push("/");
+                        window.location.href = "/";
                       }}
                       className="focus:bg-red-50 rounded-md px-3 py-2 cursor-pointer group"
                     >

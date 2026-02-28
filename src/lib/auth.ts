@@ -97,12 +97,19 @@ export async function signInWithPassword(
 
 export async function sendMagicLink(
   email: string,
+  redirectTo?: string,
   supabaseClient = createClient()
 ) {
+  // Use the callback route to handle the code exchange
+  const callbackUrl = `${getFrontendOrigin()}/api/auth/callback`;
+  const finalRedirect = redirectTo 
+    ? `${callbackUrl}?next=${encodeURIComponent(redirectTo)}`
+    : callbackUrl;
+
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${getFrontendOrigin()}/dashboard`,
+      emailRedirectTo: finalRedirect,
     },
   });
 
