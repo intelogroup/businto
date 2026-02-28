@@ -1,15 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase-server';
+
+// ── Shared admin auth helper ───────────────────────────────────────────────
+async function requireAdmin() {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  return profile?.role === 'admin' ? user : null;
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('profiles')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -44,22 +66,27 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { userId, updates } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // Validate allowed fields
+    // Validate allowed fields — role escalation is intentionally restricted here
     const allowedFields = ['role', 'is_verified', 'cori_verified', 'insurance_verified'];
-    const filteredUpdates: any = {};
+    const filteredUpdates: Record<string, unknown> = {};
     for (const key of Object.keys(updates)) {
       if (allowedFields.includes(key)) {
         filteredUpdates[key] = updates[key];
       }
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('profiles')
       .update(filteredUpdates)
       .eq('id', userId)

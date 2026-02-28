@@ -27,6 +27,7 @@ export interface SchoolMetadata {
   booster_seat?: string;
   special_needs?: boolean;
   no_adult_release?: boolean;
+  is_immediate?: boolean;
   note?: string;
 
   // Private fields — PII, never exposed to operators
@@ -60,6 +61,7 @@ export interface MedicalMetadata {
   // Recurring ride date range (safe — no PII)
   medical_start_date?: string;
   medical_end_date?: string;
+  is_immediate?: boolean;
   note?: string;
 
   // Private fields
@@ -90,6 +92,7 @@ export interface WeddingMetadata {
   special_requests?: string;
   duration_hours?: number;
   service_level?: string;
+  is_immediate?: boolean;
   note?: string;
 
   // Private fields

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const quoteSchema = z.object({
   request_id: z.string().uuid(),
   operator_id: z.string().uuid().nullable(),
-  total_price: z.number().positive(),
+  total_price: z.number().nonnegative(),
   base_fare: z.number().nonnegative().optional(),
   distance_charge: z.number().nonnegative().optional(),
   additional_fees: z.array(z.object({

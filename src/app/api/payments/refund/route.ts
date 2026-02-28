@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin as supabase } from '@/lib/supabase-server';
 
 /**
  * Refund Policy:
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate refund eligibility based on quote status
-    const hasValidQuotes = booking.quotes?.some((q: any) => 
+    const hasValidQuotes = booking.quotes?.some((q: any) =>
       q.status === 'pending' || q.status === 'accepted'
     );
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     // Update booking status
     await supabase
       .from('bookings')
-      .update({ 
+      .update({
         payment_status: 'refunded',
         updated_at: new Date().toISOString()
       })
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error processing refund:', error);
-    
+
     // Handle duplicate refund attempts
     if (error.type === 'StripeInvalidRequestError' && error.message?.includes('already been refunded')) {
       return NextResponse.json({

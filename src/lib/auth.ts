@@ -1,5 +1,5 @@
 import type { Session, User as SupabaseAuthUser } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 export interface AuthUser {
   id: string;
@@ -30,7 +30,7 @@ function getFrontendOrigin() {
 
 export async function mapSupabaseUser(
   authUser: SupabaseAuthUser,
-  supabaseClient = supabase
+  supabaseClient = createClient()
 ): Promise<AuthUser> {
   let profileName: string | undefined;
   let profileRole: AuthUser["role"] = "user";
@@ -78,7 +78,7 @@ export async function mapSupabaseUser(
 export async function signInWithPassword(
   email: string,
   password: string,
-  supabaseClient = supabase
+  supabaseClient = createClient()
 ) {
   console.log("[Auth] signInWithPassword started for:", email);
   const { data, error } = await supabaseClient.auth.signInWithPassword({
@@ -97,7 +97,7 @@ export async function signInWithPassword(
 
 export async function sendMagicLink(
   email: string,
-  supabaseClient = supabase
+  supabaseClient = createClient()
 ) {
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
@@ -115,7 +115,7 @@ export async function registerUser(
   email: string,
   password: string,
   fullName: string,
-  supabaseClient = supabase
+  supabaseClient = createClient()
 ) {
   const { data, error } = await supabaseClient.auth.signUp({
     email,
@@ -161,7 +161,7 @@ export async function registerUser(
  */
 export async function resetPasswordForEmail(
   email: string,
-  supabaseClient = supabase
+  supabaseClient = createClient()
 ) {
   const redirectTo = `${getFrontendOrigin()}/api/auth/callback?next=/login/reset-password`;
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
@@ -178,7 +178,7 @@ export async function resetPasswordForEmail(
  */
 export async function updatePassword(
   newPassword: string,
-  supabaseClient = supabase
+  supabaseClient = createClient()
 ) {
   console.log("[Auth] updatePassword started...");
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -201,7 +201,7 @@ export async function updatePassword(
   return data;
 }
 
-export async function signOutUser(supabaseClient = supabase) {
+export async function signOutUser(supabaseClient = createClient()) {
   try {
     const { error } = await supabaseClient.auth.signOut();
     if (error) {

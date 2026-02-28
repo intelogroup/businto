@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/navbar";
-import { Hero } from "@/components/hero";
+import { Forms } from "@/components/forms";
 import { HowItWorks } from "@/components/how-it-works";
 
 interface Props {
@@ -25,7 +25,7 @@ export default async function Home({ searchParams }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <Hero />
+      <Forms />
       <HowItWorks />
     </div>
   );

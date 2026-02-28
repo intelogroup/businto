@@ -78,7 +78,7 @@ export async function GET(
     // RATE LIMITING: Prevent abuse and scraping
     const clientIP = getClientIP(request);
     const rateLimitKey = `${clientIP}:${id}`;
-    
+
     if (!checkRateLimit(rateLimitKey, 10)) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Maximum 10 requests per hour per request.' },
@@ -133,7 +133,7 @@ export async function GET(
         { status: 404 }
       );
     }
-    
+
     console.log(`[Operator View] Request ${id} found:`, data.service_type, data.pickup_fuzzy);
 
     // Return the sanitized DTO
@@ -151,6 +151,7 @@ export async function GET(
       metadata_safe: data.metadata_safe,
       status: data.status,
       created_at: data.created_at,
+      operator_id: payload.operatorId || null,
     };
 
     return NextResponse.json(response);

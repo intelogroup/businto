@@ -223,14 +223,14 @@ export const emailTemplates = {
               <p>Great news! An operator has submitted a quote for your transport request.</p>
 
               <div class="quote-card">
-                <div class="price">$${data.price.toFixed(2)}</div>
+                <div class="price">${data.price === 0 ? 'Estimate (TBD)' : `$${data.price.toFixed(2)}`}</div>
                 <div class="operator">${data.operatorName}</div>
                 <div class="vehicle">${data.vehicleType}</div>
               </div>
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/dashboard/requests" class="button">View &amp; Accept Quote</a>
+              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/trips/${data.requestId}" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -281,7 +281,7 @@ export const emailTemplates = {
             </div>
             <div class="content">
               <p>Hi ${data.operatorName},</p>
-              <p>Great news! Your quote for <strong>$${data.quoteAmount}</strong> has been accepted!</p>
+              <p>Great news! Your ${data.quoteAmount === 0 ? 'job claim (estimate) ' : `quote for <strong>$${data.quoteAmount}</strong> `}has been accepted!</p>
 
               <div class="contact-card">
                 <h2 style="margin-top: 0; color: #065f46;">📞 Customer Contact Information</h2>
@@ -606,7 +606,7 @@ export const emailTemplates = {
 
               <div style="text-align: center;">
                 <a href="${appBaseUrl}/quotes/submit?request_id=${data.requestId}&token=${data.accessToken}" class="button">
-                  Submit Quote
+                  Claim Job
                 </a>
               </div>
 

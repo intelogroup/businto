@@ -42,7 +42,7 @@ export function Footer() {
 
           <div className="bg-neutral-900/50 rounded-lg p-10 border border-white/5 space-y-8">
             <div className="space-y-2">
-              <h3 className="text-2xl font-semibold tracking-tight">Join the network</h3>
+              <h3 className="text-2xl font-semibold tracking-tight">Call for ride operators to join the network!</h3>
               <p className="text-neutral-400 font-medium">Get the latest operator insights and regional route availability.</p>
             </div>
             <div className="flex gap-3">
@@ -74,10 +74,10 @@ export function Footer() {
           <div className="space-y-6">
             <div className="text-sm font-semibold uppercase tracking-widest text-white">Company</div>
             <ul className="space-y-4 text-neutral-400 font-semibold">
-              <li><a href="#" className="hover:text-white transition-colors duration-150">About Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-150">Safety Standard</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-150">Operator Network</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-150">Contact</a></li>
+              <li><a href="/about" className="hover:text-white transition-colors duration-150">About Us</a></li>
+              <li><a href="/safety" className="hover:text-white transition-colors duration-150">Safety Standard</a></li>
+              <li><a href="/operators" className="hover:text-white transition-colors duration-150">Operator Network</a></li>
+              <li><a href="/contact" className="hover:text-white transition-colors duration-150">Contact</a></li>
             </ul>
           </div>
           <div className="space-y-6">
@@ -85,7 +85,7 @@ export function Footer() {
             <ul className="space-y-4 text-neutral-400 font-semibold">
               <li><a href="#" className="hover:text-white transition-colors duration-150">Fuzzy Billing FAQ</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-150">Route Optimization</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-150">Pricing Guide</a></li>
+              <li><a href="/pricing" className="hover:text-white transition-colors duration-150">Pricing Guide</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-150">Case Studies</a></li>
             </ul>
           </div>
@@ -106,8 +106,8 @@ export function Footer() {
         <div className="mt-24 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
             <span>© 2026 BUSINTO LOGISTICS</span>
-            <span>PRIVACY POLICY</span>
-            <span>TERMS OF SERVICE</span>
+            <span><a href="/privacy" className="hover:text-white transition-colors">PRIVACY POLICY</a></span>
+            <span><a href="/terms" className="hover:text-white transition-colors">TERMS OF SERVICE</a></span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-[10px] font-semibold uppercase tracking-widest">
             <span className="w-2 h-2 rounded-full bg-green-500" />

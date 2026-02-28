@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
 
-// Service role client for quote operations (bypasses RLS for anonymous operator submissions)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,15 +15,15 @@ export async function POST(request: NextRequest) {
       appBaseUrl = 'https://businto.vercel.app';
     }
     const body = await request.json();
-    
+
     // VALIDATE INPUT with Zod schema
     const validation = validateQuote(body);
     if (!validation.success) {
       console.error('🔴 Quote Validation Failed:', validation.error.format());
       return NextResponse.json(
-        { 
-          error: 'Invalid quote data', 
-          details: validation.error.format() 
+        {
+          error: 'Invalid quote data',
+          details: validation.error.format()
         },
         { status: 400 }
       );
@@ -152,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Send quote notification email (fire and forget)
     // SECURITY: Only reads metadata_private server-side for email, never returns to client
     try {
-      const { data: transportRequest, error: reqError } = await supabase
+      const { data: transportRequest, error: reqError } = await supabaseAdmin
         .from('transport_requests')
         .select('user_id, metadata_private')
         .eq('id', request_id)
@@ -165,7 +153,7 @@ export async function POST(request: NextRequest) {
         let userName = null;
 
         if (transportRequest?.user_id) {
-          const { data: profile } = await supabase
+          const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('email, full_name')
             .eq('id', transportRequest.user_id)
@@ -198,6 +186,20 @@ export async function POST(request: NextRequest) {
                 appBaseUrl,
               })
             });
+
+            if (transportRequest?.user_id) {
+              await supabaseAdmin.from('notifications').insert({
+                user_id: transportRequest.user_id,
+                type: 'quote_received',
+                title: 'New Quote Received!',
+                message: total_price === 0 ? `${operatorName} sent you an estimate. They wish to discuss details.` : `${operatorName} sent you a quote for $${total_price}`,
+                data: {
+                  request_id,
+                  quote_id: data.id,
+                  link: `/trips/${request_id}`
+                }
+              });
+            }
 
             await logEvent({
               event_type: 'quote.notification_email.sent',
@@ -258,7 +260,7 @@ export async function GET(request: NextRequest) {
     const requestId = searchParams.get('request_id');
     const operatorId = searchParams.get('operator_id');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('quotes')
       .select(`
         *,

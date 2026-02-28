@@ -202,17 +202,14 @@ export default function EmailPreviewPage() {
 
             <div>
               <h3 className="font-bold text-neutral-900 mb-2">4. Real-time Subscriptions</h3>
-              <p className="mb-2">Use the useQuoteNotifications hook in your app:</p>
+              <p className="mb-2">Use the useNotifications hook in your app:</p>
               <code className="block bg-neutral-100 p-3 rounded-lg font-mono text-xs overflow-x-auto">
-                {`import { useQuoteNotifications } from '@/hooks/use-quote-notifications';
+                {`import { useNotifications } from '@/hooks/use-notifications';
 
 function MyComponent() {
-  const { newQuoteCount } = useQuoteNotifications({
-    userId: currentUser.id,
-    enabled: true
-  });
+  const { unreadCount } = useNotifications();
 
-  return <div>New quotes: {newQuoteCount}</div>;
+  return <div>New quotes: {unreadCount}</div>;
 }`}
               </code>
             </div>

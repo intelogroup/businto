@@ -113,7 +113,7 @@ export function MedicalAccessEmail({ data }: MedicalEmailProps) {
                 {/* Action Buttons */}
                 <div className="pt-2">
                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                        Review & Submit Quote <ArrowRight className="w-5 h-5 opacity-80" />
+                        Claim Job <ArrowRight className="w-5 h-5 opacity-80" />
                     </button>
                     <div className="mt-3 text-center">
                         <button className="text-xs font-bold text-neutral-400 hover:text-red-500 transition-colors">

@@ -35,7 +35,7 @@ const INITIAL_REQUESTS = [
   { city: "Cambridge, MA", service: "School Run", time: "12 mins ago", status: "Matching", icon: Bus, color: "text-amber-500 bg-amber-50" },
 ];
 
-export function Hero() {
+export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }) {
   const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("school");
@@ -159,6 +159,7 @@ export function Hero() {
 
   // Shared fields
   const [note, setNote] = useState("");
+  const [isImmediate, setIsImmediate] = useState(false);
 
   // Form state
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -253,7 +254,7 @@ export function Hero() {
         eventCategory, shuttleMode, eventStartTime, alcoholAllowed, refreshmentsProvided, avNeeds, specialDecor,
         dayOfContactName, dayOfContactPhone,
         // Shared fields
-        note,
+        note, isImmediate,
       };
       sessionStorage.setItem('businto_form_draft', JSON.stringify(draft));
     }
@@ -267,7 +268,9 @@ export function Hero() {
     eventDurationType, eventDurationDays, eventCustomDates,
     eventCategory, shuttleMode, eventStartTime, alcoholAllowed, refreshmentsProvided, avNeeds, specialDecor,
     dayOfContactName, dayOfContactPhone,
-    note, isSubmitted]);
+    note, isImmediate, isSubmitted]);
+
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     // Reset errors
@@ -301,6 +304,7 @@ export function Hero() {
         special_needs: specialNeeds,
         booster_seat: boosterSeat !== 'none' ? boosterSeat : undefined,
         no_adult_release: noAdultRelease,
+        is_immediate: isImmediate,
         note: note || undefined,
         // Private — PII, split into metadata_private by splitSchoolMetadata
         parent_name: user?.name || undefined,
@@ -315,13 +319,13 @@ export function Hero() {
 
       requestData = {
         service_type: 'school' as const,
+        is_immediate: isImmediate,
         pickup_address: pickupZip,
         dropoff_address: schoolName,
         pickup_fuzzy: pickupZip,
         dropoff_fuzzy: schoolName,
-        start_date: startDate,
-        end_date: endDate || undefined,
-        start_time: (scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : pmTime,
+        start_date: isImmediate ? new Date().toISOString().split('T')[0] : startDate,
+        start_time: isImmediate ? new Date().toLocaleTimeString('en-GB').slice(0, 5) : ((scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : pmTime),
         is_recurring: schoolRecurring === 'recurring',
         recurrence_pattern: schoolRecurring === 'recurring' ? 'weekdays' : 'one-time',
         metadata: schoolMetadata, // For backward compatibility
@@ -345,6 +349,7 @@ export function Hero() {
         service_animal: serviceAnimal,
         medical_start_date: isRecurringMedical ? medicalStartDate : appointmentDate,
         medical_end_date: isRecurringMedical ? medicalEndDate || undefined : undefined,
+        is_immediate: isImmediate,
         note: note || undefined,
         // Private fields - will be split out
         patient_name: user?.name || 'Patient',
@@ -357,13 +362,14 @@ export function Hero() {
 
       requestData = {
         service_type: 'medical' as const,
+        is_immediate: isImmediate,
         pickup_address: pickupLocation,
         dropoff_address: dropoffLocation,
         pickup_fuzzy: pickupLocation,
         dropoff_fuzzy: dropoffLocation,
-        start_date: isRecurringMedical ? medicalStartDate : appointmentDate,
+        start_date: isImmediate ? new Date().toISOString().split('T')[0] : (isRecurringMedical ? medicalStartDate : appointmentDate),
         end_date: isRecurringMedical ? medicalEndDate || undefined : undefined,
-        start_time: appointmentTime,
+        start_time: isImmediate ? new Date().toLocaleTimeString('en-GB').slice(0, 5) : appointmentTime,
         is_recurring: isRecurringMedical,
         recurrence_pattern: medicalDurationType,
         metadata: medicalMetadata, // For backward compatibility
@@ -387,6 +393,7 @@ export function Hero() {
         refreshments_provided: refreshmentsProvided,
         av_needs: avNeeds,
         special_decor: specialDecor,
+        is_immediate: isImmediate,
         note: note || undefined,
         // Private — PII, split into metadata_private by splitWeddingMetadata
         contact_name: user?.name || 'Event Coordinator',
@@ -400,12 +407,13 @@ export function Hero() {
 
       requestData = {
         service_type: 'wedding' as const,
+        is_immediate: isImmediate,
         pickup_address: hotelZip,
         dropoff_address: venueZip,
         pickup_fuzzy: hotelZip,
         dropoff_fuzzy: venueZip,
-        start_date: eventDate,
-        start_time: pickupTime,
+        start_date: isImmediate ? new Date().toISOString().split('T')[0] : eventDate,
+        start_time: isImmediate ? new Date().toLocaleTimeString('en-GB').slice(0, 5) : pickupTime,
         is_recurring: false,
         metadata: weddingMetadata, // For backward compatibility
         metadata_safe,
@@ -445,6 +453,7 @@ export function Hero() {
       }
 
       setSubmittedData(data.request);
+      setPaymentUrl(data.paymentUrl || null);
       setIsSubmitted(true);
     } catch (err: any) {
       setSubmitError(err.message || 'Failed to submit request. Please try again.');
@@ -479,7 +488,8 @@ export function Hero() {
         {!user && (
           <div className="mb-12 md:mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out flex flex-col items-center text-center max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-neutral-900 mb-4 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
-              Smarter routing for private rides.
+              Smarter routing for <br />
+              <span className="text-neutral-500 italic">private rides.</span>
             </h1>
             <p className="text-lg md:text-xl text-neutral-500 leading-relaxed font-medium max-w-xl">
               School runs, medical transports, and full-day charters managed by one intelligent platform.
@@ -604,9 +614,13 @@ export function Hero() {
                           <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Start Date</label>
                           <Input
                             type="date"
-                            value={startDate}
+                            value={isImmediate ? new Date().toISOString().split('T')[0] : startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            disabled={isImmediate}
+                            className={cn(
+                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                            )}
                           />
                         </div>
                         <div className="col-span-1 space-y-2">
@@ -627,9 +641,13 @@ export function Hero() {
                             <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Bell Time</label>
                             <Input
                               type="time"
-                              value={schoolStartTime || amTime}
+                              value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : (schoolStartTime || amTime)}
                               onChange={(e) => { setSchoolStartTime(e.target.value); setAmTime(e.target.value); }}
-                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                              disabled={isImmediate}
+                              className={cn(
+                                "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
+                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              )}
                             />
                           </div>
                         )}
@@ -638,9 +656,13 @@ export function Hero() {
                             <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Dismissal Time</label>
                             <Input
                               type="time"
-                              value={schoolDismissalTime || pmTime}
+                              value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : (schoolDismissalTime || pmTime)}
                               onChange={(e) => { setSchoolDismissalTime(e.target.value); setPmTime(e.target.value); }}
-                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                              disabled={isImmediate}
+                              className={cn(
+                                "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
+                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              )}
                             />
                           </div>
                         )}
@@ -739,6 +761,24 @@ export function Hero() {
                             className="w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500"
                           />
                           <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">No-Adult Release OK</span>
+                        </label>
+                        <label className={cn(
+                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border transition-all duration-200",
+                          isImmediate ? "bg-amber-50 border-amber-500 shadow-md ring-1 ring-amber-200" : "border-neutral-200 hover:bg-neutral-50"
+                        )}>
+                          <input
+                            type="checkbox"
+                            checked={isImmediate}
+                            onChange={(e) => setIsImmediate(e.target.checked)}
+                            className={cn(
+                              "w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500",
+                              isImmediate && "animate-pulse"
+                            )}
+                          />
+                          <span className={cn(
+                            "text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
+                            isImmediate ? "text-amber-600 italic" : "text-neutral-500 group-hover:text-neutral-900"
+                          )}>ASAP / Immediate Request</span>
                         </label>
                       </div>
 
@@ -945,6 +985,24 @@ export function Hero() {
                           />
                           <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Service Animal</span>
                         </label>
+                        <label className={cn(
+                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border transition-all duration-200",
+                          isImmediate ? "bg-sky-50 border-sky-500 shadow-md ring-1 ring-sky-200" : "border-neutral-200 hover:bg-neutral-50"
+                        )}>
+                          <input
+                            type="checkbox"
+                            checked={isImmediate}
+                            onChange={(e) => setIsImmediate(e.target.checked)}
+                            className={cn(
+                              "w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500",
+                              isImmediate && "animate-pulse"
+                            )}
+                          />
+                          <span className={cn(
+                            "text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
+                            isImmediate ? "text-sky-600 italic" : "text-neutral-500 group-hover:text-neutral-900"
+                          )}>ASAP / Immediate Request</span>
+                        </label>
                       </div>
 
                       {/* Row 3: Times & Dates */}
@@ -953,9 +1011,13 @@ export function Hero() {
                           <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Appt Time</label>
                           <Input
                             type="time"
-                            value={appointmentTime}
+                            value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : appointmentTime}
                             onChange={(e) => setAppointmentTime(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                            disabled={isImmediate}
+                            className={cn(
+                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                            )}
                           />
                         </div>
                         {medicalDurationType === "recurring" ? (
@@ -964,9 +1026,13 @@ export function Hero() {
                               <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Start Date</label>
                               <Input
                                 type="date"
-                                value={medicalStartDate}
+                                value={isImmediate ? new Date().toISOString().split('T')[0] : medicalStartDate}
                                 onChange={(e) => setMedicalStartDate(e.target.value)}
-                                className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                                disabled={isImmediate}
+                                className={cn(
+                                  "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
+                                  isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                                )}
                               />
                             </div>
                             <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -988,9 +1054,13 @@ export function Hero() {
                             <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Appt Date</label>
                             <Input
                               type="date"
-                              value={appointmentDate}
+                              value={isImmediate ? new Date().toISOString().split('T')[0] : appointmentDate}
                               onChange={(e) => setAppointmentDate(e.target.value)}
-                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                              disabled={isImmediate}
+                              className={cn(
+                                "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
+                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              )}
                             />
                           </div>
                         )}
@@ -1179,9 +1249,13 @@ export function Hero() {
                           <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Event Date</label>
                           <Input
                             type="date"
-                            value={eventDate}
+                            value={isImmediate ? new Date().toISOString().split('T')[0] : eventDate}
                             onChange={(e) => setEventDate(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            disabled={isImmediate}
+                            className={cn(
+                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                            )}
                           />
                         </div>
                       </div>
@@ -1192,18 +1266,26 @@ export function Hero() {
                           <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Departs</label>
                           <Input
                             type="time"
-                            value={pickupTime}
+                            value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : pickupTime}
                             onChange={(e) => setPickupTime(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                            disabled={isImmediate}
+                            className={cn(
+                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                            )}
                           />
                         </div>
                         <div className="col-span-1 space-y-2">
                           <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Ceremony</label>
                           <Input
                             type="time"
-                            value={eventStartTime}
+                            value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : eventStartTime}
                             onChange={(e) => setEventStartTime(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                            disabled={isImmediate}
+                            className={cn(
+                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                            )}
                           />
                         </div>
                       </div>
@@ -1261,6 +1343,24 @@ export function Hero() {
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input type="checkbox" checked={specialDecor} onChange={(e) => setSpecialDecor(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
                           <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Decorations</span>
+                        </label>
+                        <label className={cn(
+                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border transition-all duration-200",
+                          isImmediate ? "bg-indigo-50 border-indigo-500 shadow-md ring-1 ring-indigo-200" : "border-neutral-200 hover:bg-neutral-50"
+                        )}>
+                          <input
+                            type="checkbox"
+                            checked={isImmediate}
+                            onChange={(e) => setIsImmediate(e.target.checked)}
+                            className={cn(
+                              "w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500",
+                              isImmediate && "animate-pulse"
+                            )}
+                          />
+                          <span className={cn(
+                            "text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
+                            isImmediate ? "text-indigo-600 italic" : "text-neutral-500 group-hover:text-neutral-900"
+                          )}>ASAP / Immediate Request</span>
                         </label>
                       </div>
 
@@ -1345,14 +1445,32 @@ export function Hero() {
                               )}>
                                 Request #{submittedData?.id?.slice(0, 6)}
                               </div>
-                              <h3 className="text-2xl font-semibold tracking-tight">Trip Submitted!</h3>
+                              <h3 className="text-2xl font-semibold tracking-tight">
+                                {submittedData?.matched_operators_count === 0 ? "Under Review" : "Trip Submitted!"}
+                              </h3>
                             </div>
-                            <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20">
-                              <CheckCircle2 className="h-6 w-6 text-white" />
+                            <div className={cn(
+                              "h-12 w-12 rounded-full flex items-center justify-center shadow-lg",
+                              submittedData?.matched_operators_count === 0
+                                ? "bg-amber-500 shadow-amber-500/20"
+                                : "bg-green-500 shadow-green-500/20"
+                            )}>
+                              {submittedData?.matched_operators_count === 0 ? (
+                                <AlertCircle className="h-6 w-6 text-white" />
+                              ) : (
+                                <CheckCircle2 className="h-6 w-6 text-white" />
+                              )}
                             </div>
                           </div>
                           <p className="text-neutral-400 text-sm">
-                            Broadcasting to 50+ local operators. You'll be notified when quotes arrive.
+                            {submittedData?.matched_operators_count === 0 ? (
+                              <>
+                                We couldn't find operators matching your strict requirements (e.g., Immediate or Stretcher).{" "}
+                                <span className="text-white block mt-2">Our team has been notified to manually handle this specialized request. You won't be charged priority fees yet.</span>
+                              </>
+                            ) : (
+                              "Broadcasting to 50+ local operators. You'll be notified when quotes arrive."
+                            )}
                           </p>
                           {activeTab === 'medical' && (
                             <div className="flex flex-wrap gap-2 pt-2">
@@ -1360,7 +1478,21 @@ export function Hero() {
                               {oxygenUse && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Oxygen</Badge>}
                               {isBariatric && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Bariatric</Badge>}
                               {serviceAnimal && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Service Animal</Badge>}
+                              {isImmediate && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Immediate</Badge>}
                               {parseInt(additionalPassengers) > 0 && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">+{additionalPassengers} Passengers</Badge>}
+                            </div>
+                          )}
+                          {activeTab === 'school' && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {specialNeeds && <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 uppercase tracking-wider">Special Needs</Badge>}
+                              {noAdultRelease && <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 uppercase tracking-wider">No-Adult Release</Badge>}
+                              {isImmediate && <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 uppercase tracking-wider">Immediate</Badge>}
+                            </div>
+                          )}
+                          {activeTab === 'wedding' && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {alcoholAllowed && <Badge variant="outline" className="text-[9px] border-indigo-500/30 text-indigo-400 bg-indigo-500/5 uppercase tracking-wider">Alcohol OK</Badge>}
+                              {isImmediate && <Badge variant="outline" className="text-[9px] border-indigo-500/30 text-indigo-400 bg-indigo-500/5 uppercase tracking-wider">Immediate</Badge>}
                             </div>
                           )}
                         </div>
@@ -1376,18 +1508,29 @@ export function Hero() {
                             activeTab === 'medical' && "text-sky-400",
                             activeTab === 'wedding' && "text-indigo-400"
                           )}>
-                            Status: Matching Operators
+                            {submittedData?.matched_operators_count === 0 ? "Status: Manual Review Needed" : "Status: Matching Operators"}
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          className="flex-1 h-10 rounded-md font-semibold"
-                          onClick={() => setIsSubmitted(false)}
-                        >
-                          Submit Another
-                        </Button>
+                        {paymentUrl && submittedData?.matched_operators_count > 0 && (
+                          <Button
+                            className="flex-1 h-10 rounded-md font-semibold bg-violet-600 text-white hover:bg-violet-700"
+                            onClick={() => window.location.href = paymentUrl}
+                          >
+                            <Gem className="h-4 w-4 mr-2" />
+                            Submit $1.99 Fee
+                          </Button>
+                        )}
+                        {!paymentUrl && (
+                          <Button
+                            variant="outline"
+                            className="flex-1 h-10 rounded-md font-semibold"
+                            onClick={() => setIsSubmitted(false)}
+                          >
+                            Submit Another
+                          </Button>
+                        )}
                         <Button
                           className="flex-1 h-10 rounded-md font-semibold bg-black text-white"
                           onClick={() => window.dispatchEvent(new CustomEvent('open-trips-sidebar'))}
@@ -1409,7 +1552,7 @@ export function Hero() {
         </div>
 
         {/* Recent Trips Section - Only for logged-in users */}
-        {user && recentTrips.length > 0 && (
+        {user && recentTrips.length > 0 && !hideRecentTrips && (
           <div className="mt-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-neutral-900 uppercase tracking-widest">Recent Trips</h2>

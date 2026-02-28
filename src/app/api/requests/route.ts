@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase-server';
+import { stripe } from '@/lib/stripe';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
-import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/validation-split';
+import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/validation';
 import { generateOperatorViewToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Auth: derive user identity from session, never trust client ──────
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Allow unauthenticated requests but track them clearly
+    const user_id = user?.id ?? null;
+    // ─────────────────────────────────────────────────────────────────────
+
     // Base URL for links (prefer env var, then origin)
     let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
 
@@ -28,8 +37,8 @@ export async function POST(request: NextRequest) {
       is_recurring,
       recurrence_pattern,
       metadata,
-      user_id,
       end_time,
+      payment_method_id, // New field for serious lead payment
     } = body;
 
     if (!service_type || !pickup_address || !dropoff_address || !start_date) {
@@ -76,7 +85,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data, error } = await supabase
+    // Affiliate Priority Window Logic
+    // Care (medical) rides get a 15 min head-start for affiliates.
+    // School/Event/Corporate get a 60 min head-start.
+    const priorityMinutes = service_type === 'medical' ? 15 : 60;
+    const priority_window_ends_at = new Date(Date.now() + priorityMinutes * 60 * 1000).toISOString();
+
+    // User Priority and Payment Logic
+    // If the user provided a payment method (even a mock one for testing), 
+    // we activate the 30-minute priority window.
+    const hasPaid = !!payment_method_id;
+    const priority_until = hasPaid ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null;
+    const payment_status = hasPaid ? 'paid' : 'pending';
+
+    const { data, error } = await supabaseAdmin
       .from('transport_requests')
       .insert({
         service_type,
@@ -95,7 +117,11 @@ export async function POST(request: NextRequest) {
         // Keep old metadata field for backward compat during transition
         metadata: metadata || {},
         user_id,
-        status: 'pending'
+        status: 'pending',
+        payment_status,
+        priority_until,
+        priority_window_ends_at,
+        routing_fee_amount: 1.99
       })
       .select()
       .single();
@@ -115,6 +141,7 @@ export async function POST(request: NextRequest) {
         service_type,
         pickup_fuzzy: data.pickup_fuzzy,
         dropoff_fuzzy: data.dropoff_fuzzy,
+        has_priority: !!priority_until
       },
     });
 
@@ -124,7 +151,7 @@ export async function POST(request: NextRequest) {
     // Send confirmation email (fire and forget - don't block response)
     if (user_id) {
       try {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabaseAdmin
           .from('profiles')
           .select('email, full_name')
           .eq('id', user_id)
@@ -136,7 +163,8 @@ export async function POST(request: NextRequest) {
           const serviceTypeMap: Record<string, string> = {
             school: 'School Transportation',
             medical: 'Medical Transportation',
-            wedding: 'Event Shuttle'
+            wedding: 'Event Shuttle',
+            corporate: 'Corporate Travel'
           };
 
           try {
@@ -179,30 +207,111 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Notify matching operators (fire and forget - don't block response)
-    findMatchingOperators({
-      service_type,
-      pickup_address,
-      pickup_fuzzy,
-      dropoff_address,
-      dropoff_fuzzy,
-      metadata
-    }).then(async (operators) => {
+    // Notify matching operators immediately (blocks for DB lookup, then fire-and-forget emails)
+    let matchedOperatorsCount = 0;
+    try {
+      const operators = await findMatchingOperators({
+        service_type,
+        pickup_address,
+        pickup_fuzzy,
+        dropoff_address,
+        dropoff_fuzzy,
+        metadata
+      });
+
+      matchedOperatorsCount = operators.length;
+
+      const requirements = extractRequirements(service_type, metadata);
+
+      // Fallback mechanism: if no operators found for specialized requests, notify admins for manual review
+      if (operators.length === 0) {
+        console.log(`⚠️ No matching operators for request ${data.id}. Firing admin fallback notification.`);
+        try {
+          // You can also change the request status or add a flag so admins know it requires review.
+          // For now, we update a flag in metadata_private
+          await supabaseAdmin
+            .from('transport_requests')
+            .update({
+              metadata_private: { ...metadata_private, requires_manual_allocation: true }
+            })
+            .eq('id', data.id);
+
+          await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'admin@businto.com',
+            subject: `URGENT: Manual Allocation Required for Request #${data.id.substring(0, 8)}`,
+            html: `
+              <h2>Action Required: No Automated Matches Found</h2>
+              <p>A specialized transport request was submitted and no operators matched the strict criteria.</p>
+              <ul>
+                <li><strong>Service Type:</strong> ${service_type}</li>
+                <li><strong>Pickup:</strong> ${pickup_address}</li>
+                <li><strong>Dropoff:</strong> ${dropoff_address}</li>
+                <li><strong>Date:</strong> ${start_date}</li>
+                <li><strong>Requirements:</strong> ${requirements.join(', ')}</li>
+              </ul>
+              <p>Please log in to the admin dashboard to match this request manually or provide a quote.</p>
+            `,
+          });
+
+          await logEvent({
+            event_type: 'request.manual_allocation.flagged',
+            actor_type: 'system',
+            request_id: data.id,
+          });
+        } catch (err) {
+          console.error('Failed to handle unmatched request fallback:', err);
+        }
+
+        // Generate response even in fallback case to avoid "Unexpected end of JSON input"
+        const sanitizedRequest = {
+          id: data.id,
+          service_type: data.service_type,
+          pickup_fuzzy: data.pickup_fuzzy,
+          dropoff_fuzzy: data.dropoff_fuzzy,
+          start_date: data.start_date,
+          start_time: data.start_time,
+          end_date: data.end_date,
+          end_time: data.end_time,
+          is_recurring: data.is_recurring,
+          recurrence_pattern: data.recurrence_pattern,
+          metadata_safe: data.metadata_safe,
+          status: data.status,
+          created_at: data.created_at,
+          payment_status: data.payment_status,
+          priority_until: data.priority_until,
+          routing_fee_amount: data.routing_fee_amount,
+          matched_operators_count: 0
+        };
+
+        return NextResponse.json({
+          success: true,
+          request: sanitizedRequest,
+          paymentUrl: undefined,
+          message: 'Transport request created and flagged for manual review',
+        });
+      }
+
+      // Affiliate Priority Window Logic:
+      // ALL new requests go to partners/affiliates FIRST for the duration of priority_window_ends_at.
+      const operatorsToNotify = operators.filter(op => op.is_partner);
+
       console.log('\n🔔 ==========================================');
-      console.log(`🔔 Notifying ${operators.length} matching operators for request ${data.id}`);
+      console.log(`🔔 Found ${operators.length} matching operators for request ${data.id}`);
+      console.log(`🔔 Priority Head-Start Active for Affiliates.`);
+      console.log(`🔔 Notifying ${operatorsToNotify.length} eligible Affiliate operators initially`);
       console.log('🔔 ==========================================\n');
 
       const serviceTypeMap: Record<string, string> = {
         school: 'School Transportation',
         medical: 'Medical Transportation',
-        wedding: 'Event Shuttle'
+        wedding: 'Event Shuttle',
+        corporate: 'Corporate Travel'
       };
 
       const serviceTypeDisplay = serviceTypeMap[service_type] || service_type;
-      const requirements = extractRequirements(service_type, metadata);
 
       // Send email to each matching operator
-      for (const operator of operators) {
+      for (const operator of operatorsToNotify) {
         try {
           // Generate signed token for operator access (7 day expiry)
           const accessToken = await generateOperatorViewToken(
@@ -247,6 +356,7 @@ export async function POST(request: NextRequest) {
               operator_name: operator.company_name,
               to: operator.company_email,
               message_id: emailResult?.id,
+              is_partner: operator.is_partner
             },
           });
 
@@ -255,7 +365,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Create in-app notification for operator
-          await supabase.from('notifications').insert({
+          await supabaseAdmin.from('notifications').insert({
             user_id: operator.profile_id,
             type: 'new_request_available',
             title: `New ${serviceTypeDisplay} Request`,
@@ -268,31 +378,51 @@ export async function POST(request: NextRequest) {
             }
           });
 
-          console.log(`✓ Notified operator: ${operator.company_name}`);
+          console.log(`✓ Notified operator: ${operator.company_name} (Partner: ${operator.is_partner})`);
         } catch (err) {
           console.error(`Failed to notify operator ${operator.company_name}:`, err);
-          await logEvent({
-            event_type: 'operator.request_email.failed',
-            status: 'error',
-            actor_type: 'system',
-            operator_id: operator.id,
-            request_id: data.id,
-            message: err instanceof Error ? err.message : 'Unknown operator notify error',
-            metadata: {
-              operator_name: operator.company_name,
-              to: operator.company_email,
-            },
-          });
         }
       }
 
       console.log(`Operator notification complete for request ${data.id}`);
-    }).catch((matchErr) => {
+    } catch (matchErr) {
       console.error('Failed to match/notify operators:', matchErr);
-    });
+    }
 
-    // Wait a moment for async emails to be collected
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    let paymentUrl: string | undefined;
+
+    // Generate checkout URL if payment is pending AND we matched at least one operator
+    if (payment_status === 'pending' && matchedOperatorsCount > 0) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                product_data: {
+                  name: 'Serious Lead Priority',
+                  description: 'Notify partners immediately and get 30-minute priority.',
+                },
+                unit_amount: 199,
+              },
+              quantity: 1,
+            },
+          ],
+          mode: 'payment',
+          success_url: `${appUrl}/?request_id=${data.id}&payment_success=true`,
+          cancel_url: `${appUrl}/?request_id=${data.id}&payment_cancelled=true`,
+          metadata: {
+            request_id: data.id,
+            type: 'priority_fee'
+          }
+        });
+        paymentUrl = session.url ?? undefined;
+      } catch (stripeErr) {
+        console.error('Failed to create Stripe session:', stripeErr);
+      }
+    }
 
     // Return sanitized response - exclude private data
     // Users get their own data, but we follow principle of least privilege
@@ -310,11 +440,16 @@ export async function POST(request: NextRequest) {
       metadata_safe: data.metadata_safe,
       status: data.status,
       created_at: data.created_at,
+      payment_status: data.payment_status,
+      priority_until: data.priority_until,
+      routing_fee_amount: data.routing_fee_amount,
+      matched_operators_count: matchedOperatorsCount
     };
 
     return NextResponse.json({
       success: true,
       request: sanitizedRequest,
+      paymentUrl,
       message: 'Transport request created successfully',
       emailPreviewUrls: emailPreviewUrls.length > 0 ? emailPreviewUrls : undefined
     });
@@ -329,12 +464,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // ── Auth: derive user identity from session ───────────────────────────
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    // ─────────────────────────────────────────────────────────────────────
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('user_id');
     const status = searchParams.get('status');
 
     // Select only safe fields - never expose metadata_private or exact addresses
-    let query = supabase
+    let query = supabaseAdmin
       .from('transport_requests')
       .select(`
         id,
@@ -372,8 +511,12 @@ export async function GET(request: NextRequest) {
       `)
       .order('created_at', { ascending: false });
 
-    if (userId) {
-      query = query.eq('user_id', userId);
+    // Always filter by session user — never trust client-supplied user_id
+    if (user?.id) {
+      query = query.eq('user_id', user.id);
+    } else {
+      // Unauthenticated callers see nothing
+      return NextResponse.json({ requests: [] });
     }
     if (status) {
       query = query.eq('status', status);

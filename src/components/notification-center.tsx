@@ -15,9 +15,11 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useRouter } from "next/navigation";
 
 export function NotificationCenter() {
     const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
 
     const getIcon = (type: Notification["type"]) => {
@@ -96,7 +98,13 @@ export function NotificationCenter() {
                             {notifications.map((notif) => (
                                 <div
                                     key={notif.id}
-                                    onClick={() => markAsRead(notif.id)}
+                                    onClick={() => {
+                                        markAsRead(notif.id);
+                                        if (notif.link) {
+                                            router.push(notif.link);
+                                            setIsOpen(false);
+                                        }
+                                    }}
                                     className={cn(
                                         "p-5 transition-all cursor-pointer group flex gap-4",
                                         !notif.read ? "bg-indigo-50/30" : "hover:bg-neutral-50"

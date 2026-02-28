@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
 
-// Service role client for transactional operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (existingAccepted) {
       return NextResponse.json(
-        { 
+        {
           error: 'Request already fulfilled. Acceptance is final - cannot change operators.',
           locked: true
         },
@@ -61,16 +49,16 @@ export async function POST(request: NextRequest) {
     // Also check request status (defense in depth)
     if (lockedRequest.status === 'booked' || lockedRequest.status === 'quote_accepted') {
       return NextResponse.json(
-        { 
+        {
           error: 'This request has already been accepted. Acceptance is final.',
-          status: lockedRequest.status 
+          status: lockedRequest.status
         },
         { status: 409 }
       );
     }
 
     // Get the quote details with operator info
-    const { data: quote, error: quoteError } = await supabase
+    const { data: quote, error: quoteError } = await supabaseAdmin
       .from('quotes')
       .select(`
         *,
@@ -91,14 +79,14 @@ export async function POST(request: NextRequest) {
     // Get full transport request details including private fields
     // SECURITY: This data is ONLY used server-side for the operator email
     // It is NEVER returned in the HTTP response
-    const { data: transportRequest } = await supabase
+    const { data: transportRequest } = await supabaseAdmin
       .from('transport_requests')
       .select('*')
       .eq('id', tripRequestId)
       .single();
 
     // Update the accepted quote
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('quotes')
       .update({ status: 'accepted' })
       .eq('id', quoteId);
@@ -110,7 +98,7 @@ export async function POST(request: NextRequest) {
     // Permanently decline other quotes for this request
     // MARKETPLACE INTEGRITY: Once declined, these quotes are permanently closed
     // They will NOT be resurrected even if parent regrets choice
-    const { data: declinedQuotes } = await supabase
+    const { data: declinedQuotes } = await supabaseAdmin
       .from('quotes')
       .update({ status: 'declined' })
       .eq('request_id', tripRequestId)
@@ -126,8 +114,8 @@ export async function POST(request: NextRequest) {
         message: 'The customer has chosen another operator for this request.',
         data: { request_id: tripRequestId }
       }));
-      
-      await supabase
+
+      await supabaseAdmin
         .from('notifications')
         .insert(notifications);
     }
@@ -135,8 +123,8 @@ export async function POST(request: NextRequest) {
     // Update transport request status to booked and store winning quote
     const { error: requestUpdateError } = await supabaseAdmin
       .from('transport_requests')
-      .update({ 
-        status: 'quote_accepted',
+      .update({
+        status: 'booked',
         // Store winning quote_id for reference (optional field)
       })
       .eq('id', tripRequestId);
@@ -162,7 +150,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create a booking record
-    const { data: booking, error: bookingError } = await supabase
+    const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert({
         request_id: tripRequestId,
@@ -206,7 +194,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create notification for operator
-    await supabase
+    await supabaseAdmin
       .from('notifications')
       .insert({
         user_id: quote.operator_id,
@@ -228,7 +216,7 @@ export async function POST(request: NextRequest) {
     if (parentProfile && quote.operator?.email) {
       const privateMetadata = lockedRequest.metadata_private || {};
       let revealEmailSent = false;
-      
+
       // Send email to winning operator with contact info
       try {
         await sendEmail({
@@ -275,7 +263,7 @@ export async function POST(request: NextRequest) {
           message: emailErr instanceof Error ? emailErr.message : 'Unknown reveal email error',
         });
       }
-      
+
       // Log this action for audit trail (if audit table exists)
       console.log(`[AUDIT] Contact info revealed for request ${tripRequestId} to operator ${quote.operator_id} via email`);
       if (revealEmailSent) {
@@ -295,18 +283,18 @@ export async function POST(request: NextRequest) {
 
     // Send booking confirmation email (fire and forget)
     if (booking?.confirmation_code) {
-      const { data: userProfile, error: profileError } = await supabase
+      const { data: userProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .select('email, full_name')
         .eq('id', userId)
         .single();
-      
+
       if (profileError) {
         console.error('Failed to fetch user for booking email:', profileError);
       } else if (userProfile?.email && transportRequest) {
         const operatorName = quote.operator?.company_name || quote.operator?.full_name || 'The operator';
         let bookingConfirmationSent = false;
-        
+
         try {
           await sendEmail({
             to: userProfile.email,

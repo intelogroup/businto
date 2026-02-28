@@ -18,13 +18,20 @@ import {
     MoreVertical,
     Radio,
     Send,
-    UserPlus
+    UserPlus,
+    AlertCircle,
+    Bell,
+    ExternalLink,
+    Clock,
+    UserCheck,
+    AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const MOCK_LIVE_REQUESTS = [
     { id: "REQ-1", user: "Sarah Jones", type: "School Run", from: "Cambridge", to: "Brookline", status: "Live", time: "2 min ago", budget: "$85" },
@@ -59,6 +66,35 @@ export default function AdminDashboard() {
     const { addNotification } = useNotifications();
     const [isBroadcasting, setIsBroadcasting] = useState(false);
     const [broadcastMessage, setBroadcastMessage] = useState("");
+    const [criticalRequests, setCriticalRequests] = useState<any[]>([]);
+    const [isLoadingData, setIsLoadingData] = useState(true);
+    const supabase = createClient();
+
+    const fetchCriticalRequests = async () => {
+        setIsLoadingData(true);
+        try {
+            // Fetch requests where requires_manual_allocation is true in metadata_private
+            // Supabase JSONB filtering: data->>field = 'value'
+            const { data, error } = await supabase
+                .from('transport_requests')
+                .select('*')
+                .eq('metadata_private->requires_manual_allocation', true)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setCriticalRequests(data || []);
+        } catch (err) {
+            console.error('Failed to fetch critical requests:', err);
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isAuthenticated && (user?.role === "admin" || user?.role === "manager")) {
+            fetchCriticalRequests();
+        }
+    }, [isAuthenticated, user]);
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
@@ -77,6 +113,40 @@ export default function AdminDashboard() {
         });
         setBroadcastMessage("");
         setIsBroadcasting(false);
+    };
+
+    const handleForceLeak = async (requestId: string) => {
+        try {
+            // Set priority window to now (expire it) and notify standard network
+            // In a real scenario, this might call a server action or API route.
+            // For now, we update the DB and the cron will pick it up, or we could trigger the leak logic.
+            const { error } = await supabase
+                .from('transport_requests')
+                .update({
+                    priority_window_ends_at: new Date().toISOString(),
+                    // Optionally clear the manual allocation flag if this "handles" it
+                    "metadata_private->requires_manual_allocation": false
+                })
+                .eq('id', requestId);
+
+            if (error) throw error;
+
+            addNotification({
+                title: "Priority Expired",
+                message: "Standard network invitation triggered for #" + requestId.substring(0, 8),
+                type: "success"
+            });
+
+            // Refresh the list
+            fetchCriticalRequests();
+        } catch (err) {
+            console.error('Failed to force leak:', err);
+            addNotification({
+                title: "Action Failed",
+                message: "Could not trigger standard network invitation.",
+                type: "error"
+            });
+        }
     };
 
     const stats = [
@@ -223,6 +293,14 @@ export default function AdminDashboard() {
                         <TabsTrigger value="live-requests" className="px-8 h-10 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm text-neutral-500 data-[state=active]:text-black transition-colors duration-150">
                             Live Requests
                         </TabsTrigger>
+                        <TabsTrigger value="safety-valve" className="px-8 h-10 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm text-neutral-500 data-[state=active]:text-black transition-colors duration-150 relative">
+                            Safety Valve
+                            {criticalRequests.length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full animate-pulse">
+                                    {criticalRequests.length}
+                                </span>
+                            )}
+                        </TabsTrigger>
                         <TabsTrigger value="users" className="px-8 h-10 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm font-semibold text-sm text-neutral-500 data-[state=active]:text-black transition-colors duration-150">
                             Operators
                         </TabsTrigger>
@@ -245,7 +323,7 @@ export default function AdminDashboard() {
                                         <CardDescription className="text-neutral-500 font-medium mt-1">Real-time monitoring of ride requests globally.</CardDescription>
                                     </div>
                                     <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-none font-semibold text-xs px-3 py-1">
-                                        4 LIVE NOW
+                                        {MOCK_LIVE_REQUESTS.length} LIVE NOW
                                     </Badge>
                                 </div>
                             </CardHeader>
@@ -306,6 +384,103 @@ export default function AdminDashboard() {
                                                 ))}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="safety-valve">
+                        <Card className="border-none shadow-sm bg-white overflow-hidden rounded-lg">
+                            <CardHeader className="p-6 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-red-50 text-red-600 rounded-md">
+                                            <AlertTriangle size={20} />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-xl font-semibold text-red-900">Manual Allocation Queue</CardTitle>
+                                            <CardDescription className="text-neutral-500 font-medium mt-1">High-priority specialized rides requiring human intervention.</CardDescription>
+                                        </div>
+                                    </div>
+                                    <Badge variant="outline" className="bg-red-50 text-red-600 border-red-100 font-semibold text-xs px-3 py-1">
+                                        {criticalRequests.length} ALERTS
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <ScrollArea className="h-[450px]">
+                                    <div className="px-8 pb-8">
+                                        {criticalRequests.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                                <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
+                                                    <Shield className="text-neutral-300" size={32} />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-neutral-900">All Clear</h3>
+                                                <p className="text-neutral-500 max-w-xs mx-auto">No requests currently require manual intervention. Everything is flowing automatedly.</p>
+                                            </div>
+                                        ) : (
+                                            <table className="w-full">
+                                                <thead className="sticky top-0 bg-white z-10 border-b border-neutral-100">
+                                                    <tr className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                                                        <th className="text-left py-4">Request</th>
+                                                        <th className="text-left py-4">Specialization</th>
+                                                        <th className="text-left py-4">Reason</th>
+                                                        <th className="text-left py-4">Wait Time</th>
+                                                        <th className="text-right py-4 px-4">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-neutral-50">
+                                                    {criticalRequests.map((req) => (
+                                                        <tr key={req.id} className="group hover:bg-red-50/30 transition-colors">
+                                                            <td className="py-6">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-bold text-neutral-900">#{req.id.substring(0, 8)}</span>
+                                                                    <span className="text-xs text-neutral-500">{req.service_type} · {req.pickup_fuzzy}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-6">
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {req.metadata_safe?.mobility_level && (
+                                                                        <Badge variant="outline" className="text-[10px] uppercase font-bold bg-neutral-50 border-neutral-200">
+                                                                            {req.metadata_safe.mobility_level}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-6">
+                                                                <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded">No Auto-Matches</span>
+                                                            </td>
+                                                            <td className="py-6">
+                                                                <div className="flex items-center gap-1.5 text-xs text-neutral-500 font-semibold">
+                                                                    <Clock size={14} />
+                                                                    {new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-6 text-right">
+                                                                <div className="flex items-center justify-end gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        className="h-8 text-xs font-bold border-neutral-200 hover:bg-neutral-50"
+                                                                        onClick={() => handleForceLeak(req.id)}
+                                                                    >
+                                                                        Invite Standard
+                                                                    </Button>
+                                                                    <Button
+                                                                        className="h-8 text-xs font-bold bg-neutral-900"
+                                                                        onClick={() => {
+                                                                            // Logic to view operators
+                                                                        }}
+                                                                    >
+                                                                        Manual Match
+                                                                    </Button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        )}
                                     </div>
                                 </ScrollArea>
                             </CardContent>

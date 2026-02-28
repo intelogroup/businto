@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin as supabase } from '@/lib/supabase-server';
 import Stripe from 'stripe';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       event_type: event.type,
       processed_at: new Date().toISOString()
     });
-  
+
   if (webhookError) {
     console.error('Failed to record webhook event:', webhookError);
   }

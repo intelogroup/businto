@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from './use-auth';
 
 export interface Message {
@@ -115,6 +115,7 @@ export function useMessages(options: UseMessagesOptions = {}) {
   useEffect(() => {
     if (!user) return;
 
+    const supabase = createClient();
     const channel = supabase
       .channel('messages_changes')
       .on(

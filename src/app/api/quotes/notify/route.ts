@@ -1,63 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { sendEmail, emailTemplates } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, tripRequestId, quoteCount, emailType } = await request.json();
+    // ── Auth guard ────────────────────────────────────────────────────────
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // ─────────────────────────────────────────────────────────────────────
 
-    if (!userId || !tripRequestId || !quoteCount || !emailType) {
+    const { tripRequestId, quoteCount, emailType } = await request.json();
+
+    if (!tripRequestId || !quoteCount || !emailType) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: tripRequestId, quoteCount, emailType' },
         { status: 400 }
       );
     }
 
-    // In a real implementation, you would:
-    // 1. Fetch the user's email
-    // 2. Fetch the trip request and quotes
-    // 3. Send email using a service like SendGrid, Resend, or AWS SES
-    // 4. Send push notification if enabled
-
-    // Example implementation with Resend:
-    /*
-    import { Resend } from 'resend';
-    import { FirstQuoteEmail } from '@/components/emails/first-quote-email';
-    import { MultipleQuotesEmail } from '@/components/emails/multiple-quotes-email';
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    const { data: user } = await supabase
-      .from('users')
-      .select('email')
-      .eq('id', userId)
+    // Fetch user profile for email
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', user.id)
       .single();
 
-    const { data: tripRequest } = await supabase
-      .from('trip_requests')
-      .select('*, quotes(*)')
-      .eq('id', tripRequestId)
-      .single();
-
-    const EmailComponent = emailType === 'first' ? FirstQuoteEmail : MultipleQuotesEmail;
-
-    const { data, error } = await resend.emails.send({
-      from: 'Businto <notifications@businto.com>',
-      to: user.email,
-      subject: emailType === 'first'
-        ? `🎉 Your first quote is here!`
-        : `${quoteCount} operators want your route!`,
-      react: EmailComponent({
-        tripRequest,
-        quotes: tripRequest.quotes,
-        quote: tripRequest.quotes[0]
-      }),
-    });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (profileError || !profile?.email) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
-    */
 
-    console.log(`Email notification sent: ${emailType} for trip ${tripRequestId}`);
+    // Fetch the request + most recent quote for context
+    const { data: tripRequest, error: requestError } = await supabase
+      .from('transport_requests')
+      .select(`
+        id, service_type, pickup_fuzzy, dropoff_fuzzy, start_date,
+        quotes (
+          id, total_price, vehicle_type,
+          operator:profiles!quotes_operator_id_fkey ( company_name )
+        )
+      `)
+      .eq('id', tripRequestId)
+      .eq('user_id', user.id) // Ownership check — users can only trigger notifications for their own requests
+      .single();
+
+    if (requestError || !tripRequest) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // Use the most recent quote for the email template
+    // Note: Supabase returns joined relations as arrays when using shorthand select
+    const quotes = Array.isArray(tripRequest.quotes) ? tripRequest.quotes : [];
+    type QuoteRow = {
+      id: string;
+      total_price: number;
+      vehicle_type: string;
+      operator: Array<{ company_name: string }> | { company_name: string } | null;
+    };
+    const typedQuotes = quotes as unknown as QuoteRow[];
+    const latestQuote = typedQuotes[typedQuotes.length - 1];
+
+    // operator can be an array (Supabase join) or a single object depending on the FK
+    const getOperatorName = (op: QuoteRow['operator']): string => {
+      if (!op) return 'An operator';
+      if (Array.isArray(op)) return op[0]?.company_name ?? 'An operator';
+      return op.company_name ?? 'An operator';
+    };
+
+    if (latestQuote) {
+      await sendEmail({
+        to: profile.email,
+        ...emailTemplates.quoteReceived({
+          userName: profile.full_name || 'there',
+          operatorName: getOperatorName(latestQuote.operator),
+          price: latestQuote.total_price,
+          vehicleType: latestQuote.vehicle_type,
+          requestId: tripRequest.id,
+          quoteId: latestQuote.id,
+          appBaseUrl: process.env.NEXT_PUBLIC_APP_URL,
+        })
+      });
+    } else {
+      // No quote data available — send a generic "quotes are in" email
+      await sendEmail({
+        to: profile.email,
+        subject: `${quoteCount} operator${quoteCount > 1 ? 's' : ''} quoted your route`,
+        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${quoteCount} quote(s) for your transport request. <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">View them in your dashboard →</a></p>`
+      });
+    }
+
+    console.log(`[notify] ${emailType} notification sent to ${profile.email} for request ${tripRequestId}`);
 
     return NextResponse.json({
       success: true,

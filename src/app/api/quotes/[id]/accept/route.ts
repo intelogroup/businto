@@ -36,14 +36,52 @@ export async function GET(
       );
     }
 
+    // 1. Enforce single acceptance: check if ANY quote is already accepted for this request
+    const { data: existingAccepted } = await supabaseAdmin
+      .from('quotes')
+      .select('id')
+      .eq('request_id', quote.request_id)
+      .eq('status', 'accepted')
+      .maybeSingle();
+
+    if (existingAccepted) {
+      return NextResponse.redirect(
+        new URL('/dashboard?error=You have already accepted a quote for this request. Acceptance is final.', request.url)
+      );
+    }
+
+    const request_data = quote.transport_requests;
+
+    // 2. Defense in depth: check the request status as well
+    if (request_data.status === 'booked' || request_data.status === 'quote_accepted') {
+      return NextResponse.redirect(
+        new URL('/dashboard?error=This request has already been booked. Acceptance is final.', request.url)
+      );
+    }
+
     // Update quote status to accepted
     const { error: updateError } = await supabaseAdmin
       .from('quotes')
-      .update({ 
+      .update({
         status: 'accepted',
         updated_at: new Date().toISOString()
       })
       .eq('id', quoteId);
+
+    if (!updateError) {
+      // Clean up other quotes (decline them)
+      await supabaseAdmin
+        .from('quotes')
+        .update({ status: 'declined' })
+        .eq('request_id', quote.request_id)
+        .neq('id', quoteId);
+
+      // Update transport request status
+      await supabaseAdmin
+        .from('transport_requests')
+        .update({ status: 'quote_accepted' })
+        .eq('id', quote.request_id);
+    }
 
     if (updateError) {
       console.error('Error updating quote status:', updateError);
@@ -53,7 +91,6 @@ export async function GET(
     }
 
     // Get parent contact info from metadata_private
-    const request_data = quote.transport_requests;
     const metadata_private = request_data.metadata_private || {};
     const parentEmail = metadata_private.parent_email || request_data.profiles?.email;
     const parentPhone = metadata_private.parent_phone || request_data.profiles?.phone;

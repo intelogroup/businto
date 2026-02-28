@@ -78,10 +78,10 @@ export interface CorporateSafeMetadata {
 }
 
 // Union type for all safe metadata
-export type SafeMetadata = 
-  | SchoolSafeMetadata 
-  | MedicalSafeMetadata 
-  | WeddingSafeMetadata 
+export type SafeMetadata =
+  | SchoolSafeMetadata
+  | MedicalSafeMetadata
+  | WeddingSafeMetadata
   | CorporateSafeMetadata;
 
 // ============================================================================
@@ -120,10 +120,10 @@ export interface CorporatePrivateMetadata {
 }
 
 // Union type for all private metadata
-export type PrivateMetadata = 
-  | SchoolPrivateMetadata 
-  | MedicalPrivateMetadata 
-  | WeddingPrivateMetadata 
+export type PrivateMetadata =
+  | SchoolPrivateMetadata
+  | MedicalPrivateMetadata
+  | WeddingPrivateMetadata
   | CorporatePrivateMetadata;
 
 // ============================================================================
@@ -143,6 +143,7 @@ export interface OperatorRequestView {
   metadata_safe: SafeMetadata;
   status: string;
   created_at: string;
+  operator_id?: string | null;
 }
 
 // ============================================================================
@@ -153,21 +154,21 @@ export interface TransportRequest {
   id: string;
   user_id?: string;
   service_type: ServiceType;
-  
+
   // Exact addresses - server-side only
   pickup_address: string;
   dropoff_address: string;
-  
+
   // Fuzzy locations - operator-visible
   pickup_fuzzy: string;
   dropoff_fuzzy: string;
-  
+
   // Geographic coordinates
   pickup_lat?: number;
   pickup_lng?: number;
   dropoff_lat?: number;
   dropoff_lng?: number;
-  
+
   // Schedule
   start_date: string;
   start_time?: string;
@@ -175,17 +176,17 @@ export interface TransportRequest {
   end_time?: string;
   is_recurring: boolean;
   recurrence_pattern?: string;
-  
+
   // Metadata split
   metadata_safe: SafeMetadata;
   metadata_private: PrivateMetadata;
-  
+
   // Legacy field for backward compatibility
   metadata?: Record<string, any>;
-  
+
   // Status
   status: 'pending' | 'quoted' | 'booked' | 'in-progress' | 'completed' | 'cancelled';
-  
+
   // Timestamps
   created_at: string;
   updated_at?: string;
@@ -211,11 +212,11 @@ export interface CreateTransportRequestPayload {
   end_time?: string;
   is_recurring: boolean;
   recurrence_pattern?: string;
-  
+
   // Can send pre-split metadata
   metadata_safe?: SafeMetadata;
   metadata_private?: PrivateMetadata;
-  
+
   // Or send combined (server will split)
   metadata?: Record<string, any>;
 }

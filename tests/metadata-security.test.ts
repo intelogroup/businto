@@ -3,7 +3,7 @@ import { splitMetadataByServiceType } from '@/lib/metadata-helpers';
 import {
   splitAndValidateMetadata,
   detectPrivateFieldsInSafe
-} from '@/lib/validation-split';
+} from '@/lib/validation';
 
 describe('Metadata Security - Split Functionality', () => {
   describe('splitMetadataByServiceType', () => {

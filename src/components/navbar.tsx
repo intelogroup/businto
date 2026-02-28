@@ -52,16 +52,20 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-10 mr-auto ml-16">
-          {["Operators", "Pricing"].map((item) => (
-            <a
-              key={item}
-              href="#"
-              className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
-            >
-              {item}
-              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
-            </a>
-          ))}
+          <Link
+            href="/operators"
+            className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
+          >
+            Operators
+            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
+          </Link>
+          <Link
+            href="/pricing"
+            className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
+          >
+            Pricing
+            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
+          </Link>
           {isAuthenticated && (
             <Link
               href="/trips"
@@ -97,16 +101,22 @@ export function Navbar() {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="p-6 space-y-1">
-                  {["Operators", "Pricing"].map((item) => (
-                    <SheetClose asChild key={item}>
-                      <a
-                        href="#"
-                        className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
-                      >
-                        {item}
-                      </a>
-                    </SheetClose>
-                  ))}
+                  <SheetClose asChild>
+                    <Link
+                      href="/operators"
+                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                    >
+                      Operators
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link
+                      href="/pricing"
+                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                    >
+                      Pricing
+                    </Link>
+                  </SheetClose>
                   {isAuthenticated && (
                     <SheetClose asChild>
                       <Link

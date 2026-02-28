@@ -10,8 +10,7 @@ import { Loader2, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { updatePassword } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
-
+import { createClient } from "@/lib/supabase/client";
 function ResetPasswordContent() {
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
@@ -24,6 +23,7 @@ function ResetPasswordContent() {
     useEffect(() => {
         console.log("[ResetPassword] Page mounted, checking session...");
         let isMounted = true;
+        const supabase = createClient();
 
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();

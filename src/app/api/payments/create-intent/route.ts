@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin as supabase } from '@/lib/supabase-server';
 
 // Platform routing fee - this is what we charge requesters to connect them with operators
 // Operators are paid separately outside the platform
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Update booking with payment intent ID and routing fee
     await supabase
       .from('bookings')
-      .update({ 
+      .update({
         stripe_payment_intent_id: paymentIntent.id,
         routing_fee_amount: ROUTING_FEE
       })

@@ -25,12 +25,14 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
   const handleAcceptClick = () => {
     // MARKETPLACE INTEGRITY: Clear warning before acceptance
     const confirmed = window.confirm(
-      `⚠️ IMPORTANT: Once you accept this quote, your decision is FINAL.\n\n` +
+      `⚠️ IMPORTANT: Once you accept this ${quote.totalPrice === 0 ? 'estimate' : 'quote'}, your decision is FINAL.\n\n` +
       `✓ You will be locked to ${quote.operatorName}\n` +
       `✓ All other quotes will be permanently closed\n` +
       `✓ You cannot switch operators\n` +
       `✓ To choose a different operator, you must create a new request\n\n` +
-      `Accept ${quote.operatorName}'s quote for $${quote.totalPrice}?`
+      (quote.totalPrice === 0 ?
+        `Accept ${quote.operatorName} to discuss job details and finalize pricing?` :
+        `Accept ${quote.operatorName}'s quote for $${quote.totalPrice}?`)
     );
 
     if (confirmed) {
@@ -134,36 +136,45 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
           </div>
           <div className="flex items-baseline justify-between mb-3">
             <div className="text-3xl font-black text-neutral-900">
-              ${quote.totalPrice}
+              {quote.totalPrice === 0 ? "TBD" : `$${quote.totalPrice}`}
             </div>
-            {quote.discount && (
+            {quote.totalPrice === 0 && (
+              <Badge className="bg-blue-600 text-white animate-pulse">
+                Needs Discussion
+              </Badge>
+            )}
+            {quote.discount && quote.totalPrice > 0 && (
               <Badge className="bg-red-600 text-white">
                 {quote.discount.percentage}% OFF
               </Badge>
             )}
           </div>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-neutral-600">
-              <span>Base fare</span>
-              <span className="font-semibold">${quote.baseFare}</span>
-            </div>
-            <div className="flex justify-between text-neutral-600">
-              <span>Distance charge</span>
-              <span className="font-semibold">${quote.distanceCharge}</span>
-            </div>
-            {quote.additionalFees.map((fee, idx) => (
-              <div key={idx} className="flex justify-between text-neutral-600">
-                <span>{fee.name}</span>
-                <span className="font-semibold">${fee.amount}</span>
+          {quote.totalPrice > 0 && (
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between text-neutral-600">
+                <span>Base fare</span>
+                <span className="font-semibold">${quote.baseFare}</span>
               </div>
-            ))}
-            {quote.discount && (
-              <div className="flex justify-between text-red-600 font-semibold pt-1 border-t border-neutral-200">
-                <span>{quote.discount.reason}</span>
-                <span>-${(quote.totalPrice * quote.discount.percentage / 100).toFixed(2)}</span>
-              </div>
-            )}
-          </div>
+              {quote.distanceCharge && (
+                <div className="flex justify-between text-neutral-600">
+                  <span>Distance charge</span>
+                  <span className="font-semibold">${quote.distanceCharge}</span>
+                </div>
+              )}
+              {quote.additionalFees?.map((fee, idx) => (
+                <div key={idx} className="flex justify-between text-neutral-600">
+                  <span>{fee.name}</span>
+                  <span className="font-semibold">${fee.amount}</span>
+                </div>
+              ))}
+              {quote.discount && (
+                <div className="flex justify-between text-red-600 font-semibold pt-1 border-t border-neutral-200">
+                  <span>{quote.discount.reason}</span>
+                  <span>-${(quote.totalPrice * quote.discount.percentage / 100).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Vehicle Info */}
@@ -197,9 +208,9 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
             className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-indigo-500/20"
             onClick={handleAcceptClick}
             disabled={isAccepted || isDeclined || isExpired}
-            title={isAccepted ? 'Already accepted' : 'Accept this quote - FINAL decision'}
+            title={isAccepted ? 'Already accepted' : 'Accept this operator - FINAL decision'}
           >
-            {isAccepted ? 'Accepted' : 'Accept Quote'}
+            {isAccepted ? 'Accepted' : (quote.totalPrice === 0 ? 'Accept & View Contact Info' : 'Accept Quote')}
           </Button>
           <Button
             variant="outline"

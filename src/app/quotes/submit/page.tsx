@@ -60,7 +60,7 @@ function SubmitQuoteContent() {
       console.log('🔍 Quote Submit Page - Initializing...');
       console.log('📋 Request ID:', requestId);
       console.log('🔑 Access Token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'MISSING');
-      
+
       if (!requestId) {
         console.error('❌ No request ID provided');
         setError("No request ID provided");
@@ -74,7 +74,7 @@ function SubmitQuoteContent() {
         setLoading(false);
         return;
       }
-      
+
       console.log('✅ Both requestId and accessToken present');
 
       // Fetch sanitized request details via operator view API with token
@@ -82,14 +82,14 @@ function SubmitQuoteContent() {
       try {
         const apiUrl = `/api/requests/${requestId}/operator-view?token=${accessToken}`;
         console.log('🌐 Fetching from:', apiUrl.replace(accessToken, accessToken.substring(0, 20) + '...'));
-        
+
         const response = await fetch(apiUrl);
         console.log('📡 Response status:', response.status, response.statusText);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           console.error('❌ API Error Response:', errorText);
-          
+
           if (response.status === 401) {
             console.error('🔒 Authentication failed - invalid or expired token');
             setError("Invalid or expired access token. Please use the link from your email.");
@@ -109,9 +109,13 @@ function SubmitQuoteContent() {
           id: requestData.id,
           service_type: requestData.service_type,
           pickup: requestData.pickup_fuzzy,
-          dropoff: requestData.dropoff_fuzzy
+          dropoff: requestData.dropoff_fuzzy,
+          operator_id: requestData.operator_id
         });
         setRequest(requestData);
+        if (requestData.operator_id) {
+          setOperatorId(requestData.operator_id);
+        }
         setLoading(false);
       } catch (err) {
         console.error('💥 Fatal error fetching request:', err);
@@ -131,7 +135,7 @@ function SubmitQuoteContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('📤 Quote submission initiated');
-    
+
     if (!request) {
       console.error('❌ No request data available');
       return;
@@ -140,10 +144,10 @@ function SubmitQuoteContent() {
     setSubmitting(true);
     setError(null);
 
-    const priceNum = parseFloat(price);
+    const priceNum = price ? parseFloat(price) : 0;
     const quotePayload = {
       request_id: request.id,
-      operator_id: null, // Anonymous quote for MVP
+      operator_id: operatorId, // Use the ID from the token
       total_price: priceNum,
       vehicle_type: vehicleType.trim(),
       note: message.trim() || undefined,
@@ -161,7 +165,7 @@ function SubmitQuoteContent() {
 
     try {
       console.log('📋 Quote payload:', validation.data);
-      
+
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -169,7 +173,7 @@ function SubmitQuoteContent() {
       });
 
       console.log('📡 Quote submission response:', response.status, response.statusText);
-      
+
       const data = await response.json();
       console.log('📄 Response data:', data);
 
@@ -376,9 +380,9 @@ function SubmitQuoteContent() {
                 <div className="flex justify-between py-2.5">
                   <span className="text-xs text-neutral-500 uppercase tracking-wide">Stairs</span>
                   <span className="text-sm font-medium text-neutral-900">
-                    {request.metadata_safe.stair_factor === 'none' ? 'No Stairs' : 
-                     request.metadata_safe.stair_factor === '1-5' ? '1-5 Stairs' : 
-                     request.metadata_safe.stair_factor === 'flight' ? 'Full Flight' : 'Not specified'}
+                    {request.metadata_safe.stair_factor === 'none' ? 'No Stairs' :
+                      request.metadata_safe.stair_factor === '1-5' ? '1-5 Stairs' :
+                        request.metadata_safe.stair_factor === 'flight' ? 'Full Flight' : 'Not specified'}
                   </span>
                 </div>
                 <div className="flex justify-between py-2.5">
@@ -388,7 +392,7 @@ function SubmitQuoteContent() {
                     {request.metadata_safe.return_status && ` (${request.metadata_safe.return_status === 'will-call' ? 'Will-Call' : 'Fixed Return'})`}
                   </span>
                 </div>
-                
+
                 {/* Critical Flags */}
                 <div className="flex flex-wrap gap-2 py-3">
                   {request.metadata_safe.oxygen_use && (
@@ -442,7 +446,7 @@ function SubmitQuoteContent() {
                     {request.metadata_safe.event_start_time && ` · Ceremony: ${request.metadata_safe.event_start_time}`}
                   </span>
                 </div>
-                
+
                 {/* Amenities Flags */}
                 <div className="flex flex-wrap gap-2 py-3">
                   {request.metadata_safe.alcohol_allowed && (
@@ -477,14 +481,14 @@ function SubmitQuoteContent() {
         {/* Quote form */}
         <Card className="p-6 shadow-none border border-neutral-200">
           <h2 className="text-base font-semibold text-neutral-900 mb-1">
-            Your Quote
+            Quote Details
           </h2>
-          <p className="text-xs text-neutral-400 mb-5">All fields marked * are required.</p>
+          <p className="text-xs text-neutral-400 mb-5">Leave price empty to submit a "Claim Job / Need to Discuss" request.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-neutral-500 uppercase tracking-wide mb-1.5">
-                Price (USD) <span className="text-neutral-900">*</span>
+                Price (USD) <span className="text-neutral-400 normal-case font-normal">(optional - leave blank to request a call)</span>
               </label>
               <Input
                 type="number"
@@ -493,7 +497,6 @@ function SubmitQuoteContent() {
                 placeholder="0.00"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                required
                 disabled={submitting}
                 className="text-base font-medium shadow-none focus-visible:ring-0 focus-visible:border-neutral-900 h-11"
               />
@@ -550,7 +553,7 @@ function SubmitQuoteContent() {
                   Submitting...
                 </>
               ) : (
-                "Submit Quote"
+                "Claim Job"
               )}
             </Button>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from './use-auth';
 
 export interface TransportRequest {
@@ -66,7 +66,8 @@ export function useTransportRequests() {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/requests?user_id=${user.id}`);
+      // user_id is now derived from the session server-side; no longer sent in the URL
+      const response = await fetch('/api/requests');
       const data = await response.json();
 
       if (response.ok) {
@@ -103,8 +104,8 @@ export function useTransportRequests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...requestData,
-        user_id: user.id
+        ...requestData
+        // user_id is derived from the session server-side
       })
     });
 
@@ -166,6 +167,7 @@ export function useTransportRequests() {
   useEffect(() => {
     if (!user) return;
 
+    const supabase = createClient();
     const channel = supabase
       .channel('transport_requests_changes')
       .on(

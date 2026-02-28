@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabaseAdmin as supabase } from './supabase-server';
 
 // Service type to vehicle type mapping
 export const SERVICE_VEHICLE_MAP: Record<string, string[]> = {
@@ -14,7 +14,7 @@ export const SERVICE_SPECIALTY_MAP: Record<string, string> = {
   wedding: 'Event Shuttles'
 };
 
-interface MatchingRequest {
+export interface MatchingRequest {
   service_type: 'school' | 'medical' | 'wedding';
   pickup_address?: string;
   pickup_fuzzy?: string;
@@ -35,6 +35,7 @@ interface MatchedOperator {
   vehicle_types: string[];
   specialties: string[];
   base_rate_per_mile: number;
+  is_partner?: boolean; // Added for priority logic
   distance?: number;
   score?: number;
   company_lat?: number;
@@ -62,14 +63,14 @@ function calculateDistance(
   const R = 3959; // Earth's radius in miles
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) *
     Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) *
     Math.sin(dLng / 2);
-  
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -82,24 +83,27 @@ function calculateDistance(
  */
 function calculateScore(operator: MatchedOperator, distance: number): number {
   const serviceRadius = operator.service_radius_miles || 50;
-  
+
   // Distance score (closer = better, 0 miles = 100 pts, at radius = 0 pts)
   const distanceScore = Math.max(0, 100 - (distance / serviceRadius * 100));
-  
+
   // Rating score (4.0 = 80 pts, 5.0 = 100 pts)
   const ratingScore = ((operator.rating || 4.0) / 5.0) * 100;
-  
+
   // Response time score (0-15 min = 100 pts, 15-120 min = 100-0 pts)
   const responseTime = operator.response_time_avg_mins || 30;
   const responseScore = Math.max(0, 100 - (responseTime / 120 * 100));
-  
+
   // Acceptance rate score (already a percentage)
   const acceptanceScore = operator.acceptance_rate || 50;
-  
+
   // Capacity penalty (>10 active quotes = reduce score)
   const activeQuotes = operator.active_quotes_count || 0;
   const capacityPenalty = activeQuotes > 10 ? (activeQuotes - 10) * 5 : 0;
-  
+
+  // Priority boost for partners (+10 points)
+  const partnerBoost = operator.is_partner ? 10 : 0;
+
   // Weighted average
   const baseScore = (
     distanceScore * 0.4 +      // 40% weight on proximity
@@ -107,8 +111,8 @@ function calculateScore(operator: MatchedOperator, distance: number): number {
     responseScore * 0.2 +       // 20% weight on speed
     acceptanceScore * 0.1       // 10% weight on reliability
   );
-  
-  return Math.max(0, baseScore - capacityPenalty);
+
+  return Math.max(0, baseScore - capacityPenalty + partnerBoost);
 }
 
 /**
@@ -122,14 +126,14 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/api/maps/geocode?address=${encodeURIComponent(address)}`
     );
-    
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     if (data.lat && data.lng) {
       return { lat: data.lat, lng: data.lng };
     }
-    
+
     return null;
   } catch (error) {
     console.error('Geocoding error:', error);
@@ -144,11 +148,11 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
  */
 function extractState(address?: string): string | null {
   if (!address) return null;
-  
+
   // Common state patterns: "City, MA" or "City, Massachusetts"
   const stateMatch = address.match(/,\s*([A-Z]{2})\b/);
   if (stateMatch) return stateMatch[1];
-  
+
   // Full state names to abbreviations
   const stateMap: Record<string, string> = {
     'Massachusetts': 'MA',
@@ -159,11 +163,11 @@ function extractState(address?: string): string | null {
     'Maine': 'ME',
     'New York': 'NY'
   };
-  
+
   for (const [fullName, abbr] of Object.entries(stateMap)) {
     if (address.includes(fullName)) return abbr;
   }
-  
+
   return null;
 }
 
@@ -178,7 +182,7 @@ export async function findMatchingOperators(
   try {
     const { service_type, pickup_address, pickup_fuzzy, metadata } = request;
     let { pickup_lat, pickup_lng } = request;
-    
+
     // Geocode pickup address if coordinates not provided
     if (!pickup_lat || !pickup_lng) {
       const address = pickup_address || pickup_fuzzy;
@@ -191,7 +195,7 @@ export async function findMatchingOperators(
         }
       }
     }
-    
+
     // Extract state from pickup address for fallback
     const state = extractState(pickup_address || pickup_fuzzy);
     if (!state && !pickup_lat) {
@@ -200,7 +204,7 @@ export async function findMatchingOperators(
 
     // Get required vehicle types for this service
     const requiredVehicles = SERVICE_VEHICLE_MAP[service_type] || [];
-    
+
     // Build the query - get more fields for scoring
     let query = supabase
       .from('operators')
@@ -219,7 +223,8 @@ export async function findMatchingOperators(
         service_radius_miles,
         response_time_avg_mins,
         acceptance_rate,
-        active_quotes_count
+        active_quotes_count,
+        is_partner
       `)
       .eq('is_verified', true)
       .eq('is_active', true)
@@ -251,13 +256,44 @@ export async function findMatchingOperators(
 
     // Filter by vehicle types
     let matchedOperators = operators.filter(operator => {
-      const hasMatchingVehicle = operator.vehicle_types.some((vt: string) => 
+      const hasMatchingVehicle = operator.vehicle_types.some((vt: string) =>
         requiredVehicles.includes(vt)
       );
       return hasMatchingVehicle;
     });
 
     console.log(`Found ${matchedOperators.length} operators matching service/vehicle requirements`);
+
+    // Strictly filter operators based on specialized conditions
+    if (metadata && Object.keys(metadata).length > 0) {
+      matchedOperators = matchedOperators.filter(operator => {
+        const opSpecialties = operator.specialties || [];
+
+        if (service_type === 'medical') {
+          // Mobility checks
+          if (['wheelchair', 'manual-wheelchair', 'electric-wheelchair'].includes(metadata.mobility_level) && !opSpecialties.includes('Wheelchair')) return false;
+          if (metadata.mobility_level === 'stretcher' && !opSpecialties.includes('Stretcher')) return false;
+
+          // Service level checks
+          if (metadata.service_level === 'door-through-door' && !opSpecialties.includes('Door-Through-Door')) return false;
+          if (metadata.service_level === 'white-glove' && !opSpecialties.includes('White Glove')) return false;
+
+          // Boolean checks
+          if ((metadata.oxygen_use === 'yes' || metadata.oxygen_use === true) && !opSpecialties.includes('Oxygen')) return false;
+          if ((metadata.is_bariatric === 'yes' || metadata.is_bariatric === true) && !opSpecialties.includes('Bariatric')) return false;
+          if ((metadata.service_animal === 'yes' || metadata.service_animal === true) && !opSpecialties.includes('Service Animal')) return false;
+        }
+
+        if (service_type === 'school') {
+          if ((metadata.special_needs === 'yes' || metadata.special_needs === true) && !opSpecialties.includes('Special Needs')) return false;
+          if (['booster', 'forward-facing'].includes(metadata.booster_seat) && !opSpecialties.includes('Booster Seat')) return false;
+          if ((metadata.no_adult_release === 'yes' || metadata.no_adult_release === true) && !opSpecialties.includes('No-Adult Release')) return false;
+        }
+
+        return true;
+      });
+      console.log(`After strict condition filtering: ${matchedOperators.length} operators remain`);
+    }
 
     // Distance-based filtering and scoring if we have coordinates
     if (pickup_lat && pickup_lng) {
@@ -267,7 +303,7 @@ export async function findMatchingOperators(
           if (!operator.company_lat || !operator.company_lng) {
             return false;
           }
-          
+
           // Calculate distance
           const distance = calculateDistance(
             pickup_lat,
@@ -275,7 +311,7 @@ export async function findMatchingOperators(
             operator.company_lat,
             operator.company_lng
           );
-          
+
           // Check if within service radius
           const radius = operator.service_radius_miles || 50;
           return distance <= radius;
@@ -288,9 +324,9 @@ export async function findMatchingOperators(
             operator.company_lat!,
             operator.company_lng!
           );
-          
+
           const score = calculateScore(operator, distance);
-          
+
           return {
             ...operator,
             distance: Math.round(distance * 10) / 10, // Round to 1 decimal
@@ -322,7 +358,7 @@ export async function findMatchingOperators(
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 10); // Be more generous without distance filtering
     }
-    
+
     return matchedOperators;
   } catch (error) {
     console.error('Error in findMatchingOperators:', error);
@@ -363,7 +399,7 @@ export function extractRequirements(
     if (metadata.itinerary_type) requirements.push(`Itinerary: ${metadata.itinerary_type}`);
     if (metadata.shuttle_mode) requirements.push(`Mode: ${metadata.shuttle_mode.replace('-', ' ')}`);
     if (metadata.event_start_time) requirements.push(`Event Start: ${metadata.event_start_time}`);
-    
+
     // Amenities
     const amenities = [];
     if (metadata.alcohol_allowed) amenities.push('Alcohol OK');
