@@ -4,10 +4,10 @@ import { verifyUserTripToken } from '@/lib/tokens';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const { searchParams } = new URL(request.url);
         const token = searchParams.get('token');
 
