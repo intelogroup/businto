@@ -39,35 +39,25 @@ export async function mapSupabaseUser(
   let operatorId: string | undefined;
 
   try {
-    // 1. Try regular profiles table first
+    // Use the unified_profiles view for efficient lookup across all profile types
     const { data: profile, error } = await supabaseClient
-      .from("profiles")
-      .select("full_name, role, avatar_url")
+      .from("unified_profiles")
+      .select("full_name, role, avatar_url, operator_id")
       .eq("id", authUser.id)
       .maybeSingle();
 
+    if (error) {
+      console.error("[Auth] Error fetching from unified_profiles:", error);
+    }
+
     if (profile) {
-      console.log("[Auth] Profile found in standard profiles:", profile);
+      console.log("[Auth] Profile found in unified_profiles:", profile);
       profileName = profile.full_name || undefined;
       profileRole = normalizeRole(profile.role);
       profileAvatar = profile.avatar_url || undefined;
+      operatorId = (profile as any).operator_id || undefined;
     } else {
-      // 2. Fallback to operator_profiles table
-      const { data: opProfile, error: opError } = await supabaseClient
-        .from("operator_profiles")
-        .select("full_name, role, avatar_url, operator_id")
-        .eq("id", authUser.id)
-        .maybeSingle();
-
-      if (opProfile) {
-        console.log("[Auth] Profile found in operator_profiles:", opProfile);
-        profileName = opProfile.full_name || undefined;
-        profileRole = "operator";
-        profileAvatar = opProfile.avatar_url || undefined;
-        operatorId = opProfile.operator_id || undefined;
-      } else {
-        console.log("[Auth] No profile found in either table for user ID:", authUser.id);
-      }
+      console.log("[Auth] No profile found in unified_profiles for user ID:", authUser.id);
     }
   } catch (err) {
     console.error("[Auth] Critical error in mapSupabaseUser query:", err);
