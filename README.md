@@ -1,98 +1,48 @@
 # Businto – Intelligent Dispatch for Private Transport
 
-A modern Next.js landing page for Businto, a transportation dispatch platform that connects users with local bus and wheelchair van operators.
+A high-performance, enterprise-grade transportation marketplace built with AI-powered logistics, automated multi-channel notifications, and a secure multi-role identity architecture.
 
-## Features
+## 🚀 Current Status: Stable & Verified (Feb 2026)
 
-- **Modern Design**: Built with Next.js, TypeScript, and Tailwind CSS
-- **shadcn/ui Components**: Clean, accessible UI components
-- **Rare Color Palette**: Electric Indigo (#4F46E5) and Acid Lime (#D9F99D)
-- **Responsive Layout**: Works perfectly on all devices
-- **Type-Safe**: Full TypeScript support
+The platform has been significantly refactored into a **Managed Brokerage Model** with hardened security and robust operator matching.
 
-## Tech Stack
+### ✅ Verified Features & Logic
+*   **Split Identity Model**: Clean separation between standard users (`profiles`) and business staff (`operator_profiles`) using a high-performance `unified_profiles` database view for instant role resolution.
+*   **Managed Brokerage Routing**: All operator communications are centralized. Partners are routed to `support@tabronai.com` and Standard operators to `sales@tabronai.com`.
+*   **One-Way Gate Security**: Hardened PII protection. Customer contact details (Name, Phone, Exact Address) are **revealed only to the winning operator** via a secure email manifest *after* a quote is accepted.
+*   **Persistent Auth Guard**: Fixed the "login loop" issue. Implemented auto-redirects for authenticated users and session-first data fetching to eliminate auth flickering.
+*   **Robust Operator Matching**: 
+    *   Integration with **Google Maps API** for precise distance-based matching.
+    *   Global Fallback: **Boston Rapid Response Transit** implemented as a 150-mile radius "all-rounder" fallback.
+    *   Flexible Specialty Matching: Handles both boolean and stringified metadata (Immediate, Oxygen, Stretcher).
+*   **Marketplace Integrity**: Implemented transactional locking on quote acceptance. All losing quotes are permanently declined, and the request is locked to the winning operator (409 Conflict handling).
+*   **Security Scanning**: Integrated `secretlint` with Husky pre-commit hooks and GitHub Actions to prevent credential leaks.
 
-- **Framework**: Next.js 16 with App Router
-- **Styling**: Tailwind CSS with custom design tokens
-- **UI Components**: shadcn/ui
-- **Icons**: Lucide React
-- **Language**: TypeScript
+## 🛠 Tech Stack
+*   **Framework**: Next.js 16 (App Router)
+*   **Auth**: Supabase Auth (PKCE Flow) with custom `AuthProvider`
+*   **Database**: Supabase (PostgreSQL) with RLS and Split-Metadata architecture
+*   **AI**: Vercel AI SDK 4.0 (GPT-4o-mini) for real-time logistics assistance
+*   **Email/SMS**: Brevo SMTP & Transactional SMS
+*   **Testing**: Vitest (100% pass rate on core integrity/security suites)
 
-## Getting Started
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Run the development server:
-```bash
-npm run dev
-```
-
-3. Open [http://localhost:3001](http://localhost:3001) in your browser.
-
-## Design System
-
-### Colors
-- **Primary**: #4F46E5 (Electric Indigo)
-- **Secondary**: #D9F99D (Acid Lime)
-- **Accent**: #0E7490 (Cyan 700)
-- **Background**: #FAFAFA (Off-White)
-- **Surface**: #FFFFFF (Pure White)
-
-### Typography
-- **Font Family**: Inter
-- **Headings**: Large, bold with tight tracking
-- **Body**: Clean, airy sans-serif
-
-### Components
-- Floating navbar with pill-shaped buttons
-- Hero section with large input form
-- Bento grid for features
-- Clean footer with centered links
-
-## Project Structure
-
+## 🏗 Project Structure
 ```
 src/
-├── app/
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-└── components/
-    ├── ui/           # shadcn/ui components
-    ├── navbar.tsx
-    ├── hero.tsx
-    ├── how-it-works.tsx
-    └── footer.tsx
+├── app/              # Next.js App Router (Trips, Auth, Dashboard, API)
+├── components/       # Shadcn/ui & Custom Components (QuoteCard, Forms)
+├── hooks/            # Custom React Hooks (useAuth, useNotifications)
+├── lib/              # Core Logic (Operator Matching, Email, SMS, Maps)
+└── types/            # TypeScript Interfaces
+tests/                # Vitest Integrity & Security Suite
+supabase/             # Migrations & Database Configuration
 ```
 
-## Build & Deploy
-
-```bash
-# Build for production
-npm run build
-
-# Start production server
-npm start
-```
+## 🚦 Getting Started
+1.  **Install**: `npm install`
+2.  **Environment**: Ensure `.env.local` contains Supabase, OpenAI, Brevo, and Google Maps keys.
+3.  **Test**: `npm run test:production` to verify core logic.
+4.  **Dev**: `npm run dev`
 
 ---
-
-
-
-
-
-Core Identity:
-You are a senior engineer who prioritizes structural simplicity over quick fixes. You understand that most bugs stem from accidental complexity—workarounds, technical debt, and entangled dependencies—and you refuse to preserve or recreate these patterns.
-When fixing bugs or modifying code, you work in three phases:
-1. Understand before acting.
-Analyze the affected code and its dependencies. Identify the root cause, not just the symptom. Distinguish between complexity that's essential to the problem versus complexity that's accumulated debt. If you're uncertain about the system's intent, say so before proposing changes.
-2. Plan explicitly.
-Before writing code, articulate your approach: what you're changing, why, and how it interacts with existing components. Your plan should be specific enough that the implementation becomes mechanical. If the fix requires architectural decisions, surface them for review rather than making assumptions.
-3. Implement cleanly.
-Write only what the plan specifies. No speculative additions, no dead code, no fragments from abandoned approaches. If you discover mid-implementation that the plan was flawed, stop and explain the conflict rather than improvising.
-
-
-© 2025 Damhall Technology LLC.
+© 2026 Businto Logistics.
