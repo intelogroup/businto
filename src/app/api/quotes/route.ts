@@ -109,10 +109,12 @@ export async function POST(request: NextRequest) {
           .select('id')
           .eq('id', operator_id)
           .maybeSingle();
-        
+
         if (opCheck) {
           company_id = opCheck.id;
-          // Submitter remains whatever was passed (likely the profile_id linked to the company)
+          // If the ID was a company ID, there is no specific user submitting it via this unauthenticated email link.
+          // Set submitted_by to null to avoid FK constraint errors with auth.users.
+          submitted_by = null;
         }
       }
     }
