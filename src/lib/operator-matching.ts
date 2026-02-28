@@ -343,9 +343,25 @@ export async function findMatchingOperators(
         });
 
       // Filter by radius, but keep those without coordinates as low-priority fallback
-      matchedOperators = operatorsWithDistance
-        .filter(op => op.distance === 999 || op.distance <= (op.service_radius_miles || 50))
-        .sort((a, b) => {
+      const filteredOperators = operatorsWithDistance
+        .filter(op => op.distance === 999 || op.distance <= (op.service_radius_miles || 50));
+
+      // De-duplicate by company_email to prevent multiple notifications to the same address
+      const deDupedMap = new Map();
+      for (const op of filteredOperators) {
+        if (!deDupedMap.has(op.company_email)) {
+          deDupedMap.set(op.company_email, op);
+        } else {
+          // Keep the one with the higher rating
+          const existing = deDupedMap.get(op.company_email);
+          if (op.rating > existing.rating) {
+            deDupedMap.set(op.company_email, op);
+          }
+        }
+      }
+
+      matchedOperators = Array.from(deDupedMap.values())
+        .sort((a: any, b: any) => {
           // Sort by score (descending), then distance (ascending)
           if (b.score !== a.score) {
             return (b.score || 0) - (a.score || 0);
@@ -354,12 +370,24 @@ export async function findMatchingOperators(
         })
         .slice(0, 7);
 
-      console.log(`Matching complete. Found ${matchedOperators.length} operators.`);
+      console.log(`Matching complete. Found ${matchedOperators.length} unique operators.`);
     } else {
-      // Fallback: No geocoding - just sort by rating and limit
+      // Fallback: No geocoding - just sort by rating, de-duplicate, and limit
       console.log('No coordinates available - falling back to rating-based matching');
-      matchedOperators = matchedOperators
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      const deDupedMap = new Map();
+      for (const op of matchedOperators) {
+        if (!deDupedMap.has(op.company_email)) {
+          deDupedMap.set(op.company_email, op);
+        } else {
+          const existing = deDupedMap.get(op.company_email);
+          if (op.rating > existing.rating) {
+            deDupedMap.set(op.company_email, op);
+          }
+        }
+      }
+      
+      matchedOperators = Array.from(deDupedMap.values())
+        .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 10); // Be more generous without distance filtering
     }
 

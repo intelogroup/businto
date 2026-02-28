@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
       console.log('\n🔔 ==========================================');
       console.log(`🔔 Found ${operators.length} matching operators for request ${data.id}`);
       console.log(`🔔 Priority Head-Start Active for Affiliates.`);
-      console.log(`🔔 Notifying ${operatorsToNotify.length} eligible Affiliate operators initially`);
+      console.log(`🔔 Notifying ${operatorsToNotify.length} unique Affiliate operators initially`);
       console.log('🔔 ==========================================\n');
 
       const serviceTypeMap: Record<string, string> = {
