@@ -12,7 +12,8 @@ The platform has been significantly refactored into a **Managed Brokerage Model*
 *   **One-Way Gate Security**: Hardened PII protection. Customer contact details (Name, Phone, Exact Address) are **revealed only to the winning operator** via a secure email manifest *after* a quote is accepted.
 *   **Persistent Auth Guard**: Fixed the "login loop" issue. Implemented auto-redirects for authenticated users and session-first data fetching to eliminate auth flickering.
 *   **Robust Operator Matching**: 
-    *   Integration with **Google Maps API** for precise distance-based matching.
+    *   Integration with **Photon/OpenStreetMap API** for privacy-first address autocomplete.
+    *   Local **Haversine Formula** implementation for precise, uncapped distance calculations between requests and operators.
     *   Global Fallback: **Boston Rapid Response Transit** implemented as a 150-mile radius "all-rounder" fallback.
     *   Flexible Specialty Matching: Handles both boolean and stringified metadata (Immediate, Oxygen, Stretcher).
 *   **Marketplace Integrity**: Implemented transactional locking on quote acceptance. All losing quotes are permanently declined, and the request is locked to the winning operator (409 Conflict handling).

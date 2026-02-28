@@ -1,5 +1,4 @@
 import { supabaseAdmin as supabase } from './supabase-server';
-import { geocodeAddress } from './maps';
 
 // Service type to vehicle type mapping
 export const SERVICE_VEHICLE_MAP: Record<string, string[]> = {
@@ -51,7 +50,8 @@ interface MatchedOperator {
 }
 
 /**
- * Calculate distance between two points using Haversine formula
+ * Calculate distance between two points using Haversine formula (Miles)
+ * This avoids external API calls/costs and provides instant, uncapped calculations.
  * @param lat1 Latitude of point 1
  * @param lng1 Longitude of point 1
  * @param lat2 Latitude of point 2
@@ -120,6 +120,35 @@ function calculateScore(operator: MatchedOperator, distance: number): number {
 }
 
 /**
+ * Geocode address using our internal Photon/OSM proxy
+ * @param address Address to geocode
+ * @returns Coordinates or null
+ */
+async function geocodeAddressInternal(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
+    const response = await fetch(
+      `${baseUrl}/api/geocode?q=${encodeURIComponent(address)}&limit=1`
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data && data[0] && data[0].lat && data[0].lon) {
+      return { 
+        lat: parseFloat(data[0].lat), 
+        lng: parseFloat(data[0].lon) 
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+}
+
+/**
  * Extract state/region from address string
  * @param address Full address or fuzzy address
  * @returns State abbreviation (e.g., 'MA', 'NH')
@@ -165,7 +194,7 @@ export async function findMatchingOperators(
     if (!pickup_lat || !pickup_lng) {
       const address = pickup_address || pickup_fuzzy;
       if (address) {
-        const coords = await geocodeAddress(address);
+        const coords = await geocodeAddressInternal(address);
         if (coords) {
           pickup_lat = coords.lat;
           pickup_lng = coords.lng;

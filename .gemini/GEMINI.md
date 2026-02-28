@@ -12,7 +12,7 @@ This document serves as the foundational mandate for all AI engineering assistan
 
 ## ✅ Verified Project Memories (Feb 2026)
 
-*   **Logic Fix**: Repaired the `findMatchingOperators` engine. Replaced broken internal geocoding with the verified Google Maps implementation.
+*   **Logic Fix**: Repaired the `findMatchingOperators` engine. Switched to local Haversine distance calculations and verified the **Photon/OpenStreetMap** proxy for geocoding.
 *   **Logic Fix**: Implemented a "Persistence Guard" on the Login page to auto-redirect authenticated users, solving the email-link login loop.
 *   **Feature**: Implemented **"Boston Rapid Response Transit"** as a global fallback operator with a 150-mile radius and all specialties.
 *   **Feature**: Standardized the final "Order Details" email for operators, ensuring full PII (Name, Phone, Raw Address) is shared only upon acceptance.
