@@ -307,6 +307,8 @@ export async function POST(request: NextRequest) {
               userName: userProfile.full_name || 'User',
               confirmationCode: booking.confirmation_code,
               operatorName,
+              operatorPhone: quote.operator?.company_phone,
+              operatorEmail: quote.operator?.company_email,
               vehicleType: quote.vehicle_type,
               pickupAddress: transportRequest.pickup_fuzzy || transportRequest.pickup_address,
               dropoffAddress: transportRequest.dropoff_fuzzy || transportRequest.dropoff_address,

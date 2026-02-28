@@ -350,6 +350,8 @@ export const emailTemplates = {
     userName: string;
     confirmationCode: string;
     operatorName: string;
+    operatorPhone?: string;
+    operatorEmail?: string;
     vehicleType: string;
     pickupAddress: string;
     dropoffAddress: string;
@@ -375,6 +377,7 @@ export const emailTemplates = {
             .label { color: #6b7280; font-size: 14px; }
             .value { font-weight: 600; color: #111827; }
             .total { background: #4f46e5; color: white; padding: 15px; border-radius: 8px; text-align: center; font-size: 24px; font-weight: bold; margin: 20px 0; }
+            .contact-card { background: #e0e7ff; border: 1px solid #c7d2fe; padding: 15px; border-radius: 8px; margin: 20px 0; }
             .button { display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
             .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
           </style>
@@ -413,6 +416,13 @@ export const emailTemplates = {
               </div>
 
               <div class="total">$${data.amount.toFixed(2)}</div>
+
+              <div class="contact-card">
+                <h3 style="margin-top: 0; color: #3730a3; font-size: 16px;">📞 Operator Contact Details</h3>
+                <p style="margin: 5px 0; font-size: 14px;"><strong>${data.operatorName}</strong></p>
+                ${data.operatorPhone ? `<p style="margin: 5px 0; font-size: 14px;">Phone: <a href="tel:${data.operatorPhone}" style="color: #4f46e5; text-decoration: none;">${data.operatorPhone}</a></p>` : ''}
+                ${data.operatorEmail ? `<p style="margin: 5px 0; font-size: 14px;">Email: <a href="mailto:${data.operatorEmail}" style="color: #4f46e5; text-decoration: none;">${data.operatorEmail}</a></p>` : ''}
+              </div>
 
               <p>The operator will contact you before your trip. You can also message them directly through your dashboard.</p>
 
