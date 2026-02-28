@@ -93,10 +93,15 @@ export default function TripDetailPage() {
                 .select(`
           *,
           operator:operators!quotes_operator_id_fkey (
+            id,
             company_name,
             company_email,
             company_phone,
-            profile:profiles!profile_id (
+            rating,
+            total_reviews,
+            cori_verified,
+            insurance_verified,
+            profile:operator_profiles!profile_id (
               full_name,
               avatar_url
             )
@@ -314,28 +319,28 @@ export default function TripDetailPage() {
                                         tripRequestId: id as string,
                                         operatorId: quote.operator_id,
                                         totalPrice: quote.total_price,
-                                        baseFare: quote.total_price * 0.8, // Approximation
-                                        distanceCharge: quote.total_price * 0.2, // Approximation
-                                        additionalFees: [],
+                                        baseFare: (quote as any).base_fare || quote.total_price,
+                                        distanceCharge: (quote as any).distance_charge || 0,
+                                        additionalFees: (quote as any).additional_fees || [],
                                         vehicleType: quote.vehicle_type,
-                                        vehicleYear: 2023,
-                                        vehicleCapacity: 14,
+                                        vehicleYear: (quote as any).vehicle_year || 2023,
+                                        vehicleCapacity: (quote as any).vehicle_capacity || 14,
                                         operatorName: quote.operator?.company_name || (quote.operator as any)?.profile?.full_name || 'Anonymous Operator',
                                         operatorAvatar: (quote.operator as any)?.profile?.avatar_url || '',
                                         operatorPhone: (quote.operator as any)?.company_phone || undefined,
                                         operatorEmail: (quote.operator as any)?.company_email || undefined,
-                                        operatorRating: 4.8,
-                                        operatorReviewCount: 12,
-                                        responseTime: 15,
+                                        operatorRating: (quote.operator as any)?.rating || 4.8,
+                                        operatorReviewCount: (quote.operator as any)?.total_reviews || 12,
+                                        responseTime: (quote as any).response_time_mins || 15,
                                         status: quote.status as any,
                                         isLowestPrice: index === 0,
                                         isHighestRated: false,
-                                        coriCertified: true,
-                                        insuranceVerified: true,
-                                        wheelchairAccessible: false,
+                                        coriCertified: (quote.operator as any)?.cori_verified || true,
+                                        insuranceVerified: (quote.operator as any)?.insurance_verified || true,
+                                        wheelchairAccessible: (quote as any).wheelchair_accessible || false,
                                         operatorNote: quote.note,
-                                        createdAt: new Date(),
-                                        expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000)
+                                        createdAt: new Date(quote.created_at),
+                                        expiresAt: quote.expires_at ? new Date(quote.expires_at) : new Date(Date.now() + 72 * 60 * 60 * 1000)
                                     }}
                                     onAccept={handleAcceptQuote}
                                     onDecline={() => { }}

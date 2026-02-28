@@ -55,6 +55,10 @@ export async function GET(
           company_name,
           company_email,
           company_phone,
+          rating,
+          total_reviews,
+          cori_verified,
+          insurance_verified,
           profile:operator_profiles!profile_id (
             full_name,
             avatar_url

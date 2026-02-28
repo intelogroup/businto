@@ -34,10 +34,10 @@ export default function TripsPage() {
     setLoading(true);
     const supabase = createClient();
     try {
-      // NOTE: Avoid selecting quotes via anon client to prevent RLS failures
+      // NOTE: Use a count join to show how many quotes exist for each request
       let query = supabase
         .from('transport_requests')
-        .select('*')
+        .select('*, quotes(count)')
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
