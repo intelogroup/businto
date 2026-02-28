@@ -18,10 +18,18 @@ function LoginContent() {
     const [password, setPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const { login } = useAuth();
+    const { login, isAuthenticated, isLoading } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
     const redirect = searchParams.get("redirect");
+
+    // PERSISTENCE GUARD: If already logged in, skip the login page entirely
+    useEffect(() => {
+        if (!isLoading && isAuthenticated) {
+            console.log("[Login Page] User already authenticated, redirecting to:", redirect || "/dashboard");
+            router.replace(redirect || "/dashboard");
+        }
+    }, [isAuthenticated, isLoading, router, redirect]);
 
     useEffect(() => {
         if (searchParams.get("error") === "auth_callback_failed") {

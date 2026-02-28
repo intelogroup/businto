@@ -61,7 +61,59 @@ export default function TripDetailPage() {
     const fetchData = async () => {
         setLoading(true);
 
-        // If we have a token, fetch via our proxy API to bypass RLS
+        const supabase = createClient();
+        
+        // 1. Check if we have an active session first (Persistent Session)
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // 2. If we have a session OR no token, try fetching via standard client
+        if (session || !token) {
+            try {
+                // Fetch trip details
+                const { data: tripData, error: tripError } = await supabase
+                    .from('transport_requests')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (!tripError && tripData) {
+                    setTrip(tripData);
+
+                    // Fetch quotes
+                    const { data: quotesData, error: quotesError } = await supabase
+                        .from('quotes')
+                        .select(`
+                  *,
+                  operator:operators!quotes_operator_id_fkey (
+                    id,
+                    company_name,
+                    company_email,
+                    company_phone,
+                    rating,
+                    total_reviews,
+                    cori_verified,
+                    insurance_verified,
+                    profile:operator_profiles!profile_id (
+                      full_name,
+                      avatar_url
+                    )
+                  )
+                `)
+                        .eq('request_id', id)
+                        .order('total_price', { ascending: true });
+
+                    if (!quotesError) {
+                        setQuotes(quotesData || []);
+                        setLoading(false);
+                        return; // Successfully loaded via session
+                    }
+                }
+            } catch (err) {
+                console.log('Standard fetch failed, will try token if available');
+            }
+        }
+
+        // 3. Fallback to Token fetch (for unauthenticated operators)
         if (token) {
             try {
                 const res = await fetch(`/api/trips/${id}?token=${token}`);
@@ -73,58 +125,11 @@ export default function TripDetailPage() {
                     return;
                 }
             } catch (err) {
-                console.error('Token fetch failed, falling back to session:', err);
+                console.error('Token fetch failed:', err);
             }
         }
 
-        const supabase = createClient();
-        try {
-            // Fetch trip details
-            const { data: tripData, error: tripError } = await supabase
-                .from('transport_requests')
-                .select('*')
-                .eq('id', id)
-                .single();
-
-            if (tripError) throw tripError;
-            setTrip(tripData);
-
-            // Fetch quotes
-            const { data: quotesData, error: quotesError } = await supabase
-                .from('quotes')
-                .select(`
-          *,
-          operator:operators!quotes_operator_id_fkey (
-            id,
-            company_name,
-            company_email,
-            company_phone,
-            rating,
-            total_reviews,
-            cori_verified,
-            insurance_verified,
-            profile:operator_profiles!profile_id (
-              full_name,
-              avatar_url
-            )
-          )
-        `)
-                .eq('request_id', id)
-                .order('total_price', { ascending: true });
-
-            if (quotesError) throw quotesError;
-            setQuotes(quotesData || []);
-        } catch (error: any) {
-            console.error('Error fetching trip details details:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code,
-                error
-            });
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     };
 
     useEffect(() => {
