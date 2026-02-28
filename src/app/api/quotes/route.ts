@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     // Safety check: never allow localhost URLs in emails
     if (appBaseUrl.includes('localhost') || appBaseUrl.includes('127.0.0.1')) {
-      appBaseUrl = 'https://businto.vercel.app';
+      appBaseUrl = 'https://businto.com';
     }
     const body = await request.json();
 

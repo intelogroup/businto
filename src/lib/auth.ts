@@ -26,7 +26,7 @@ function getFrontendOrigin() {
     // Remove trailing slash if present
     return envUrl.replace(/\/$/, "");
   }
-  return "https://businto.vercel.app";
+  return "https://businto.com";
 }
 
 export async function mapSupabaseUser(

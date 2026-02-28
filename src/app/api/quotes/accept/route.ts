@@ -351,7 +351,7 @@ export async function POST(request: NextRequest) {
               ...smsTemplates.quoteAccepted({
                 operatorName,
                 requestId: tripRequestId,
-                appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'
+                appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com'
               })
             });
             console.log(`✓ Notified user via SMS: ${userProfile.full_name}`);

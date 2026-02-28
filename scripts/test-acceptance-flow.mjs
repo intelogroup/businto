@@ -89,7 +89,7 @@ async function testAcceptanceFlow() {
 
     // 2. Trigger Acceptance via API
     console.log('\n2️⃣  Triggering quote acceptance API...');
-    const apiBase = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app';
+    const apiBase = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
     
     console.log(`   📡 Target: ${apiBase}/api/quotes/accept`);
 

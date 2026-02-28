@@ -34,7 +34,7 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const FROM_EMAIL = process.env.SMTP_FROM_EMAIL || 'Businto <dispatch@businto.com>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
 
 console.log('\n=== Operator Email Flow Test ===');
 console.log(`Supabase URL : ${SUPABASE_URL}`);

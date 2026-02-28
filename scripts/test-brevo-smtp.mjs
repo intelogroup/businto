@@ -116,7 +116,7 @@ const operatorOk = await send('3️⃣  Sending OPERATOR notification email', {
           <tr><td style="padding:8px 12px;color:#6b7280">Date &amp; Time</td><td style="font-weight:600">Tue, Feb 25, 2026 at 10:00</td></tr>
         </table>
         <div style="text-align:center">
-          <a href="https://businto.vercel.app/quotes/submit?request_id=test&token=test"
+          <a href="https://businto.com/quotes/submit?request_id=test&token=test"
              style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px">
             Submit Quote (test link)
           </a>
@@ -144,7 +144,7 @@ const quoteOk = await send('4️⃣  Sending QUOTE RECEIVED email (user side)', 
           <div style="font-size:18px;margin-top:10px">Alpha Transit</div>
           <div style="color:#6b7280;font-size:14px">Coach Bus</div>
         </div>
-        <a href="https://businto.vercel.app/dashboard/requests"
+        <a href="https://businto.com/dashboard/requests"
            style="display:inline-block;background:#16a34a;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px">
           View &amp; Accept Quote
         </a>

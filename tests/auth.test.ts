@@ -34,7 +34,7 @@ describe("auth helpers", () => {
 
   it("mapSupabaseUser merges profile metadata when available", async () => {
     const maybeSingle = vi.fn().mockResolvedValue({
-      data: { full_name: "Operator One", role: "operator", avatar_url: "https://cdn/avatar.png" },
+      data: { full_name: "Operator One", role: "operator", avatar_url: "https://cdn/avatar.png", operator_id: "op-1" },
       error: null,
     });
     const eq = vi.fn().mockReturnValue({ maybeSingle });
@@ -44,12 +44,13 @@ describe("auth helpers", () => {
 
     const result = await mapSupabaseUser(sampleAuthUser as any, supabaseMock);
 
-    expect(from).toHaveBeenCalledWith("profiles");
-    expect(select).toHaveBeenCalledWith("full_name, role, avatar_url");
+    expect(from).toHaveBeenCalledWith("unified_profiles");
+    expect(select).toHaveBeenCalledWith("full_name, role, avatar_url, operator_id");
     expect(eq).toHaveBeenCalledWith("id", sampleAuthUser.id);
     expect(result.name).toBe("Operator One");
     expect(result.role).toBe("operator");
     expect(result.avatar).toBe("https://cdn/avatar.png");
+    expect(result.operatorId).toBe("op-1");
   });
 
   it("mapSupabaseUser falls back when profile is missing", async () => {
@@ -92,10 +93,10 @@ describe("auth helpers", () => {
     const sendOtp = vi.fn().mockResolvedValue({ error: null });
     const supabaseMock = { auth: { signInWithOtp: sendOtp } } as any;
 
-    await sendMagicLink("magic@example.com", supabaseMock);
+    await sendMagicLink("magic@example.com", "/dashboard", supabaseMock);
     expect(sendOtp).toHaveBeenCalledWith({
       email: "magic@example.com",
-      options: { emailRedirectTo: "https://app.test/dashboard" },
+      options: { emailRedirectTo: "https://app.test/api/auth/callback?next=%2Fdashboard" },
     });
   });
 
@@ -104,7 +105,7 @@ describe("auth helpers", () => {
     const sendOtp = vi.fn().mockResolvedValue({ error: { message: "oops" } });
     const supabaseMock = { auth: { signInWithOtp: sendOtp } } as any;
 
-    await expect(sendMagicLink("magic@example.com", supabaseMock)).rejects.toEqual({ message: "oops" });
+    await expect(sendMagicLink("magic@example.com", undefined, supabaseMock)).rejects.toEqual({ message: "oops" });
   });
 
   it("registerUser signs up and upserts profile", async () => {
@@ -123,6 +124,7 @@ describe("auth helpers", () => {
       password: "pass",
       options: {
         data: { full_name: "New User" },
+        emailRedirectTo: "https://businto.com/api/auth/callback",
       },
     });
     expect(from).toHaveBeenCalledWith("profiles");
@@ -189,7 +191,8 @@ describe("resetPasswordForEmail", () => {
 describe("updatePassword", () => {
   it("calls updateUser with new password and returns data", async () => {
     const updateUser = vi.fn().mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
-    const supabaseMock = { auth: { updateUser } } as any;
+    const getSession = vi.fn().mockResolvedValue({ data: { session: { user: { id: "u1" } } }, error: null });
+    const supabaseMock = { auth: { updateUser, getSession } } as any;
 
     const result = await updatePassword("newSecret123", supabaseMock);
 
@@ -199,7 +202,8 @@ describe("updatePassword", () => {
 
   it("throws when Supabase returns an error", async () => {
     const updateUser = vi.fn().mockResolvedValue({ data: null, error: { message: "session expired" } });
-    const supabaseMock = { auth: { updateUser } } as any;
+    const getSession = vi.fn().mockResolvedValue({ data: { session: { user: { id: "u1" } } }, error: null });
+    const supabaseMock = { auth: { updateUser, getSession } } as any;
 
     await expect(updatePassword("newSecret123", supabaseMock)).rejects.toEqual({
       message: "session expired",

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           ...smsTemplates.newMessage({
             senderName: senderProfile?.full_name || 'Someone',
             requestId: request_id || booking_id || '',
-            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'
+            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com'
           })
         });
       }
