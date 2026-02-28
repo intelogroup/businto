@@ -281,7 +281,7 @@ export async function findMatchingOperators(
           if (metadata.service_level === 'white-glove' && !opSpecialties.includes('White Glove')) return false;
 
           // Boolean checks
-          if ((metadata.oxygen_use === 'yes' || metadata.oxygen_use === true) && !opSpecialties.includes('Oxygen')) return false;
+          if ((metadata.oxygen_use === 'yes' || metadata.oxygen_use === true) && !opSpecialties.includes('Oxygen') && !opSpecialties.includes('Portable Oxygen')) return false;
           if ((metadata.is_bariatric === 'yes' || metadata.is_bariatric === true) && !opSpecialties.includes('Bariatric')) return false;
           if ((metadata.service_animal === 'yes' || metadata.service_animal === true) && !opSpecialties.includes('Service Animal')) return false;
         }
@@ -291,6 +291,9 @@ export async function findMatchingOperators(
           if (['booster', 'forward-facing'].includes(metadata.booster_seat) && !opSpecialties.includes('Booster Seat')) return false;
           if ((metadata.no_adult_release === 'yes' || metadata.no_adult_release === true) && !opSpecialties.includes('No-Adult Release')) return false;
         }
+
+        // Handle Immediate Availability
+        if ((metadata.is_immediate === true || metadata.is_immediate === 'yes') && !opSpecialties.includes('Immediate Availability')) return false;
 
         return true;
       });
