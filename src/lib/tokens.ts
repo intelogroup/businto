@@ -19,6 +19,13 @@ export interface OperatorViewTokenPayload {
   exp: number; // Unix timestamp
 }
 
+export interface UserTripTokenPayload {
+  requestId: string;
+  userId: string;
+  purpose: 'view_trip';
+  exp: number;
+}
+
 /**
  * Generate a signed token for operator view access
  * @param requestId - Transport request ID
@@ -33,11 +40,37 @@ export async function generateOperatorViewToken(
   expiryDays: number = 7
 ): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + (expiryDays * 24 * 60 * 60);
-  
+
   const token = await new SignJWT({
     requestId,
     operatorId,
     purpose,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(exp)
+    .setIssuedAt()
+    .sign(JWT_SECRET);
+
+  return token;
+}
+
+/**
+ * Generate a signed token for user trip access (Magic Link style)
+ * @param requestId - Transport request ID
+ * @param userId - User ID
+ * @param expiryDays - Days until token expires (default: 30)
+ */
+export async function generateUserTripToken(
+  requestId: string,
+  userId: string,
+  expiryDays: number = 30
+): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + (expiryDays * 24 * 60 * 60);
+
+  const token = await new SignJWT({
+    requestId,
+    userId,
+    purpose: 'view_trip',
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(exp)
@@ -79,6 +112,38 @@ export async function verifyOperatorViewToken(
   }
 
   console.error('Token verification failed with all known secrets');
+  return null;
+}
+
+/**
+ * Verify and decode a user trip access token
+ * @param token - JWT token string
+ * @returns Decoded payload or null if invalid
+ */
+export async function verifyUserTripToken(
+  token: string
+): Promise<UserTripTokenPayload | null> {
+  const secrets = [JWT_SECRET];
+  if (process.env.JWT_SECRET) {
+    secrets.push(JWT_SECRET_LEGACY);
+  }
+
+  for (const secret of secrets) {
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.purpose !== 'view_trip') continue;
+
+      return {
+        requestId: payload.requestId as string,
+        userId: payload.userId as string,
+        purpose: 'view_trip',
+        exp: payload.exp as number,
+      };
+    } catch {
+      // Try next secret
+    }
+  }
+
   return null;
 }
 
@@ -130,14 +195,14 @@ export function checkRateLimit(key: string, limit: number = 10): boolean {
 export function getClientIP(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
-  
+
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  
+
   if (realIP) {
     return realIP;
   }
-  
+
   return 'unknown';
 }

@@ -2,18 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
+import { verifyUserTripToken } from '@/lib/tokens';
 
 
 export async function POST(request: NextRequest) {
   try {
-    const { quoteId, tripRequestId, userId } = await request.json();
+    const { quoteId, tripRequestId, userId: providedUserId, token } = await request.json();
 
-    if (!quoteId || !tripRequestId || !userId) {
+    let actualUserId = providedUserId;
+
+    if (token) {
+      const decoded = await verifyUserTripToken(token);
+      if (decoded && decoded.requestId === tripRequestId) {
+        actualUserId = decoded.userId;
+      } else if (!actualUserId) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
+      }
+    }
+
+    if (!quoteId || !tripRequestId || !actualUserId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: quoteId, tripRequestId, userId or token' },
         { status: 400 }
       );
     }
+
+    const userId = actualUserId;
 
     // TRANSACTIONAL LOCK: Prevent race conditions on quote acceptance
     // First, lock the transport_request row (SELECT FOR UPDATE)

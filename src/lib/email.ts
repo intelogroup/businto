@@ -193,6 +193,7 @@ export const emailTemplates = {
     vehicleType: string;
     requestId: string;
     quoteId: string;
+    accessToken?: string;
     appBaseUrl?: string;
   }) => ({
     subject: `New Quote Received: $${data.price} from ${data.operatorName}`,
@@ -230,7 +231,7 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/trips/${data.requestId}" class="button">View &amp; Accept Quote</a>
+              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>

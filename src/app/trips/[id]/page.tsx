@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
 import { useAuth } from "@/hooks/use-auth";
+import { useSearchParams } from "next/navigation";
 
 interface Quote {
     id: string;
@@ -47,6 +48,8 @@ interface TransportRequest {
 export default function TripDetailPage() {
     const { id } = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const token = searchParams.get('token');
     const { user } = useAuth();
     const [trip, setTrip] = useState<TransportRequest | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -55,6 +58,23 @@ export default function TripDetailPage() {
 
     const fetchData = async () => {
         setLoading(true);
+
+        // If we have a token, fetch via our proxy API to bypass RLS
+        if (token) {
+            try {
+                const res = await fetch(`/api/trips/${id}?token=${token}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setTrip(data.trip);
+                    setQuotes(data.quotes);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error('Token fetch failed, falling back to session:', err);
+            }
+        }
+
         const supabase = createClient();
         try {
             // Fetch trip details
@@ -97,7 +117,7 @@ export default function TripDetailPage() {
     }, [id]);
 
     const handleAcceptQuote = async (quoteId: string) => {
-        if (!user) {
+        if (!user && !token) {
             router.push(`/login?redirect=/trips/${id}`);
             return;
         }
@@ -110,7 +130,8 @@ export default function TripDetailPage() {
                 body: JSON.stringify({
                     quoteId,
                     tripRequestId: id,
-                    userId: user.id
+                    userId: user?.id,
+                    token
                 })
             });
 

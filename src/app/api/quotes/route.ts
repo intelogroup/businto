@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
 
@@ -200,6 +201,7 @@ export async function POST(request: NextRequest) {
                 vehicleType: vehicle_type,
                 requestId: request_id,
                 quoteId: data.id,
+                accessToken: transportRequest?.user_id ? await generateUserTripToken(request_id, transportRequest.user_id) : undefined,
                 appBaseUrl,
               })
             });
