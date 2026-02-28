@@ -1,17 +1,20 @@
 import { supabaseAdmin as supabase } from './supabase-server';
+import { geocodeAddress } from './maps';
 
 // Service type to vehicle type mapping
 export const SERVICE_VEHICLE_MAP: Record<string, string[]> = {
   school: ['school_bus', 'mini_bus', 'van'],
   medical: ['van', 'wheelchair_van', 'sedan'],
-  wedding: ['coach', 'mini_bus', 'suv', 'sedan', 'limo', 'party_bus']
+  wedding: ['coach', 'mini_bus', 'suv', 'sedan', 'limo', 'party_bus'],
+  corporate: ['coach', 'mini_bus', 'sedan', 'suv']
 };
 
 // Service type to specialty mapping
 export const SERVICE_SPECIALTY_MAP: Record<string, string> = {
   school: 'School Routes',
   medical: 'Medical Transport',
-  wedding: 'Event Shuttles'
+  wedding: 'Event Shuttles',
+  corporate: 'Corporate Travel'
 };
 
 export interface MatchingRequest {
@@ -117,32 +120,6 @@ function calculateScore(operator: MatchedOperator, distance: number): number {
 }
 
 /**
- * Geocode address using Google Maps API or existing endpoint
- * @param address Address to geocode
- * @returns Coordinates or null
- */
-async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    // Use your existing maps API endpoint
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://businto.vercel.app'}/api/maps/geocode?address=${encodeURIComponent(address)}`
-    );
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    if (data.lat && data.lng) {
-      return { lat: data.lat, lng: data.lng };
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Geocoding error:', error);
-    return null;
-  }
-}
-
-/**
  * Extract state/region from address string
  * @param address Full address or fuzzy address
  * @returns State abbreviation (e.g., 'MA', 'NH')
@@ -199,12 +176,11 @@ export async function findMatchingOperators(
 
     // Extract state from pickup address for fallback
     const state = extractState(pickup_address || pickup_fuzzy);
-    if (!state && !pickup_lat) {
-      console.warn('Could not extract state or geocode address:', pickup_address);
-    }
+    console.log(`Matching state: ${state || 'None'} for address: ${pickup_address || pickup_fuzzy}`);
 
     // Get required vehicle types for this service
     const requiredVehicles = SERVICE_VEHICLE_MAP[service_type] || [];
+    console.log(`Required vehicles for ${service_type}: ${requiredVehicles.join(', ')}`);
 
     // Build the query - get more fields for scoring
     let query = supabase
@@ -240,6 +216,7 @@ export async function findMatchingOperators(
     // Filter by specialty
     const specialty = SERVICE_SPECIALTY_MAP[service_type];
     if (specialty) {
+      console.log(`Filtering by specialty: ${specialty}`);
       query = query.contains('specialties', [specialty]);
     }
 
@@ -251,8 +228,10 @@ export async function findMatchingOperators(
       throw error;
     }
 
+    console.log(`Initial query found ${operators?.length || 0} active verified operators.`);
+
     if (!operators || operators.length === 0) {
-      console.log('No matching operators found for request');
+      console.log('No matching operators found for request specialty/area');
       return [];
     }
 
@@ -264,7 +243,7 @@ export async function findMatchingOperators(
       return hasMatchingVehicle;
     });
 
-    console.log(`Found ${matchedOperators.length} operators matching service/vehicle requirements`);
+    console.log(`Found ${matchedOperators.length} operators matching vehicle requirements`);
 
     // Strictly filter operators based on specialized conditions
     if (metadata && Object.keys(metadata).length > 0) {
@@ -280,10 +259,15 @@ export async function findMatchingOperators(
           if (metadata.service_level === 'door-through-door' && !opSpecialties.includes('Door-Through-Door')) return false;
           if (metadata.service_level === 'white-glove' && !opSpecialties.includes('White Glove')) return false;
 
-          // Boolean checks
-          if ((metadata.oxygen_use === 'yes' || metadata.oxygen_use === true) && !opSpecialties.includes('Oxygen') && !opSpecialties.includes('Portable Oxygen')) return false;
-          if ((metadata.is_bariatric === 'yes' || metadata.is_bariatric === true) && !opSpecialties.includes('Bariatric')) return false;
-          if ((metadata.service_animal === 'yes' || metadata.service_animal === true) && !opSpecialties.includes('Service Animal')) return false;
+          // Boolean checks (robust check for both boolean and string)
+          const needsOxygen = metadata.oxygen_use === true || metadata.oxygen_use === 'yes' || metadata.oxygen_use === 'true' || metadata.oxygen_required === true;
+          if (needsOxygen && !opSpecialties.includes('Oxygen') && !opSpecialties.includes('Portable Oxygen')) return false;
+          
+          const isBariatric = metadata.is_bariatric === true || metadata.is_bariatric === 'yes' || metadata.is_bariatric === 'true';
+          if (isBariatric && !opSpecialties.includes('Bariatric')) return false;
+          
+          const needsServiceAnimal = metadata.service_animal === true || metadata.service_animal === 'yes' || metadata.service_animal === 'true';
+          if (needsServiceAnimal && !opSpecialties.includes('Service Animal')) return false;
         }
 
         if (service_type === 'school') {
@@ -292,8 +276,9 @@ export async function findMatchingOperators(
           if ((metadata.no_adult_release === 'yes' || metadata.no_adult_release === true) && !opSpecialties.includes('No-Adult Release')) return false;
         }
 
-        // Handle Immediate Availability
-        if ((metadata.is_immediate === true || metadata.is_immediate === 'yes') && !opSpecialties.includes('Immediate Availability')) return false;
+        // Handle Immediate Availability (robust check for both boolean and string)
+        const isImmediate = metadata.is_immediate === true || metadata.is_immediate === 'yes' || metadata.is_immediate === 'true';
+        if (isImmediate && !opSpecialties.includes('Immediate Availability')) return false;
 
         return true;
       });
@@ -302,42 +287,35 @@ export async function findMatchingOperators(
 
     // Distance-based filtering and scoring if we have coordinates
     if (pickup_lat && pickup_lng) {
-      matchedOperators = matchedOperators
-        .filter(operator => {
-          // Filter out operators without location
+      console.log(`Calculating distances for ${matchedOperators.length} operators from (${pickup_lat}, ${pickup_lng})`);
+      
+      const operatorsWithDistance = matchedOperators
+        .map(operator => {
+          // If operator has no location, we give them a high distance but don't filter out yet
           if (!operator.company_lat || !operator.company_lng) {
-            return false;
+            return { ...operator, distance: 999, score: (operator.rating || 0) * 10 };
           }
 
           // Calculate distance
           const distance = calculateDistance(
-            pickup_lat,
-            pickup_lng,
-            operator.company_lat,
-            operator.company_lng
-          );
-
-          // Check if within service radius
-          const radius = operator.service_radius_miles || 50;
-          return distance <= radius;
-        })
-        .map(operator => {
-          // Calculate distance and score for each operator
-          const distance = calculateDistance(
-            pickup_lat!,
-            pickup_lng!,
-            operator.company_lat!,
-            operator.company_lng!
+            Number(pickup_lat),
+            Number(pickup_lng),
+            Number(operator.company_lat),
+            Number(operator.company_lng)
           );
 
           const score = calculateScore(operator, distance);
 
           return {
             ...operator,
-            distance: Math.round(distance * 10) / 10, // Round to 1 decimal
+            distance: Math.round(distance * 10) / 10,
             score: Math.round(score * 10) / 10
           };
-        })
+        });
+
+      // Filter by radius, but keep those without coordinates as low-priority fallback
+      matchedOperators = operatorsWithDistance
+        .filter(op => op.distance === 999 || op.distance <= (op.service_radius_miles || 50))
         .sort((a, b) => {
           // Sort by score (descending), then distance (ascending)
           if (b.score !== a.score) {
@@ -345,17 +323,9 @@ export async function findMatchingOperators(
           }
           return (a.distance || 0) - (b.distance || 0);
         })
-        .slice(0, 7); // Top 7 operators
+        .slice(0, 7);
 
-      console.log(`After distance filtering: ${matchedOperators.length} operators within service radius`);
-      if (matchedOperators.length > 0) {
-        console.log(`Top matches:`, matchedOperators.slice(0, 3).map((op: any) => ({
-          name: op.company_name,
-          distance: op.distance ? `${op.distance}mi` : 'N/A',
-          score: op.score || 0,
-          rating: op.rating
-        })));
-      }
+      console.log(`Matching complete. Found ${matchedOperators.length} operators.`);
     } else {
       // Fallback: No geocoding - just sort by rating and limit
       console.log('No coordinates available - falling back to rating-based matching');
