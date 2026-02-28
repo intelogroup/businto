@@ -22,6 +22,8 @@ interface Quote {
     note: string;
     status: string;
     operator_id: string;
+    created_at: string;
+    expires_at?: string;
     operator?: {
         company_name: string;
         full_name: string;
