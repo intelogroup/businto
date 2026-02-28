@@ -33,7 +33,7 @@ interface MatchedOperator {
   profile_id: string;
   company_name: string;
   company_email: string;
-  phone?: string; // Added for SMS notifications
+  company_phone?: string; // Added for SMS notifications
   rating: number;
   service_areas: string[];
   vehicle_types: string[];
@@ -190,7 +190,7 @@ export async function findMatchingOperators(
         profile_id, 
         company_name, 
         company_email, 
-        phone,
+        company_phone,
         rating, 
         service_areas, 
         vehicle_types, 
@@ -262,10 +262,10 @@ export async function findMatchingOperators(
           // Boolean checks (robust check for both boolean and string)
           const needsOxygen = metadata.oxygen_use === true || metadata.oxygen_use === 'yes' || metadata.oxygen_use === 'true' || metadata.oxygen_required === true;
           if (needsOxygen && !opSpecialties.includes('Oxygen') && !opSpecialties.includes('Portable Oxygen')) return false;
-          
+
           const isBariatric = metadata.is_bariatric === true || metadata.is_bariatric === 'yes' || metadata.is_bariatric === 'true';
           if (isBariatric && !opSpecialties.includes('Bariatric')) return false;
-          
+
           const needsServiceAnimal = metadata.service_animal === true || metadata.service_animal === 'yes' || metadata.service_animal === 'true';
           if (needsServiceAnimal && !opSpecialties.includes('Service Animal')) return false;
         }
@@ -288,7 +288,7 @@ export async function findMatchingOperators(
     // Distance-based filtering and scoring if we have coordinates
     if (pickup_lat && pickup_lng) {
       console.log(`Calculating distances for ${matchedOperators.length} operators from (${pickup_lat}, ${pickup_lng})`);
-      
+
       const operatorsWithDistance = matchedOperators
         .map(operator => {
           // If operator has no location, we give them a high distance but don't filter out yet

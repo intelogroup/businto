@@ -147,8 +147,8 @@ export function Navbar() {
                       <Link href="/dashboard/bookings" className="block">
                         <Button variant="outline" className="w-full">My Bookings</Button>
                       </Link>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 font-semibold"
                         onClick={async () => {
                           await logout();
@@ -235,11 +235,11 @@ export function Navbar() {
               ) : (
                 <>
                   <Link href="/login">
-                    <Button variant="ghost" size="sm" className="hidden sm:flex text-xs font-semibold uppercase tracking-widest text-neutral-500 hover:text-black hover:bg-neutral-100/50 rounded-md px-5 h-10 transition-colors duration-150">
+                    <Button variant="ghost" size="sm" className="flex text-xs font-semibold uppercase tracking-widest text-neutral-500 hover:text-black hover:bg-neutral-100/50 rounded-md px-5 h-10 transition-colors duration-150">
                       Sign In
                     </Button>
                   </Link>
-                  <Link href="/signup">
+                  <Link href="/signup" className="hidden sm:block">
                     <Button size="lg" className="bg-neutral-950 text-white text-xs font-semibold uppercase tracking-widest rounded-md px-7 h-10 hover:bg-black shadow-sm transition-colors duration-150">
                       Sign Up
                     </Button>

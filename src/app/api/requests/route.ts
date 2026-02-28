@@ -382,9 +382,9 @@ export async function POST(request: NextRequest) {
           console.log(`✓ Notified operator via email: ${operator.company_name} (Partner: ${operator.is_partner})`);
 
           // SMS Notification (Fire and forget)
-          if (operator.phone || (operator as any).company_phone) {
+          if (operator.company_phone) {
             try {
-              const operatorPhone = operator.phone || (operator as any).company_phone;
+              const operatorPhone = operator.company_phone;
               await sendSMS({
                 to: operatorPhone,
                 ...smsTemplates.newRequestAlert({
