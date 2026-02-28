@@ -6,6 +6,8 @@ export interface Quote {
   operatorRating: number;
   operatorReviewCount: number;
   operatorAvatar?: string;
+  operatorPhone?: string;
+  operatorEmail?: string;
 
   // Pricing
   totalPrice: number;

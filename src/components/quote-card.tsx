@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Star, CheckCircle2, Shield, User, MessageSquare, TrendingDown, Award } from "lucide-react";
+import { Star, CheckCircle2, Shield, User, MessageSquare, TrendingDown, Award, Phone, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -31,7 +31,7 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
       `✓ You cannot switch operators\n` +
       `✓ To choose a different operator, you must create a new request\n\n` +
       (quote.totalPrice === 0 ?
-        `Accept ${quote.operatorName} to discuss job details and finalize pricing?` :
+        `Lock Job to ${quote.operatorName} and finalize pricing directly?` :
         `Accept ${quote.operatorName}'s quote for $${quote.totalPrice}?`)
     );
 
@@ -194,7 +194,7 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
 
         {/* Operator Note */}
         {quote.operatorNote && (
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-4">
             <div className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
               Operator Note
             </div>
@@ -202,15 +202,39 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
           </div>
         )}
 
+        {/* Estimate Contact Info - Visible Before Accepting */}
+        {quote.totalPrice === 0 && (quote.operatorPhone || quote.operatorEmail) && (
+          <div className="bg-green-50 rounded-xl p-4 border border-green-200 mb-4">
+            <h4 className="text-sm font-bold text-green-900 mb-2">Discuss Details with Operator</h4>
+            <p className="text-xs text-green-800 mb-3">
+              This operator is interested but needs to discuss details before providing a fixed price. Reach out to them directly:
+            </p>
+            <div className="space-y-2">
+              {quote.operatorPhone && (
+                <div className="flex items-center gap-2 text-sm text-green-900 font-medium">
+                  <Phone className="w-4 h-4 text-green-600" />
+                  <a href={`tel:${quote.operatorPhone}`} className="hover:underline">{quote.operatorPhone}</a>
+                </div>
+              )}
+              {quote.operatorEmail && (
+                <div className="flex items-center gap-2 text-sm text-green-900 font-medium">
+                  <Mail className="w-4 h-4 text-green-600" />
+                  <a href={`mailto:${quote.operatorEmail}`} className="hover:underline">{quote.operatorEmail}</a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-indigo-500/20"
             onClick={handleAcceptClick}
             disabled={isAccepted || isDeclined || isExpired}
             title={isAccepted ? 'Already accepted' : 'Accept this operator - FINAL decision'}
           >
-            {isAccepted ? 'Accepted' : (quote.totalPrice === 0 ? 'Accept & View Contact Info' : 'Accept Quote')}
+            {isAccepted ? 'Accepted & Locked' : (quote.totalPrice === 0 ? 'Lock Job with Operator' : 'Accept Quote & Lock Job')}
           </Button>
           <Button
             variant="outline"

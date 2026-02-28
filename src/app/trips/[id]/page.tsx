@@ -75,7 +75,9 @@ export default function TripDetailPage() {
           operator:profiles!quotes_operator_id_fkey (
             company_name,
             full_name,
-            avatar_url
+            avatar_url,
+            phone,
+            email
           )
         `)
                 .eq('request_id', id)
@@ -291,6 +293,8 @@ export default function TripDetailPage() {
                                         vehicleCapacity: 14,
                                         operatorName: quote.operator?.company_name || quote.operator?.full_name || 'Anonymous Operator',
                                         operatorAvatar: quote.operator?.avatar_url || '',
+                                        operatorPhone: (quote.operator as any)?.phone || undefined,
+                                        operatorEmail: (quote.operator as any)?.email || undefined,
                                         operatorRating: 4.8,
                                         operatorReviewCount: 12,
                                         responseTime: 15,
