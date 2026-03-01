@@ -164,17 +164,29 @@ export async function POST(request: NextRequest) {
     const emailPreviewUrls: string[] = [];
 
     // Send confirmation email (fire and forget - don't block response)
-    if (user_id) {
-      try {
-        const { data: profile, error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .select('email, full_name')
-          .eq('id', user_id)
-          .single();
+    const privateMeta = metadata_private as any;
+    const guestEmail = privateMeta.parent_email || privateMeta.contact_email;
+    const guestName = privateMeta.parent_name || privateMeta.contact_name || 'User';
 
-        if (profileError) {
-          console.error('Failed to fetch user profile:', profileError);
-        } else if (profile?.email) {
+    if (user_id || guestEmail) {
+      try {
+        let recipientEmail = guestEmail;
+        let recipientName = guestName;
+
+        if (user_id) {
+          const { data: profile, error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', user_id)
+            .single();
+
+          if (!profileError && profile?.email) {
+            recipientEmail = profile.email;
+            recipientName = profile.full_name || recipientName;
+          }
+        }
+
+        if (recipientEmail) {
           const serviceTypeMap: Record<string, string> = {
             school: 'School Transportation',
             medical: 'Medical Transportation',
@@ -184,9 +196,9 @@ export async function POST(request: NextRequest) {
 
           try {
             const result = await sendEmail({
-              to: profile.email,
+              to: recipientEmail,
               ...emailTemplates.requestConfirmation({
-                userName: profile.full_name || 'User',
+                userName: recipientName,
                 serviceType: serviceTypeMap[service_type] || service_type,
                 pickupAddress: pickup_fuzzy || pickup_address,
                 dropoffAddress: dropoff_fuzzy || dropoff_address,
@@ -201,8 +213,9 @@ export async function POST(request: NextRequest) {
               user_id: user_id || null,
               request_id: data.id,
               metadata: {
-                to: profile.email,
+                to: recipientEmail,
                 message_id: result?.id,
+                is_guest: !user_id
               },
             });
           } catch (emailErr) {
@@ -218,7 +231,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (err) {
-        console.error('Failed to process user confirmation email:', err);
+        console.error('Failed to process confirmation email:', err);
       }
     }
 

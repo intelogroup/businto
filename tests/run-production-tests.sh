@@ -53,6 +53,36 @@ else
 fi
 echo ""
 
+# Test 5: Link Integrity & Token Routing
+echo "📋 Test 5: Link Integrity & Token Routing"
+if npx vitest run tests/link-integrity.test.ts --reporter=verbose 2>&1 | grep -q "✓"; then
+    echo -e "${GREEN}✅ PASSED${NC}"
+else
+    echo -e "${RED}❌ FAILED${NC}"
+    FAILED_TESTS+=("Link Integrity")
+fi
+echo ""
+
+# Test 6: Concurrency & Race Conditions
+echo "📋 Test 6: Concurrency & Race Conditions"
+if npx vitest run tests/concurrency-acceptance.test.ts --reporter=verbose 2>&1 | grep -q "✓"; then
+    echo -e "${GREEN}✅ PASSED${NC}"
+else
+    echo -e "${RED}❌ FAILED${NC}"
+    FAILED_TESTS+=("Concurrency Acceptance")
+fi
+echo ""
+
+# Test 7: Priority Leak Cron
+echo "📋 Test 7: Priority Leak Cron Logic"
+if npx vitest run tests/priority-leak.test.ts --reporter=verbose 2>&1 | grep -q "✓"; then
+    echo -e "${GREEN}✅ PASSED${NC}"
+else
+    echo -e "${RED}❌ FAILED${NC}"
+    FAILED_TESTS+=("Priority Leak Logic")
+fi
+echo ""
+
 # Summary
 echo "======================================="
 echo "📊 Test Summary"
