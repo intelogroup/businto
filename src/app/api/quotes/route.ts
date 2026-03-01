@@ -210,6 +210,28 @@ export async function POST(request: NextRequest) {
         if (userEmail) {
           const operatorName = data.operator?.company_name || data.operator?.full_name || 'An operator';
 
+          // NEW: Create a Magic Link for Auto Sign-in if we have a userEmail
+          let autoSignInLink = null;
+          try {
+            // Only attempt magic link if user belongs to an account (not strictly anonymous)
+            if (transportRequest.user_id) {
+              const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'magiclink',
+                email: userEmail,
+                options: { 
+                  redirectTo: `${appBaseUrl}/api/auth/callback?next=/trips/${request_id}` 
+                }
+              });
+              
+              if (!linkError && linkData?.properties?.action_link) {
+                autoSignInLink = linkData.properties.action_link;
+                console.log(`[Quote API] Generated Magic Link for ${userEmail}`);
+              }
+            }
+          } catch (linkErr) {
+            console.warn('[Quote API] Failed to generate magic link, falling back to token:', linkErr);
+          }
+
           try {
             const result = await sendEmail({
               to: userEmail,
@@ -220,8 +242,9 @@ export async function POST(request: NextRequest) {
                 vehicleType: vehicle_type,
                 requestId: request_id,
                 quoteId: data.id,
-                accessToken: await generateUserTripToken(request_id, transportRequest.user_id || undefined),
-                appBaseUrl,
+                // Use the Magic Link if available, otherwise fall back to tokenized URL
+                accessToken: autoSignInLink ? undefined : await generateUserTripToken(request_id, transportRequest.user_id || undefined),
+                appBaseUrl: autoSignInLink || appBaseUrl,
               })
             });
 

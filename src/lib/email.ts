@@ -248,7 +248,10 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}" class="button">View &amp; Accept Quote</a>
+              <a href="${data.appBaseUrl?.startsWith('http') 
+                ? data.appBaseUrl 
+                : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}`
+              }" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>

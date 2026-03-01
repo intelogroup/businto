@@ -33,7 +33,14 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';
-      const base = (isLocalEnv || !forwardedHost) ? origin : `https://${forwardedHost}`;
+      
+      let base = (isLocalEnv || !forwardedHost) ? origin : `https://${forwardedHost}`;
+      
+      // PRODUCTION GUARD: Force businto.com if not in local dev
+      if (!isLocalEnv && base.includes('vercel.app')) {
+        base = 'https://businto.com';
+      }
+
       const redirectTo = `${base}${next}`;
       console.log('[Auth Callback] Session exchange success, redirecting to:', redirectTo);
       return NextResponse.redirect(redirectTo);
