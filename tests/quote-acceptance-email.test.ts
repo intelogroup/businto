@@ -17,7 +17,7 @@ vi.mock('../src/lib/supabase-server', () => {
     single: vi.fn(),
     order: vi.fn().mockReturnThis(),
   };
-  
+
   mock.from.mockReturnValue(mock);
   mock.select.mockReturnValue(mock);
   mock.eq.mockReturnValue(mock);
@@ -25,7 +25,7 @@ vi.mock('../src/lib/supabase-server', () => {
   mock.update.mockReturnValue(mock);
   mock.insert.mockReturnValue(mock);
   mock.order.mockReturnValue(mock);
-  
+
   return { supabaseAdmin: mock };
 });
 
@@ -33,6 +33,7 @@ vi.mock('../src/lib/email', () => ({
   sendEmail: vi.fn().mockResolvedValue({ id: 'mock-email-id' }),
   emailTemplates: {
     bookingConfirmation: vi.fn().mockReturnValue({ subject: 'User Sub', html: 'User HTML' }),
+    operatorOrderDetails: vi.fn().mockReturnValue({ subject: 'Booking Confirmed', html: 'Parent Name' }),
   },
 }));
 
@@ -69,14 +70,14 @@ describe('Quote Acceptance - Operator Email Verification', () => {
     mockSupabase.single
       .mockResolvedValueOnce({ data: { id: mockRequestId, status: 'pending', user_id: mockUserId }, error: null }) // 1. request
       .mockResolvedValueOnce({ // 3. quote details
-        data: { 
-          id: mockQuoteId, 
-          operator_id: 'op-999', 
-          total_price: 100, 
+        data: {
+          id: mockQuoteId,
+          operator_id: 'op-999',
+          total_price: 100,
           vehicle_type: 'Van',
-          operator: { email: mockOperatorEmail, company_name: 'Fast Trans' } 
-        }, 
-        error: null 
+          operator: { company_email: mockOperatorEmail, company_name: 'Fast Trans' }
+        },
+        error: null
       })
       .mockResolvedValueOnce({ // 4. full request
         data: { id: mockRequestId, pickup_address: '123 Main St', start_date: '2026-03-01', metadata_private: { parent_name: 'Parent Name' } },

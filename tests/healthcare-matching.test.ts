@@ -29,6 +29,7 @@ describe('Operator Matching - Healthcare Specific Requests', () => {
             {
                 id: 'op-ambulatory',
                 company_name: 'Ambulatory Care Transport',
+                company_email: 'ambulatory@test.com',
                 vehicle_types: ['sedan'],
                 specialties: ['Medical Transport'],
                 company_lat: 40.7,
@@ -41,6 +42,7 @@ describe('Operator Matching - Healthcare Specific Requests', () => {
             {
                 id: 'op-wheelchair',
                 company_name: 'Wheelchair Express',
+                company_email: 'wheelchair@test.com',
                 vehicle_types: ['wheelchair_van'],
                 specialties: ['Medical Transport', 'Wheelchair'],
                 company_lat: 40.7,
@@ -53,6 +55,7 @@ describe('Operator Matching - Healthcare Specific Requests', () => {
             {
                 id: 'op-stretcher',
                 company_name: 'Stretcher & ALS Services',
+                company_email: 'stretcher@test.com',
                 vehicle_types: ['van'],
                 specialties: ['Medical Transport', 'Stretcher', 'Oxygen', 'Bariatric'],
                 company_lat: 40.7,
@@ -65,6 +68,7 @@ describe('Operator Matching - Healthcare Specific Requests', () => {
             {
                 id: 'op-premium',
                 company_name: 'Premium Medical Concierge',
+                company_email: 'premium@test.com',
                 vehicle_types: ['wheelchair_van', 'sedan'],
                 specialties: ['Medical Transport', 'Wheelchair', 'White Glove', 'Door-Through-Door'],
                 company_lat: 40.7,
@@ -96,6 +100,8 @@ describe('Operator Matching - Healthcare Specific Requests', () => {
         const request: any = {
             service_type: 'medical',
             pickup_address: '123 Main St, New York, NY',
+            pickup_lat: 40.7128,
+            pickup_lng: -74.0060,
             metadata: {
                 mobility_level: 'ambulatory',
                 service_level: 'curb-to-curb'

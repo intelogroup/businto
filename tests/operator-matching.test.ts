@@ -29,6 +29,7 @@ describe('Operator Matching - Strict Conditions', () => {
             {
                 id: 'op-1',
                 company_name: 'Basic Medical Transport',
+                company_email: 'op1@test.com',
                 vehicle_types: ['sedan', 'wheelchair_van'],
                 specialties: ['Wheelchair'],
                 company_lat: 40.7,
@@ -38,6 +39,7 @@ describe('Operator Matching - Strict Conditions', () => {
             {
                 id: 'op-2',
                 company_name: 'Advanced Medical Transport',
+                company_email: 'op2@test.com',
                 vehicle_types: ['ambulance', 'wheelchair_van'],
                 specialties: ['Wheelchair', 'Stretcher', 'Oxygen', 'Bariatric', 'White Glove'],
                 company_lat: 40.7,
@@ -47,6 +49,7 @@ describe('Operator Matching - Strict Conditions', () => {
             {
                 id: 'op-3',
                 company_name: 'School Bus Co',
+                company_email: 'op3@test.com',
                 vehicle_types: ['school_bus'],
                 specialties: ['Special Needs', 'Booster Seat'],
                 company_lat: 40.7,
