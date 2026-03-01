@@ -54,4 +54,58 @@ describe("Password Reset & Security Lifecycle", () => {
     expect(response.headers.get("location")).toBe("http://localhost:3000/dashboard");
     expect(mockSupabase.auth.exchangeCodeForSession).toHaveBeenCalledWith("test_code");
   });
+
+  it("should enforce production domain in confirm redirect (Production Guard)", async () => {
+    // Simulate production environment
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    
+    const mockSupabase = {
+      auth: {
+        verifyOtp: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    (createClient as any).mockResolvedValue(mockSupabase);
+
+    // Request coming from a Vercel URL
+    const req = new NextRequest("https://businto-preview.vercel.app/api/auth/confirm?token_hash=h&type=magiclink&next=/trips/1", {
+      method: "GET",
+    });
+
+    const response = await confirmGET(req);
+
+    expect(response.status).toBe(307);
+    // Should be forced to businto.com
+    expect(response.headers.get("location")).toBe("https://businto.com/trips/1");
+    
+    process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it("should enforce production domain in callback redirect (Production Guard)", async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+
+    const mockSupabase = {
+      auth: {
+        exchangeCodeForSession: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+    (createClient as any).mockResolvedValue(mockSupabase);
+
+    // Request with x-forwarded-host (common in Vercel)
+    const req = new NextRequest("https://businto-internal.vercel.app/api/auth/callback?code=c&next=/dashboard", {
+      method: "GET",
+      headers: {
+        "x-forwarded-host": "businto-preview.vercel.app"
+      }
+    });
+
+    const response = await callbackGET(req);
+
+    expect(response.status).toBe(307);
+    // Should be forced to businto.com despite the forwarded host
+    expect(response.headers.get("location")).toBe("https://businto.com/dashboard");
+
+    process.env.NODE_ENV = originalNodeEnv;
+  });
 });

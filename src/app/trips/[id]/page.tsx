@@ -188,10 +188,28 @@ export default function TripDetailPage() {
             <div className="min-h-screen bg-neutral-50">
                 <Navbar />
                 <div className="container mx-auto max-w-7xl px-6 py-24 text-center">
-                    <h2 className="text-2xl font-bold">Trip not found</h2>
-                    <Link href="/trips" className="text-blue-600 hover:underline mt-4 inline-block">
-                        Back to your trips
-                    </Link>
+                    <h2 className="text-2xl font-bold">
+                        {(!user && !token) ? "Authentication Required" : "Trip not found"}
+                    </h2>
+                    <p className="text-neutral-500 mt-2">
+                        {(!user && !token) 
+                            ? "You need to be signed in to view these trip details." 
+                            : "We couldn't find the trip you're looking for. It may have been deleted or moved."}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                        {!user && (
+                            <Link href={`/login?redirect=/trips/${id}`}>
+                                <Button className="bg-black text-white px-8">
+                                    Sign In to View
+                                </Button>
+                            </Link>
+                        )}
+                        <Link href="/">
+                            <Button variant="outline">
+                                Go to Homepage
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
             </div>
         );

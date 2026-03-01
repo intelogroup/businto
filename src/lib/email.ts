@@ -72,13 +72,13 @@ const FROM_EMAIL = env('SMTP_FROM_EMAIL') || 'Businto <noreply@businto.com>';
  */
 function getAppBaseUrl(providedUrl?: string): string {
   let url = providedUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
-  
+
   // If it's a vercel subdomain and we are NOT in development, force .com
   const isDev = process.env.NODE_ENV === 'development';
   if (!isDev && url.includes('vercel.app')) {
     return 'https://businto.com';
   }
-  
+
   return url.replace(/\/$/, "");
 }
 
@@ -248,10 +248,14 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.appBaseUrl?.startsWith('http') 
-                ? data.appBaseUrl 
-                : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}`
-              }" class="button">View &amp; Accept Quote</a>
+              <a href="${(data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
+        ? data.appBaseUrl
+        : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
+          ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}`
+          : data.appBaseUrl?.startsWith('http')
+            ? data.appBaseUrl
+            : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}`
+      }" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -569,7 +573,7 @@ export const emailTemplates = {
 
     const config = serviceConfig[data.serviceType as keyof typeof serviceConfig] || serviceConfig.school;
     const appBaseUrl = getAppBaseUrl(data.appBaseUrl);
-    
+
     // Shorten fuzzy address for subject line to avoid rejection by mail servers
     const shortLocation = data.pickupFuzzy.split(',')[0];
 
