@@ -32,7 +32,7 @@ You are a senior engineer who prioritizes structural simplicity over quick fixes
 *   **Auth Async**: Always check `isLoading` from `useAuth` before showing "Not Found" states. Session recovery takes time.
 *   **Domain Safety**: Use `getAppBaseUrl()` in `src/lib/email.ts` to force `businto.com` in production. Avoid `.vercel.app` for user-facing links.
 *   **De-duplication Tie-Breakers**: Operator matching de-duplicates by email. Priority: `is_partner` -> `rating`.
-*   **Magic Links**: Use `admin.generateLink` for "Auto Sign-in" buttons in notification emails.
+*   **Magic Links**: Use `admin.generateLink` for "Auto Sign-in" buttons in notification emails. Ensure the `redirectTo` points directly to the client page (e.g. `/trips/[id]`), NOT a server-side route like `/api/auth/callback`, since server environments drop the URL hash token.
 *   **Safety Gates**: `no_adult_release` and `medical specialties` use strict filtering. If matches are zero, check operator specialties vs request metadata.
 
 ---

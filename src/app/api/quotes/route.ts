@@ -218,11 +218,11 @@ export async function POST(request: NextRequest) {
               const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
                 type: 'magiclink',
                 email: userEmail,
-                options: { 
-                  redirectTo: `${appBaseUrl}/api/auth/callback?next=/trips/${request_id}` 
+                options: {
+                  redirectTo: `${appBaseUrl}/trips/${request_id}`
                 }
               });
-              
+
               if (!linkError && linkData?.properties?.action_link) {
                 autoSignInLink = linkData.properties.action_link;
                 console.log(`[Quote API] Generated Magic Link for ${userEmail}`);
