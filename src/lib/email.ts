@@ -582,9 +582,8 @@ export const emailTemplates = {
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: ${config.accentColor}; background: ${config.gradient}; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
-            .icon { font-size: 48px; margin-bottom: 10px; }
-            .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 12px 12px; }
+            .header { border-bottom: 4px solid ${config.accentColor}; padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+            .content { background: #fff; }
             .details { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
             .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
             .detail-row:last-child { border-bottom: 0; }
@@ -593,7 +592,7 @@ export const emailTemplates = {
             .requirements { list-style: none; padding: 0; margin: 10px 0 0 0; }
             .requirements li { padding: 6px 0; color: #374151; }
             .requirements li:before { content: "• "; color: ${config.accentColor}; font-weight: bold; margin-right: 8px; }
-            .button { display: inline-block; background-color: ${config.accentColor}; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+            .button { display: inline-block; background-color: ${config.accentColor}; color: #ffffff !important; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; }
             .disclaimer { background: #f3f4f6; padding: 20px; border-radius: 8px; margin-top: 25px; font-size: 13px; color: #6b7280; line-height: 1.8; }
             .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
           </style>
@@ -601,9 +600,8 @@ export const emailTemplates = {
         <body>
           <div class="container">
             <div class="header">
-              <div class="icon">${config.icon}</div>
-              <h1>${config.greeting}</h1>
-              <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Request #${data.requestId.slice(0, 8)}</p>
+              <h1 style="color: #111827; margin: 0;">${config.greeting}</h1>
+              <p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280;">Request ID: ${data.requestId.slice(0, 8)}</p>
             </div>
 
             <div class="content">

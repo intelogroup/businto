@@ -365,19 +365,23 @@ export async function POST(request: NextRequest) {
             emailPreviewUrls.push(emailResult.previewUrl);
           }
 
-          // Create in-app notification for operator
-          await supabaseAdmin.from('notifications').insert({
-            user_id: operator.profile_id,
-            type: 'new_request_available',
-            title: `New ${serviceTypeDisplay} Request`,
-            message: `${pickup_fuzzy || pickup_address.split(',')[0]} → ${dropoff_fuzzy || dropoff_address.split(',')[0]}`,
-            data: {
-              request_id: data.id,
-              service_type,
-              pickup_fuzzy: pickup_fuzzy || pickup_address.split(',')[0],
-              dropoff_fuzzy: dropoff_fuzzy || dropoff_address.split(',')[0]
-            }
-          });
+          // Create in-app notification for operator (only if they have a linked profile)
+          if (operator.profile_id) {
+            await supabaseAdmin.from('notifications').insert({
+              user_id: operator.profile_id,
+              type: 'new_request_available',
+              title: `New ${serviceTypeDisplay} Request`,
+              message: `${pickup_fuzzy || pickup_address.split(',')[0]} → ${dropoff_fuzzy || dropoff_address.split(',')[0]}`,
+              data: {
+                request_id: data.id,
+                service_type,
+                pickup_fuzzy: pickup_fuzzy || pickup_address.split(',')[0],
+                dropoff_fuzzy: dropoff_fuzzy || dropoff_address.split(',')[0]
+              }
+            });
+          } else {
+            console.log(`ℹ️ Skipping in-app notification for ${operator.company_name} (no profile_id)`);
+          }
 
           console.log(`✓ Notified operator via email: ${operator.company_name} (Partner: ${operator.is_partner})`);
 
