@@ -113,9 +113,8 @@ function SubmitQuoteContent() {
           operator_id: requestData.operator_id
         });
         setRequest(requestData);
-        if (requestData.operator_id) {
-          setOperatorId(requestData.operator_id);
-        }
+        // Explicitly set to null if not present to avoid 'undefined' issues
+        setOperatorId(requestData.operator_id || null);
         setLoading(false);
       } catch (err) {
         console.error('💥 Fatal error fetching request:', err);
@@ -147,13 +146,15 @@ function SubmitQuoteContent() {
     const priceNum = price ? parseFloat(price) : 0;
     const quotePayload = {
       request_id: request.id,
-      operator_id: operatorId, // Use the ID from the token
+      operator_id: operatorId || null, // Use ID from token if available, otherwise null
       total_price: priceNum,
       vehicle_type: vehicleType.trim(),
       note: message.trim() || undefined,
     };
 
-    // Use Zod for client-side validation
+    console.log('📋 Validating payload:', quotePayload);
+
+    // Use safeParse to avoid throwing and handle error manually
     const validation = quoteSchema.safeParse(quotePayload);
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message || "Invalid quote data";
