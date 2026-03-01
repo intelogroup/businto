@@ -352,9 +352,13 @@ export async function findMatchingOperators(
         if (!deDupedMap.has(op.company_email)) {
           deDupedMap.set(op.company_email, op);
         } else {
-          // Keep the one with the higher rating
+          // Priority: 1. is_partner, 2. rating
           const existing = deDupedMap.get(op.company_email);
-          if (op.rating > existing.rating) {
+          const currentIsBetter = 
+            (op.is_partner && !existing.is_partner) || 
+            (op.is_partner === existing.is_partner && op.rating > existing.rating);
+            
+          if (currentIsBetter) {
             deDupedMap.set(op.company_email, op);
           }
         }
@@ -379,8 +383,13 @@ export async function findMatchingOperators(
         if (!deDupedMap.has(op.company_email)) {
           deDupedMap.set(op.company_email, op);
         } else {
+          // Priority: 1. is_partner, 2. rating
           const existing = deDupedMap.get(op.company_email);
-          if (op.rating > existing.rating) {
+          const currentIsBetter = 
+            (op.is_partner && !existing.is_partner) || 
+            (op.is_partner === existing.is_partner && op.rating > existing.rating);
+            
+          if (currentIsBetter) {
             deDupedMap.set(op.company_email, op);
           }
         }

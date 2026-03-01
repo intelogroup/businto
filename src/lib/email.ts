@@ -566,9 +566,12 @@ export const emailTemplates = {
 
     const config = serviceConfig[data.serviceType as keyof typeof serviceConfig] || serviceConfig.school;
     const appBaseUrl = getAppBaseUrl(data.appBaseUrl);
+    
+    // Shorten fuzzy address for subject line to avoid rejection by mail servers
+    const shortLocation = data.pickupFuzzy.split(',')[0];
 
     return {
-      subject: `${data.serviceTypeDisplay} inquiry - ${data.pickupFuzzy}`,
+      subject: `${data.serviceTypeDisplay} inquiry - ${shortLocation}`,
       html: `
       <!DOCTYPE html>
       <html>
@@ -576,7 +579,7 @@ export const emailTemplates = {
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: ${config.gradient}; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+            .header { background-color: ${config.accentColor}; background: ${config.gradient}; color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
             .icon { font-size: 48px; margin-bottom: 10px; }
             .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 12px 12px; }
             .details { background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; }
@@ -587,7 +590,7 @@ export const emailTemplates = {
             .requirements { list-style: none; padding: 0; margin: 10px 0 0 0; }
             .requirements li { padding: 6px 0; color: #374151; }
             .requirements li:before { content: "• "; color: ${config.accentColor}; font-weight: bold; margin-right: 8px; }
-            .button { display: inline-block; background: ${config.gradient}; color: white !important; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+            .button { display: inline-block; background-color: ${config.accentColor}; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
             .disclaimer { background: #f3f4f6; padding: 20px; border-radius: 8px; margin-top: 25px; font-size: 13px; color: #6b7280; line-height: 1.8; }
             .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
           </style>
