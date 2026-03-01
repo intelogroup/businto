@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { request_id, booking_id, sender_id, recipient_id, content } = await request.json();
 
-    if (!sender_id || !recipient_id || !content) {
+    // SECURITY: Ensure the sender_id matches the authenticated user
+    if (sender_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden: Cannot send message as another user' }, { status: 403 });
+    }
+
+    if (!recipient_id || !content) {
       return NextResponse.json(
-        { error: 'Missing required fields: sender_id, recipient_id, content' },
+        { error: 'Missing required fields: recipient_id, content' },
         { status: 400 }
       );
     }
@@ -155,16 +165,23 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { message_ids, is_read } = await request.json();
 
     if (!message_ids?.length) {
       return NextResponse.json({ error: 'Missing message_ids' }, { status: 400 });
     }
 
+    // SECURITY: Ensure user is the recipient of these messages
     const { error } = await supabase
       .from('messages')
       .update({ is_read: is_read ?? true })
-      .in('id', message_ids);
+      .in('id', message_ids)
+      .eq('recipient_id', user.id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

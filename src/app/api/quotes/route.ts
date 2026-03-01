@@ -21,6 +21,12 @@ export async function POST(request: NextRequest) {
     const validation = validateQuote(body);
     if (!validation.success) {
       console.error('🔴 Quote Validation Failed:', validation.error.format());
+      await logEvent({
+        event_type: 'quote.submission.validation_failed',
+        status: 'error',
+        message: 'Invalid quote data',
+        metadata: { errors: validation.error.format(), body_keys: Object.keys(body) }
+      });
       return NextResponse.json(
         {
           error: 'Invalid quote data',
@@ -54,6 +60,14 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (acceptedQuote) {
+      await logEvent({
+        event_type: 'quote.submission.locked',
+        status: 'error',
+        operator_id: operator_id || null,
+        request_id: request_id,
+        message: 'Attempted to quote on an already fulfilled request',
+        metadata: { accepted_quote_id: acceptedQuote.id }
+      });
       return NextResponse.json(
         { error: 'Request already fulfilled. Acceptance is final - no new quotes accepted.' },
         { status: 409 }
@@ -72,6 +86,14 @@ export async function POST(request: NextRequest) {
       if (existingQuote) {
         // If they have an existing quote that's not withdrawn, reject
         if (existingQuote.status !== 'withdrawn') {
+          await logEvent({
+            event_type: 'quote.submission.duplicate',
+            status: 'error',
+            operator_id: operator_id || null,
+            request_id: request_id,
+            message: 'Operator attempted to submit duplicate quote',
+            metadata: { existing_quote_id: existingQuote.id, existing_status: existingQuote.status }
+          });
           return NextResponse.json(
             { error: 'You have already submitted a quote for this request. You cannot submit multiple quotes.' },
             { status: 409 }
@@ -151,6 +173,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
+      await logEvent({
+        event_type: 'quote.submission.db_error',
+        status: 'error',
+        operator_id: company_id || null,
+        request_id,
+        message: 'Failed to insert quote',
+        metadata: { error: error.message }
+      });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

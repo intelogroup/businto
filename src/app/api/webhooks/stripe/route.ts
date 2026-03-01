@@ -19,6 +19,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
     }
 
+    // Idempotency check
+    const { data: processedEvent } = await supabase
+        .from('webhook_events')
+        .select('id')
+        .eq('stripe_event_id', event.id)
+        .single();
+
+    if (processedEvent) {
+        console.log(`Event ${event.id} already processed, skipping`);
+        return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    // Record event processing
+    await supabase
+        .from('webhook_events')
+        .insert({
+            stripe_event_id: event.id,
+            event_type: event.type,
+            processed_at: new Date().toISOString()
+        });
+
     // Handle the event
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;

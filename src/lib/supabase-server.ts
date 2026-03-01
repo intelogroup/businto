@@ -17,3 +17,31 @@ export const supabaseAdmin = createClient(
 // use `createClient` from `@/lib/supabase/server` instead.
 // This legacy export is kept for backward compatibility.
 export { createClient as createServerClient } from '@/lib/supabase/server';
+
+import { createClient as createServerAuthClient } from '@/lib/supabase/server';
+
+/**
+ * Ensures the request is from an authenticated user.
+ */
+export async function requireUser() {
+  const supabase = await createServerAuthClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
+
+/**
+ * Ensures the request is from an authenticated user with the 'admin' role.
+ */
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  return profile?.role === 'admin' ? user : null;
+}

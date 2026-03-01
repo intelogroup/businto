@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { logEvent } from '@/lib/event-logger';
 import Stripe from 'stripe';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -45,6 +46,13 @@ export async function POST(request: NextRequest) {
 
   if (webhookError) {
     console.error('Failed to record webhook event:', webhookError);
+    await logEvent({
+      event_type: 'webhook.db_error',
+      status: 'error',
+      actor_type: 'system',
+      message: 'Failed to record stripe_event_id in webhook_events',
+      metadata: { event_id: event.id, error: webhookError.message }
+    });
   }
 
   switch (event.type) {
@@ -79,6 +87,62 @@ export async function POST(request: NextRequest) {
             message: `Payment of $${booking.amount} received for booking ${booking.confirmation_code}.`,
             data: { booking_id: bookingId }
           });
+
+          // PII REVEAL GATE: Send official order details to operator now that payment is confirmed
+          const { data: tripData } = await supabase
+            .from('bookings')
+            .select(`
+              *,
+              request:transport_requests(*),
+              operator:operators(*),
+              user:profiles(email, full_name, phone)
+            `)
+            .eq('id', bookingId)
+            .single();
+
+          if (tripData?.request && tripData?.operator?.company_email) {
+            const { sendEmail, emailTemplates } = await import('@/lib/email');
+            const privateMetadata = tripData.request.metadata_private || {};
+
+            try {
+              await sendEmail({
+                to: tripData.operator.company_email,
+                ...emailTemplates.operatorOrderDetails({
+                  operatorName: tripData.operator.company_name || 'Operator',
+                  parentName: privateMetadata.parent_name || privateMetadata.contact_name || tripData.user?.full_name || 'Not provided',
+                  parentEmail: privateMetadata.parent_email || privateMetadata.contact_email || tripData.user?.email,
+                  parentPhone: privateMetadata.parent_phone || privateMetadata.contact_phone || tripData.user?.phone || 'Not provided',
+                  quoteAmount: tripData.amount,
+                  pickup: tripData.request.pickup_address || tripData.request.pickup_fuzzy || 'Not specified',
+                  dropoff: tripData.request.dropoff_address || tripData.request.dropoff_fuzzy || 'Not specified',
+                  date: tripData.request.start_date,
+                  time: tripData.request.start_time,
+                  vehicleType: tripData.request.vehicle_type || 'Standard',
+                  confirmationCode: tripData.confirmation_code || 'PENDING',
+                  bookingId: tripData.id
+                })
+              });
+              console.log(`[PII Reveal] Contact info sent to operator for booking ${bookingId}`);
+              await logEvent({
+                event_type: 'booking.pii_reveal.success',
+                actor_type: 'system',
+                booking_id: bookingId,
+                operator_id: booking.operator_id,
+                user_id: booking.user_id,
+                metadata: { to: tripData.operator.company_email }
+              });
+            } catch (emailErr) {
+              console.error('[PII Reveal] Failed to send operator details:', emailErr);
+              await logEvent({
+                event_type: 'booking.pii_reveal.failed',
+                status: 'error',
+                actor_type: 'system',
+                booking_id: bookingId,
+                message: emailErr instanceof Error ? emailErr.message : 'Unknown email error',
+                metadata: { to: tripData.operator.company_email }
+              });
+            }
+          }
         }
       }
       break;

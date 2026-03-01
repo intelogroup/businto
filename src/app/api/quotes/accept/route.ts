@@ -22,6 +22,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!quoteId || !tripRequestId || !actualUserId) {
+      await logEvent({
+        event_type: 'quote.accept.validation_failed',
+        status: 'error',
+        message: 'Missing required fields',
+        metadata: { quoteId, tripRequestId, hasUserId: !!actualUserId }
+      });
       return NextResponse.json(
         { error: 'Missing required fields: quoteId, tripRequestId, userId or token' },
         { status: 400 }
@@ -30,28 +36,27 @@ export async function POST(request: NextRequest) {
 
     const userId = actualUserId;
 
-    // TRANSACTIONAL LOCK: Prevent race conditions on quote acceptance
-    // First, lock the transport_request row (SELECT FOR UPDATE)
-    const { data: lockedRequest, error: lockError } = await supabaseAdmin
+    // TRANSACTIONAL ATOMICITY: Check if already fulfilled using a reliable sequence
+    const { data: requestVerification, error: verificationError } = await supabaseAdmin
       .from('transport_requests')
-      .select('id, status, metadata_private, user_id')
+      .select('status, user_id, metadata_private')
       .eq('id', tripRequestId)
       .single();
 
-    if (lockError || !lockedRequest) {
+    if (verificationError || !requestVerification) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    // MARKETPLACE INTEGRITY: Once accepted, request is locked forever
-    // Check if ANY quote has already been accepted for this request
-    const { data: existingAccepted } = await supabaseAdmin
-      .from('quotes')
-      .select('id, operator_id')
-      .eq('request_id', tripRequestId)
-      .eq('status', 'accepted')
-      .maybeSingle();
-
-    if (existingAccepted) {
+    if (requestVerification.status === 'booked' || requestVerification.status === 'quote_accepted') {
+      await logEvent({
+        event_type: 'quote.accept.conflict',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Attempted to accept an already fulfilled request (Race Condition blocked)',
+        metadata: { current_status: requestVerification.status }
+      });
       return NextResponse.json(
         {
           error: 'Request already fulfilled. Acceptance is final - cannot change operators.',
@@ -62,11 +67,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Also check request status (defense in depth)
-    if (lockedRequest.status === 'booked' || lockedRequest.status === 'quote_accepted') {
+    if (requestVerification.status === 'booked' || requestVerification.status === 'quote_accepted') {
       return NextResponse.json(
         {
           error: 'This request has already been accepted. Acceptance is final.',
-          status: lockedRequest.status
+          status: requestVerification.status
         },
         { status: 409 }
       );
@@ -149,6 +154,15 @@ export async function POST(request: NextRequest) {
       .eq('id', tripRequestId);
 
     if (requestUpdateError) {
+      await logEvent({
+        event_type: 'quote.accept.db_error',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Failed to update transport_requests status to booked',
+        metadata: { error: requestUpdateError.message }
+      });
       return NextResponse.json(
         { error: 'Failed to update request status' },
         { status: 500 }
@@ -223,68 +237,9 @@ export async function POST(request: NextRequest) {
         data: { quote_id: quoteId, booking_id: booking?.id }
       });
 
-    // ONE-WAY GATE: Reveal parent contact info to winning operator via email
-    // This is the ONLY place where private metadata is exposed to operators
-    const { data: parentProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('email, full_name, phone')
-      .eq('id', lockedRequest.user_id)
-      .single();
-
-    if (parentProfile && quote.operator?.company_email) {
-      const privateMetadata = lockedRequest.metadata_private || {};
-      let revealEmailSent = false;
-
-      // Send email to winning operator with contact info using professional template
-      try {
-        await sendEmail({
-          to: quote.operator.company_email,
-          ...emailTemplates.operatorOrderDetails({
-            operatorName: quote.operator.company_name || 'Operator',
-            parentName: privateMetadata.parent_name || privateMetadata.contact_name || parentProfile.full_name || 'Not provided',
-            parentEmail: privateMetadata.parent_email || privateMetadata.contact_email || parentProfile.email,
-            parentPhone: privateMetadata.parent_phone || privateMetadata.contact_phone || parentProfile.phone || 'Not provided',
-            quoteAmount: quote.total_price,
-            pickup: transportRequest?.pickup_address || transportRequest?.pickup_fuzzy || 'Not specified',
-            dropoff: transportRequest?.dropoff_address || transportRequest?.dropoff_fuzzy || 'Not specified',
-            date: transportRequest?.start_date,
-            time: transportRequest?.start_time,
-            vehicleType: quote.vehicle_type,
-            confirmationCode: booking?.confirmation_code || 'N/A',
-            bookingId: booking?.id || 'N/A'
-          })
-        });
-        revealEmailSent = true;
-      } catch (emailErr) {
-        console.error('Failed to send operator contact reveal email:', emailErr);
-        await logEvent({
-          event_type: 'operator.contact_reveal_email.failed',
-          status: 'error',
-          actor_type: 'system',
-          request_id: tripRequestId,
-          quote_id: quoteId,
-          booking_id: booking?.id || null,
-          operator_id: quote.operator_id || null,
-          message: emailErr instanceof Error ? emailErr.message : 'Unknown reveal email error',
-        });
-      }
-
-      // Log this action for audit trail (if audit table exists)
-      console.log(`[AUDIT] Contact info revealed for request ${tripRequestId} to operator ${quote.operator_id} via email`);
-      if (revealEmailSent) {
-        await logEvent({
-          event_type: 'operator.contact_reveal_email.sent',
-          actor_type: 'system',
-          request_id: tripRequestId,
-          quote_id: quoteId,
-          booking_id: booking?.id || null,
-          operator_id: quote.operator_id || null,
-          metadata: {
-            to: quote.operator.company_email,
-          },
-        });
-      }
-    }
+    // REDESIGN: PII reveal is now MOVED to the checkout.sessions.completed or payment_intent.succeeded webhook
+    // This API only handles the status transition and booking creation.
+    // The operator will receive the detailed order email via the webhook after the $1.99 fee is secured.
 
     // Send booking confirmation email (fire and forget)
     if (booking?.confirmation_code) {

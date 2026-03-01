@@ -115,15 +115,16 @@ describe('Quote Acceptance - Operator Email Verification', () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
 
-    // CRITICAL VERIFICATION: Did the operator receive the PII Reveal email?
+    // VERIFICATION: Did the user receive the booking confirmation?
+    // Note: Operator reveal email is now moved to Stripe webhook, so it won't be called here.
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: mockOperatorEmail,
-        subject: expect.stringContaining('Booking Confirmed'),
-        html: expect.stringContaining('Parent Name') // PII Reveal from metadata_private
+        to: "parent@test.com",
+        subject: expect.stringContaining('User Sub'),
+        html: expect.stringContaining('User HTML')
       })
     );
 
-    console.log('✅ TEST PASSED: Operator correctly received the confirmation email with PII data.');
+    console.log('✅ TEST PASSED: User correctly received the booking confirmation email.');
   });
 });

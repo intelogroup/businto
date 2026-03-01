@@ -79,6 +79,13 @@ export async function POST(request: NextRequest) {
 
       } catch (validationError: any) {
         console.error('Metadata validation failed:', validationError);
+        await logEvent({
+          event_type: 'request.validation_failed',
+          status: 'error',
+          actor_id: user_id,
+          message: `Metadata validation failed: ${validationError.message}`,
+          metadata: { service_type, body_keys: Object.keys(body) }
+        });
         return NextResponse.json(
           { error: `Metadata validation failed: ${validationError.message}` },
           { status: 400 }
@@ -129,6 +136,13 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
+      await logEvent({
+        event_type: 'request.db_error',
+        status: 'error',
+        actor_id: user_id,
+        message: 'Failed to insert transport_request',
+        metadata: { error: error.message, service_type }
+      });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -258,9 +272,17 @@ export async function POST(request: NextRequest) {
             event_type: 'request.manual_allocation.flagged',
             actor_type: 'system',
             request_id: data.id,
+            metadata: { service_type, pickup: pickup_fuzzy }
           });
         } catch (err) {
           console.error('Failed to handle unmatched request fallback:', err);
+          await logEvent({
+            event_type: 'request.manual_allocation.failed',
+            status: 'error',
+            actor_type: 'system',
+            request_id: data.id,
+            message: err instanceof Error ? err.message : 'Unknown fallback error'
+          });
         }
 
         // Generate response even in fallback case to avoid "Unexpected end of JSON input"
@@ -446,6 +468,13 @@ export async function POST(request: NextRequest) {
         paymentUrl = session.url ?? undefined;
       } catch (stripeErr) {
         console.error('Failed to create Stripe session:', stripeErr);
+        await logEvent({
+          event_type: 'request.stripe_session.failed',
+          status: 'error',
+          actor_type: 'system',
+          request_id: data.id,
+          message: stripeErr instanceof Error ? stripeErr.message : 'Stripe API error'
+        });
       }
     }
 

@@ -1,22 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
-
-// ── Shared admin auth helper ───────────────────────────────────────────────
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
-
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  return profile?.role === 'admin' ? user : null;
-}
-// ──────────────────────────────────────────────────────────────────────────
+import { supabaseAdmin, requireAdmin } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
   try {

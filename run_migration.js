@@ -4,7 +4,7 @@ async function run() {
   try {
     const token = 'sbp_cbc5fdecda40c10e48649a2b62eb4397587db43b';
     const projectRef = 'expwyvyphwlyhwrzdmmv';
-    const sql = fs.readFileSync('supabase/migrations/20260228_fix_operator_references.sql', 'utf8');
+    const sql = fs.readFileSync('supabase/migrations/20260301060000_fix_transport_requests_rls_leak.sql', 'utf8');
 
     const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/query`, {
       method: 'POST',

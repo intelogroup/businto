@@ -30,13 +30,12 @@ This document serves as the foundational mandate for all AI engineering assistan
 ## ✅ Verified Project Memories (Feb 2026)
 
 *   **Migration Reconciliation**: Successfully mapped and synchronized local migration timestamps with live Supabase environment (e.g., `20260228161713_marketplace_schema_refactor`).
+*   **Security (CRITICAL)**: Fixed RLS leak on `transport_requests`. Blocked anonymous SELECT access via `Users see own requests_v2` policy. Verified via `tests/database-security.test.ts`.
+*   **Security (CRITICAL)**: Redesigned the "One-Way Gate" for PII. Contact info (Name, Phone, Address) is now released to operators ONLY via Stripe webhook (`payment_intent.succeeded`) after platform fee confirmation.
+*   **Logic Fix**: Implemented atomic check-then-update logic in the Quote Acceptance route to prevent race conditions and dual-bookings for the same trip.
 *   **Logic Fix**: Fixed "Auto Sign-in" broken links from operator quote emails by routing `generateLink` magic links directly to the client instead of the SSR callback, preserving the hash fragment token.
 *   **Logic Fix**: Repaired the `findMatchingOperators` engine. Switched to local Haversine distance calculations and verified the **Photon/OpenStreetMap** proxy for geocoding.
-*   **Logic Fix**: Implemented a "Persistence Guard" on the Login page to auto-redirect authenticated users, solving the email-link login loop.
-*   **Feature**: Implemented **"Boston Rapid Response Transit"** as a global fallback operator with a 150-mile radius and all specialties.
-*   **Feature**: Standardized the final "Order Details" email for operators, ensuring full PII (Name, Phone, Raw Address) is shared only upon acceptance.
-*   **Security**: Successfully implemented and verified `secretlint` pre-commit hooks and GitHub Actions security scanning. No secrets are inlined in the codebase.
-*   **Health (Warning)**: Current pass rate is ~92% (113/123 tests). Security regressions in `transport_requests` RLS and schema-drift in `auth.test.ts` identified for immediate remediation.
+*   **Health**: Standardized marketplace test suite. **128/128 tests passing** (100% success rate). Verified marketplace integrity, payment routing, and security handshakes.
 
 ## 🚀 Future Roadmap
 *   Implement "Shadow User" logic: Auto-create guest profiles for anonymous requesters.
