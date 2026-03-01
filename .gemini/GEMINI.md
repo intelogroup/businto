@@ -24,12 +24,13 @@ This document serves as the foundational mandate for all AI engineering assistan
 *   **Wait for Auth**: Never fetch data or show errors while `isLoading` is true in `useAuth`.
 *   **Force .com Domain**: Background links must use `getAppBaseUrl` to avoid stranded Vercel subdomain sessions.
 *   **Dedupe Priority**: Matching de-duplicates by `company_email`. The winning record is chosen via `(is_partner, rating)`.
-*   **Auto-Login Emails**: Notification buttons should use `supabase.auth.admin.generateLink` for seamless session recovery.
+*   **Auto-Login Emails**: Notification buttons using `supabase.auth.admin.generateLink` must route directly to a client page (e.g. `/trips/[id]`) and NOT a server API route, to preserve the URL hash session token for seamless session recovery.
 *   **Safety Thresholds**: Strict matching is enabled for safety-critical flags (`no_adult_release`, `oxygen`, etc). No verified specialty = No match.
 
 ## ✅ Verified Project Memories (Feb 2026)
 
 *   **Migration Reconciliation**: Successfully mapped and synchronized local migration timestamps with live Supabase environment (e.g., `20260228161713_marketplace_schema_refactor`).
+*   **Logic Fix**: Fixed "Auto Sign-in" broken links from operator quote emails by routing `generateLink` magic links directly to the client instead of the SSR callback, preserving the hash fragment token.
 *   **Logic Fix**: Repaired the `findMatchingOperators` engine. Switched to local Haversine distance calculations and verified the **Photon/OpenStreetMap** proxy for geocoding.
 *   **Logic Fix**: Implemented a "Persistence Guard" on the Login page to auto-redirect authenticated users, solving the email-link login loop.
 *   **Feature**: Implemented **"Boston Rapid Response Transit"** as a global fallback operator with a 150-mile radius and all specialties.
