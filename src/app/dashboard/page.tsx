@@ -16,11 +16,14 @@ import {
 import Link from 'next/link';
 
 function DashboardContent() {
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const [recentTrips, setRecentTrips] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchRecentTrips = async () => {
+            if (authLoading) return;
+            if (!user) return;
+
             try {
                 const response = await fetch('/api/requests');
                 if (response.ok) {
@@ -33,7 +36,7 @@ function DashboardContent() {
             }
         };
         fetchRecentTrips();
-    }, []);
+    }, [user, authLoading]);
 
     return (
         <div className="min-h-screen bg-background">

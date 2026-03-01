@@ -65,6 +65,23 @@ async function getTransporter() {
 
 const FROM_EMAIL = env('SMTP_FROM_EMAIL') || 'Businto <noreply@businto.com>';
 
+/**
+ * Helper to get the correct base URL for links in emails.
+ * Always prefers the provided URL, then environment variable, then fallback.
+ * Forces businto.com in production environments.
+ */
+function getAppBaseUrl(providedUrl?: string): string {
+  let url = providedUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
+  
+  // If it's a vercel subdomain and we are NOT in development, force .com
+  const isDev = process.env.NODE_ENV === 'development';
+  if (!isDev && url.includes('vercel.app')) {
+    return 'https://businto.com';
+  }
+  
+  return url.replace(/\/$/, "");
+}
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -174,7 +191,7 @@ export const emailTemplates = {
 
               <p>You'll receive an email when operators submit quotes. You can also check your dashboard for real-time updates.</p>
 
-              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com'}/dashboard" class="button">View Dashboard</a>
+              <a href="${getAppBaseUrl(data.appBaseUrl)}/dashboard" class="button">View Dashboard</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -231,7 +248,7 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com'}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}" class="button">View &amp; Accept Quote</a>
+              <a href="${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -426,7 +443,7 @@ export const emailTemplates = {
 
               <p>The operator will contact you before your trip. You can also message them directly through your dashboard.</p>
 
-              <a href="${data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com'}/dashboard/bookings" class="button">Manage Booking</a>
+              <a href="${getAppBaseUrl(data.appBaseUrl)}/dashboard/bookings" class="button">Manage Booking</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -548,7 +565,7 @@ export const emailTemplates = {
     };
 
     const config = serviceConfig[data.serviceType as keyof typeof serviceConfig] || serviceConfig.school;
-    const appBaseUrl = data.appBaseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
+    const appBaseUrl = getAppBaseUrl(data.appBaseUrl);
 
     return {
       subject: `${data.serviceTypeDisplay} inquiry - ${data.pickupFuzzy}`,

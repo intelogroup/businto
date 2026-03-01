@@ -165,12 +165,12 @@ export async function registerUser(
  * IMPORTANT — two things required in Supabase Dashboard:
  *
  * 1. Auth → URL Configuration → Redirect URLs — add:
- *      https://businto.vercel.app/api/auth/callback
+ *      https://businto.com/api/auth/callback
  *      http://localhost:3000/api/auth/callback
  *    (the default email template already sends ?code= to this route)
  *
  * 2. Auth → URL Configuration → Redirect URLs — add:
- *      https://businto.vercel.app/api/auth/callback
+ *      https://businto.com/api/auth/callback
  *      http://localhost:3000/api/auth/callback
  */
 export async function resetPasswordForEmail(

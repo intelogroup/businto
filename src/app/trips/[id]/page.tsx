@@ -52,24 +52,25 @@ export default function TripDetailPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
-    const { user } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const [trip, setTrip] = useState<TransportRequest | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
     const [acceptingQuoteId, setAcceptingQuoteId] = useState<string | null>(null);
 
     const fetchData = async () => {
+        // Don't start fetching until auth is determined
+        if (authLoading) return;
+        
         setLoading(true);
+        console.log("[TripDetail] Fetching data, auth state:", { hasUser: !!user });
 
         const supabase = createClient();
         
-        // 1. Check if we have an active session first (Persistent Session)
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        // 2. If we have a session OR no token, try fetching via standard client
-        if (session || !token) {
+        // 1. If we have a user OR no token, try fetching via standard client (RLS)
+        if (user || !token) {
             try {
-                // Fetch trip details
+                console.log("[TripDetail] Attempting standard fetch...");
                 const { data: tripData, error: tripError } = await supabase
                     .from('transport_requests')
                     .select('*')
@@ -133,8 +134,8 @@ export default function TripDetailPage() {
     };
 
     useEffect(() => {
-        if (id) fetchData();
-    }, [id]);
+        if (id && !authLoading) fetchData();
+    }, [id, authLoading]);
 
     const handleAcceptQuote = async (quoteId: string) => {
         if (!user && !token) {
