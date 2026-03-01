@@ -27,5 +27,13 @@ You are a senior engineer who prioritizes structural simplicity over quick fixes
 5.  **Matching**: We use an **Affiliate Priority Window** (15-60 mins) where only partners are notified initially.
 6.  **Email**: In dev, check the console for **Ethereal Email** preview links. No SMTP config is needed for local testing.
 
+## 🛠 Advanced Technical Hints
+
+*   **Auth Async**: Always check `isLoading` from `useAuth` before showing "Not Found" states. Session recovery takes time.
+*   **Domain Safety**: Use `getAppBaseUrl()` in `src/lib/email.ts` to force `businto.com` in production. Avoid `.vercel.app` for user-facing links.
+*   **De-duplication Tie-Breakers**: Operator matching de-duplicates by email. Priority: `is_partner` -> `rating`.
+*   **Magic Links**: Use `admin.generateLink` for "Auto Sign-in" buttons in notification emails.
+*   **Safety Gates**: `no_adult_release` and `medical specialties` use strict filtering. If matches are zero, check operator specialties vs request metadata.
+
 ---
-*Updated: Feb 2026*
+*Updated: March 2026*

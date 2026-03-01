@@ -19,6 +19,14 @@ This document serves as the foundational mandate for all AI engineering assistan
 5.  **Managed Brokerage**: Partners get a 15–60 min "Affiliate Priority Window" before the standard network is notified.
 6.  **Email Testing**: In dev mode, check logs for **Ethereal Email** preview links for instant verification.
 
+## 🛠 Advanced Technical Hints
+
+*   **Wait for Auth**: Never fetch data or show errors while `isLoading` is true in `useAuth`.
+*   **Force .com Domain**: Background links must use `getAppBaseUrl` to avoid stranded Vercel subdomain sessions.
+*   **Dedupe Priority**: Matching de-duplicates by `company_email`. The winning record is chosen via `(is_partner, rating)`.
+*   **Auto-Login Emails**: Notification buttons should use `supabase.auth.admin.generateLink` for seamless session recovery.
+*   **Safety Thresholds**: Strict matching is enabled for safety-critical flags (`no_adult_release`, `oxygen`, etc). No verified specialty = No match.
+
 ## ✅ Verified Project Memories (Feb 2026)
 
 *   **Migration Reconciliation**: Successfully mapped and synchronized local migration timestamps with live Supabase environment (e.g., `20260228161713_marketplace_schema_refactor`).
