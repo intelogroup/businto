@@ -316,6 +316,58 @@ export async function POST(request: NextRequest) {
             console.error('Failed to send user confirmation SMS:', smsErr);
           }
         }
+
+        // NEW: Notify Operator with Order Details (PII Release)
+        // Since we are not enforcing a separate routing fee payment flow for quotes right now,
+        // we release the details to the operator as soon as the quote is accepted.
+        const operatorEmail = quote.operator?.company_email;
+        if (operatorEmail) {
+          try {
+            await sendEmail({
+              to: operatorEmail,
+              ...emailTemplates.operatorOrderDetails({
+                operatorName,
+                parentName: userProfile.full_name || 'Customer',
+                parentEmail: userProfile.email,
+                parentPhone: userProfile.phone || 'Not provided',
+                quoteAmount: quote.total_price,
+                pickup: transportRequest.pickup_address,
+                dropoff: transportRequest.dropoff_address,
+                date: transportRequest.start_date,
+                time: transportRequest.start_time,
+                vehicleType: quote.vehicle_type,
+                confirmationCode: booking.confirmation_code,
+                bookingId: booking.id,
+                appBaseUrl: getAppBaseUrl()
+              }),
+              trackingClicks: false
+            });
+            console.log(`✓ Notified operator via email: ${operatorEmail}`);
+            
+            await logEvent({
+              event_type: 'operator.order_details_email.sent',
+              actor_type: 'system',
+              request_id: tripRequestId,
+              quote_id: quoteId,
+              booking_id: booking.id,
+              operator_id: quote.operator_id,
+              metadata: { to: operatorEmail },
+            });
+          } catch (err) {
+            console.error('Failed to send order details email to operator:', err);
+            await logEvent({
+              event_type: 'operator.order_details_email.failed',
+              status: 'error',
+              actor_type: 'system',
+              request_id: tripRequestId,
+              quote_id: quoteId,
+              booking_id: booking.id,
+              operator_id: quote.operator_id,
+              message: err instanceof Error ? err.message : 'Unknown operator order email error',
+              metadata: { to: operatorEmail },
+            });
+          }
+        }
       }
     }
 

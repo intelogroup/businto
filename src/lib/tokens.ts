@@ -17,7 +17,11 @@ export interface OperatorViewTokenPayload {
 
 export interface UserTripTokenPayload {
   requestId: string;
+  rid?: string;
   userId?: string;
+  uid?: string;
+  operatorId?: string;
+  oid?: string;
   purpose: 'view_trip';
   exp: number;
 }
@@ -96,11 +100,13 @@ export async function generateOperatorViewToken(
  * Generate a signed token for user trip access (Magic Link style)
  * @param requestId - Transport request ID
  * @param userId - User ID
+ * @param operatorId - Optional operator ID (from the quote that triggered the email)
  * @param expiryDays - Days until token expires (default: 30)
  */
 export async function generateUserTripToken(
   requestId: string,
   userId?: string,
+  operatorId?: string,
   expiryDays: number = 30
 ): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + (expiryDays * 24 * 60 * 60);
@@ -108,6 +114,7 @@ export async function generateUserTripToken(
   const token = await new SignJWT({
     rid: toShortId(requestId),
     uid: toShortId(userId),
+    oid: toShortId(operatorId),
     purpose: 'view_trip',
   })
     .setProtectedHeader({ alg: 'HS256' })
@@ -154,14 +161,13 @@ export async function verifyUserTripToken(
     return {
       requestId: fromShortId(payload.rid as string)!,
       userId: fromShortId(payload.uid as string | undefined),
+      operatorId: fromShortId(payload.oid as string | undefined),
       purpose: 'view_trip',
       exp: payload.exp as number,
     };
   } catch (err) {
     return null;
   }
-
-  return null;
 }
 
 /**
