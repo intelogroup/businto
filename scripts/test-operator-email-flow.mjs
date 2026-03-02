@@ -144,8 +144,7 @@ const results = [];
 const topOperators = matched.slice(0, 7);
 
 for (const operator of topOperators) {
-    const fakeToken = `test-token-${operator.id.slice(0, 8)}`;
-    const submitLink = `${APP_URL}/quotes/submit?request_id=${mockRequest.id}&token=${fakeToken}`;
+    const submitLink = `${APP_URL}/claim/TESTCODE123`;
 
     try {
         const info = await transporter.sendMail({
@@ -171,9 +170,10 @@ for (const operator of topOperators) {
               <tr><td style="padding:10px 14px;color:#6b7280;font-size:14px">Service Level</td><td style="font-weight:600">Curb-to-Curb</td></tr>
             </table>
             <div style="text-align:center;margin-top:24px">
-              <a href="${submitLink}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">
-                Submit Quote
-              </a>
+              <a href="https://businto.com/claim/TESTCODE123"
+             style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px">
+            Submit Quote (test link)
+          </a>
             </div>
             <p style="font-size:13px;color:#6b7280;margin-top:20px">
               Once the customer accepts your quote, you will receive their full contact details and exact pickup address.

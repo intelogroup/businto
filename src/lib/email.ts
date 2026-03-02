@@ -1,5 +1,13 @@
 import nodemailer from 'nodemailer';
 import { maskStreetNumber } from './location-utils';
+import {
+  validateEmailLinks,
+  logEmailSend,
+  logLinkValidation,
+  logBrevoError,
+  inspectBrevoHeaders,
+  type EmailSendLog,
+} from './email-logger';
 
 // Ethereal fallback for local testing when SMTP credentials are not configured
 let transporter: nodemailer.Transporter | null = null;
@@ -13,7 +21,7 @@ function env(name: string): string | undefined {
 async function getTransporter() {
   if (transporter) return transporter;
 
-  const brevoKey = env('BREVO_SMTP_KEY');
+  const brevoKey = env('BREVO_SMTP_KEY') || env('BREVO_API_KEY');
   const smtpHost = env('SMTP_HOST') || (brevoKey ? 'smtp-relay.brevo.com' : undefined);
   const smtpPort = Number(env('SMTP_PORT') || (brevoKey ? '587' : '0'));
   const smtpUser = env('SMTP_USER') || env('BREVO_SMTP_LOGIN');
@@ -77,17 +85,17 @@ export function getAppBaseUrl(providedUrl?: string): string {
   const isDev = process.env.NODE_ENV === 'development';
   if (isDev) return url.replace(/\/$/, "");
 
-  // For production, if we're on a Vercel preview branch but want to test end-to-end,
-  // we SHOULD allow the preview URL. Only force .com if explicitly requested or if it's the final prod build.
-  // Actually, for safety in PRODUCTION (Final), we should keep the force .com logic
-  // but move it to a more specific check.
-
+  // In any non-development environment, never let a vercel.app preview URL leak into
+  // outgoing emails. Force the canonical production domain instead.
   const isVercelProd = process.env.VERCEL_ENV === 'production';
-  if (isVercelProd && url.includes('vercel.app')) {
-    return 'https://businto.com';
+  const isProd = process.env.NODE_ENV === 'production' || isVercelProd;
+  if (isProd && url.includes('vercel.app')) {
+    url = 'https://businto.com';
   }
 
-  return url.replace(/\/$/, "");
+  const finalUrl = url.replace(/\/$/, "");
+  console.log(`[Email] getAppBaseUrl: ${finalUrl} (provided: ${providedUrl}, env: ${process.env.NEXT_PUBLIC_APP_URL})`);
+  return finalUrl;
 }
 
 interface EmailOptions {
@@ -95,33 +103,82 @@ interface EmailOptions {
   subject: string;
   html: string;
   headers?: Record<string, string>;
+  trackingClicks?: boolean;
 }
 
-export async function sendEmail({ to, subject, html, headers }: EmailOptions) {
+export async function sendEmail({ to, subject, html, headers, trackingClicks, forceApi }: EmailOptions & { forceApi?: boolean }) {
+  const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
+  
+  // Validate links before sending to catch corruption early
+  const linkValidation = validateEmailLinks(html);
+  const linkMatches = html.match(/href="([^"]+)"/g) || [];
+  const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
+
+  // Log validation issues
+  if (!linkValidation.valid) {
+    await logLinkValidation(to, linkValidation);
+  }
+
+  // Use API if forceApi is set or if we have an API key and want better tracking control
+  if (forceApi || (apiKey && !env('SMTP_HOST') && !env('SMTP_USER'))) {
+    return sendEmailViaApi({ to, subject, html, headers, trackingClicks });
+  }
+
   try {
     const transport = await getTransporter();
+    const transportType = transport.options?.host?.includes('ethereal') ? 'ethereal' : 'brevo';
+
+    // Prepare headers with tracking control
+    const finalHeaders = {
+      ...headers,
+      // Default identification header for Sendinblue/Brevo
+      'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'transactional-email',
+      // Optional: Disable click tracking per email if explicitly requested (0 to disable, 1 to enable)
+      ...(trackingClicks !== undefined ? { 'X-Mailin-Track-Click': trackingClicks ? '1' : '0' } : {}),
+    };
+
+    const headerInspection = inspectBrevoHeaders(finalHeaders);
+
+    console.log(`
+📧 EMAIL SEND ATTEMPT
+To: ${to}
+Subject: ${subject}
+Transport: ${transportType}
+Links: ${linkMatches.length} found, Claim link: ${claimLinkFound}
+Tracking: ${headerInspection.trackingStatus}
+`);
 
     const info = await transport.sendMail({
       from: FROM_EMAIL,
       to,
       subject,
       html,
-      headers: {
-        ...headers,
-        // Default identification header for Sendinblue/Brevo
-        'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'transactional-email',
-      }
+      headers: finalHeaders,
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
 
+    // Log successful send
+    await logEmailSend({
+      messageId: info.messageId,
+      to,
+      subject,
+      linkCount: linkMatches.length,
+      claimLinkFound,
+      timestamp: new Date().toISOString(),
+      transportType: transportType as 'brevo' | 'ethereal' | 'test',
+      trackingDisabled: trackingClicks === false,
+      previewUrl,
+      status: 'sent',
+      brevoHeaders: finalHeaders,
+    });
+
     console.log('\n==============================================');
-    console.log('✅ EMAIL SENT SUCCESSFULLY!');
+    console.log(`✅ EMAIL SENT SUCCESSFULLY TO: ${to}`);
     if (previewUrl) {
       console.log('📧 CLICK THIS URL TO VIEW EMAIL:');
       console.log(previewUrl);
     } else {
-      console.log(`📧 Sent to: ${to}`);
       console.log(`🆔 Message ID: ${info.messageId}`);
     }
     console.log('==============================================\n');
@@ -140,7 +197,152 @@ export async function sendEmail({ to, subject, html, headers }: EmailOptions) {
       previewUrl,
     };
   } catch (error) {
-    console.error('Failed to send email:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Log error
+    await logEmailSend({
+      to,
+      subject,
+      linkCount: linkMatches.length,
+      claimLinkFound,
+      timestamp: new Date().toISOString(),
+      transportType: 'brevo',
+      trackingDisabled: trackingClicks === false,
+      status: 'failed',
+      error: errorMessage,
+    });
+
+    console.error('Failed to send email via SMTP:', error);
+    // If SMTP fails, try API as a backup if we have a key
+    if (apiKey) {
+      console.log('🔄 Attempting API fallback after SMTP failure...');
+      return sendEmailViaApi({ to, subject, html, headers, trackingClicks });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Sends a transactional email via Brevo REST API.
+ * This is more reliable for link integrity and provides better tracking control.
+ */
+export async function sendEmailViaApi({ to, subject, html, headers, trackingClicks }: EmailOptions) {
+  const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
+  
+  if (!apiKey) {
+    throw new Error('BREVO_API_KEY or BREVO_SMTP_KEY is required for API-based email.');
+  }
+
+  // Validate links before sending
+  const linkValidation = validateEmailLinks(html);
+  const linkMatches = html.match(/href="([^"]+)"/g) || [];
+  const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
+
+  if (!linkValidation.valid) {
+    await logLinkValidation(to, linkValidation);
+  }
+
+  // Parse sender info
+  const fromMatch = FROM_EMAIL.match(/^(.*)\s+<(.*)>$/) || [null, 'Businto', 'noreply@businto.com'];
+  const senderName = fromMatch[1];
+  const senderEmail = fromMatch[2];
+
+  try {
+    const apiHeaders: Record<string, string> = {
+      ...headers,
+      'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'transactional-email',
+    };
+
+    // Add tracking control header for API
+    if (trackingClicks !== undefined) {
+      apiHeaders['X-Mailin-Track-Click'] = trackingClicks ? '1' : '0';
+    }
+
+    console.log(`[Email/API] Sending to ${to}: "${subject}" (tracking: ${trackingClicks ?? 'default'}, links: ${linkMatches.length})`);
+    
+    const body = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: html,
+      headers: apiHeaders,
+    };
+
+    // Note: Brevo API v3 tracking parameters are slightly different
+    // By default click tracking is managed in the Brevo dashboard settings
+    // But can be overridden in the API call if needed.
+    
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    // Log Brevo response details for debugging
+    console.log(`[Email/API] Brevo response status: ${response.status}`);
+    console.log(`[Email/API] Brevo response headers:`, {
+      'content-type': response.headers.get('content-type'),
+      'x-sib-id': response.headers.get('x-sib-id'),
+    });
+    console.log(`[Email/API] Brevo response body:`, JSON.stringify(data, null, 2).substring(0, 500));
+
+    if (!response.ok) {
+      console.error('❌ Brevo API Email Error:', data);
+      
+      await logBrevoError(
+        { message: data.message || 'API request failed', code: data.code || response.status, response: data },
+        { to, subject }
+      );
+      
+      throw new Error(data.message || 'Failed to send email via API');
+    }
+
+    // Log successful send with response metadata
+    await logEmailSend({
+      messageId: data.messageId,
+      to,
+      subject,
+      linkCount: linkMatches.length,
+      claimLinkFound,
+      timestamp: new Date().toISOString(),
+      transportType: 'brevo',
+      trackingDisabled: trackingClicks === false,
+      status: 'sent',
+      brevoHeaders: {
+        ...apiHeaders,
+        'message-id': data.messageId,
+      },
+    });
+
+    console.log(`✅ Email sent successfully via API to ${to} (ID: ${data.messageId})`);
+    
+    return {
+      id: data.messageId,
+      previewUrl: null,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Log error
+    await logEmailSend({
+      to,
+      subject,
+      linkCount: linkMatches.length,
+      claimLinkFound,
+      timestamp: new Date().toISOString(),
+      transportType: 'brevo',
+      trackingDisabled: trackingClicks === false,
+      status: 'failed',
+      error: errorMessage,
+    });
+
+    console.error('💥 Email API failure:', error);
     throw error;
   }
 }
@@ -155,6 +357,7 @@ export const emailTemplates = {
     date: string;
     requestId: string;
     accessToken?: string;
+    claimLink?: string;
     appBaseUrl?: string;
   }) => ({
     subject: 'Your Transport Request Has Been Submitted',
@@ -206,7 +409,7 @@ export const emailTemplates = {
 
               <p>You'll receive an email when operators submit quotes. You can also check your live status for real-time updates.</p>
 
-              <a href="${(data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
+              <a href="${data.claimLink || (data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
         ? data.appBaseUrl
         : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
           ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
@@ -233,6 +436,7 @@ export const emailTemplates = {
     requestId: string;
     quoteId: string;
     accessToken?: string;
+    claimLink?: string;
     appBaseUrl?: string;
   }) => ({
     subject: `New Quote Received: $${data.price} from ${data.operatorName}`,
@@ -270,7 +474,7 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${(data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
+              <a href="${data.claimLink || (data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
         ? data.appBaseUrl
         : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
           ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
@@ -573,7 +777,10 @@ export const emailTemplates = {
     studentCount?: string;
     requirements: string[];
     requestId: string;
-    claimLink: string;
+    /** Preferred: short tracking-resistant claim link */
+    claimLink?: string;
+    /** Legacy: long JWT access token (still accepted for backward compat) */
+    accessToken?: string;
     appBaseUrl?: string;
   }) => {
     // Define colors and icons for each service type
@@ -600,6 +807,35 @@ export const emailTemplates = {
 
     const config = serviceConfig[data.serviceType as keyof typeof serviceConfig] || serviceConfig.school;
     const appBaseUrl = getAppBaseUrl(data.appBaseUrl);
+    
+    // Resolve the effective link: prefer claimLink (short code), fall back to legacy token URL
+    const effectiveClaimLink: string = data.claimLink
+      || (data.accessToken
+          ? `${appBaseUrl}/quotes/submit?request_id=${data.requestId}&token=${data.accessToken}`
+          : '');
+
+    console.log(`[Email/Template] Generating operatorNewRequest for ${data.operatorName}. effectiveLink: ${effectiveClaimLink}`);
+
+    if (!effectiveClaimLink) {
+      throw new Error('operatorNewRequest requires either claimLink or accessToken');
+    }
+
+    // CRITICAL: Validate claim link before inserting into HTML (only for new-style claim links)
+    if (data.claimLink) {
+      if (!data.claimLink.includes('/claim/')) {
+        console.error(`🔴 INVALID CLAIM LINK FORMAT: ${data.claimLink}`);
+        throw new Error(`Invalid claim link format: ${data.claimLink}. Expected format: https://businto.com/claim/CODE`);
+      }
+
+      if (data.claimLink.includes('.r.af.d.sendibt') || data.claimLink.includes('/tr/cl/')) {
+        console.error(`🔴 BREVO TRACKING WRAPPER DETECTED: ${data.claimLink}`);
+        throw new Error(`Claim link appears to be wrapped by Brevo: ${data.claimLink}`);
+      }
+
+      if (data.claimLink.length > 500) {
+        console.warn(`⚠️  Claim link is unusually long (${data.claimLink.length} chars), may indicate corruption`);
+      }
+    }
 
     // Shorten fuzzy address for subject line to avoid rejection by mail servers
     const shortLocation = data.pickupFuzzy.split(',')[0];
@@ -687,12 +923,22 @@ export const emailTemplates = {
               </div>
 
               <p><strong>Next Steps:</strong></p>
-              <p>If you would like to provide pricing or availability, click below to submit an indicative quote:</p>
+              <p>If you would like to provide pricing or availability, use the link below to submit an indicative quote:</p>
 
+              <!--
+                IMPORTANT: The button href may be wrapped by Brevo's click tracker (sendibt2.com).
+                The plain-text URL below is always the unmodified original link.
+                Operators can copy-paste it if the button redirect fails.
+              -->
               <div style="text-align: center;">
-                <a href="${data.claimLink}" class="button">
+                <a href="${effectiveClaimLink}" class="button" style="display:inline-block;background-color:${config.accentColor};color:#ffffff!important;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:20px;">
                   Claim Job
                 </a>
+              </div>
+
+              <div style="margin-top:16px;padding:14px 18px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;text-align:center;">
+                <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;">If the button above doesn't work, copy and paste this link into your browser:</p>
+                <p style="margin:0;font-size:13px;font-weight:600;color:#0369a1;word-break:break-all;font-family:monospace;">${effectiveClaimLink}</p>
               </div>
 
               <p style="font-size: 14px; color: #6b7280;">

@@ -1,12 +1,8 @@
-<todos title="Fix RocksDB .sst missing error" rule="Review steps frequently throughout the conversation and DO NOT stop between steps unless they explicitly require it.">
-- [x] identify-failing-service: Identify which process emits RocksDB .sst error and is bound to port 3001 🔴
-  _Port 3001 is Next.js (next-server v16.1.1). The .sst files are from Turbopack RocksDB cache under .next/dev/cache/turbopack._
-- [x] locate-data-directory: Locate the data directory used by the failing service (db path with .sst files) 🔴
-  _Corrupted RocksDB cache located at `.next/dev/cache/turbopack/*`._
-- [x] choose-repair-strategy: Decide between repair, reindex, or wipe-and-reseed based on service and data criticality 🔴
-  _Chose wipe-and-reseed (safe for dev cache). Removing `.next/dev/cache/turbopack` forces Turbopack to rebuild a clean cache._
-- [x] apply-fix-and-verify: Apply chosen fix, restart service, and verify API at :3001 works 🔴
-  _Stopped Next (PID 76098), cleared cache, restarted with `PORT=3001 npm run dev`. Server is ready and responding 200 for endpoints._
+<todos title="Fix Brevo corrupted tracking links in operator emails" rule="Review steps frequently throughout the conversation and DO NOT stop between steps unless they explicitly require it.">
+- [x] 1: Create a comprehensive error logger in src/lib/email-logger.ts with structured logging for email sending, link validation, and Brevo integration issues 🔴
+- [x] 2: Update sendEmail() to accept trackingClicks parameter and disable tracking for operatorNewRequest emails via X-Mailin-Track-Click header 🔴
+- [x] 3: Add pre-send validation to check claim links are properly formatted before inserting into HTML 🔴
+- [x] 4: Log and validate Brevo SMTP responses to catch corruption issues early 🟡
 </todos>
 
 <!-- Auto-generated todo section -->

@@ -7,6 +7,45 @@
 
 import { createClaimCode } from './claim-codes';
 import { getAppBaseUrl } from './email';
+import { logClaimLinkGeneration } from './email-logger';
+
+/**
+ * Validates that a claim link is properly formed and doesn't contain corruption
+ */
+function validateClaimLink(link: string): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+
+  // Check basic format
+  if (!link.startsWith('http')) {
+    issues.push('Claim link does not start with http');
+  }
+
+  // Check for claim path
+  if (!link.includes('/claim/')) {
+    issues.push('Claim link does not contain /claim/ path');
+  }
+
+  // Check for suspicious patterns that indicate Brevo wrapping
+  if (link.includes('.r.af.d.sendibt') || link.includes('/tr/cl/')) {
+    issues.push('Claim link appears to be wrapped by Brevo tracking URL');
+  }
+
+  // Check length is reasonable (shorter than typical Brevo tracking URLs)
+  if (link.length > 500) {
+    issues.push(`Claim link is unusually long (${link.length} chars) - may indicate corruption`);
+  }
+
+  // Validate code structure (should be alphanumeric after /claim/)
+  const codeMatch = link.match(/\/claim\/([a-zA-Z0-9-]+)$/);
+  if (!codeMatch) {
+    issues.push('Claim code format is invalid');
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues,
+  };
+}
 
 /**
  * Generate a tracking-resistant operator quote link
@@ -37,7 +76,16 @@ export async function generateOperatorQuoteLink(
   });
 
   const baseUrl = getAppBaseUrl();
-  return `${baseUrl}/claim/${code}`;
+  const link = `${baseUrl}/claim/${code}`;
+  
+  // Validate before returning
+  const validation = validateClaimLink(link);
+  if (!validation.valid) {
+    console.error(`🔴 Generated claim link failed validation:`, validation.issues);
+  }
+
+  await logClaimLinkGeneration(requestId, operatorEmail, link, operatorId);
+  return link;
 }
 
 /**

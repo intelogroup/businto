@@ -55,5 +55,7 @@ supabase/             # Migrations & Database Configuration
 3.  **Test**: `npm run test:production` to verify core logic.
 4.  **Dev**: `npm run dev`
 
+i know some of the real features will need real device /network ,real email to test effectivelly, but we need to test with vitest or scripts node maximum possible to ensure that in real life the system will work.
+
 ---
 © 2026 Businto Logistics.

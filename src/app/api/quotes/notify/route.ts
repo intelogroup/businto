@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { generateUserTripToken } from '@/lib/tokens';
+import { generateTripViewLink } from '@/lib/email-helpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,28 +34,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
-    // Generate a guest access token for the trip
-    const tripAccessToken = await generateUserTripToken(tripRequestId, user.id);
+    // Generate tracking-resistant claim link for the trip
+    const claimLink = await generateTripViewLink(tripRequestId, user.id, profile.email);
 
     // Fetch the request + most recent quote for context
     const { data: tripRequest, error: requestError } = await supabase
       .from('transport_requests')
       .select(`
-        id, service_type, pickup_fuzzy, dropoff_fuzzy, start_date,
-        quotes (
-          id, total_price, vehicle_type,
-          operator:operators!quotes_operator_id_fkey (
-          id,
-          company_name,
-          company_email,
-          company_phone,
-          profile:profiles!profile_id (
-            full_name,
-            avatar_url
-          )
-        )
-        )
-      `)
+         id, service_type, pickup_fuzzy, dropoff_fuzzy, start_date,
+         quotes (
+           id, total_price, vehicle_type,
+           operator:operators!quotes_operator_id_fkey (
+           id,
+           company_name,
+           company_email,
+           company_phone,
+           profile:profiles!profile_id (
+             full_name,
+             avatar_url
+           )
+         )
+         )
+       `)
       .eq('id', tripRequestId)
       .eq('user_id', user.id) // Ownership check — users can only trigger notifications for their own requests
       .single();
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
           vehicleType: latestQuote.vehicle_type,
           requestId: tripRequest.id,
           quoteId: latestQuote.id,
-          accessToken: tripAccessToken,
+          claimLink,
           appBaseUrl: process.env.NEXT_PUBLIC_APP_URL,
         })
       });
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
       await sendEmail({
         to: profile.email,
         subject: `${quoteCount} operator${quoteCount > 1 ? 's' : ''} quoted your route`,
-        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${quoteCount} quote(s) for your transport request. <a href="${process.env.NEXT_PUBLIC_APP_URL}/trips/view?token=${tripAccessToken}">View them in your dashboard →</a></p>`
+        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${quoteCount} quote(s) for your transport request. <a href="${claimLink}">View them in your dashboard →</a></p>`
       });
     }
 

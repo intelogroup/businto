@@ -16,8 +16,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = resolve(__dirname, '../.env.local');
 const envLines = readFileSync(envPath, 'utf-8').split('\n');
 for (const line of envLines) {
-    const [key, ...rest] = line.split('=');
-    if (key && rest.length) process.env[key.trim()] = rest.join('=').trim().replace(/^"(.*)"$/, '$1');
+  const [key, ...rest] = line.split('=');
+  if (key && rest.length) process.env[key.trim()] = rest.join('=').trim().replace(/^"(.*)"$/, '$1');
 }
 
 const SMTP_HOST = process.env.SMTP_HOST;
@@ -36,45 +36,45 @@ console.log(`  Send to: ${TEST_TO}`);
 console.log('================================\n');
 
 if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    console.error('❌  Missing SMTP credentials in .env.local');
-    process.exit(1);
+  console.error('❌  Missing SMTP credentials in .env.local');
+  process.exit(1);
 }
 
 const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: false, // STARTTLS on 587
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: false, // STARTTLS on 587
+  auth: { user: SMTP_USER, pass: SMTP_PASS },
 });
 
 // --- verify connection ---
 console.log('1️⃣  Verifying SMTP connection...');
 try {
-    await transporter.verify();
-    console.log('   ✅  SMTP connection OK\n');
+  await transporter.verify();
+  console.log('   ✅  SMTP connection OK\n');
 } catch (err) {
-    console.error('   ❌  SMTP verify failed:', err.message);
-    process.exit(1);
+  console.error('   ❌  SMTP verify failed:', err.message);
+  process.exit(1);
 }
 
 // --- helper ---
 async function send(label, mailOpts) {
-    console.log(`${label}...`);
-    try {
-        const info = await transporter.sendMail({ from: FROM_EMAIL, ...mailOpts });
-        console.log(`   ✅  Sent  | msgId: ${info.messageId} | accepted: ${info.accepted.join(', ')}`);
-        return true;
-    } catch (err) {
-        console.error(`   ❌  Failed: ${err.message}`);
-        return false;
-    }
+  console.log(`${label}...`);
+  try {
+    const info = await transporter.sendMail({ from: FROM_EMAIL, ...mailOpts });
+    console.log(`   ✅  Sent  | msgId: ${info.messageId} | accepted: ${info.accepted.join(', ')}`);
+    return true;
+  } catch (err) {
+    console.error(`   ❌  Failed: ${err.message}`);
+    return false;
+  }
 }
 
 // --- 1. User confirmation (mirrors requestConfirmation template) ---
 const userOk = await send('2️⃣  Sending USER confirmation email', {
-    to: TEST_TO,
-    subject: '[TEST] Your Transport Request Has Been Submitted',
-    html: `
+  to: TEST_TO,
+  subject: '[TEST] Your Transport Request Has Been Submitted',
+  html: `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:white;padding:30px;border-radius:12px 12px 0 0;text-align:center">
         <h1>Request Submitted!</h1>
@@ -97,9 +97,9 @@ const userOk = await send('2️⃣  Sending USER confirmation email', {
 
 // --- 2. Operator notification (mirrors operatorNewRequest template) ---
 const operatorOk = await send('3️⃣  Sending OPERATOR notification email', {
-    to: TEST_TO,
-    subject: '[TEST] Medical Transportation inquiry — Boston, MA',
-    html: `
+  to: TEST_TO,
+  subject: '[TEST] Medical Transportation inquiry — Boston, MA',
+  html: `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;padding:30px;border-radius:12px 12px 0 0;text-align:center">
         <div style="font-size:48px;margin-bottom:10px">🏥</div>
@@ -116,7 +116,7 @@ const operatorOk = await send('3️⃣  Sending OPERATOR notification email', {
           <tr><td style="padding:8px 12px;color:#6b7280">Date &amp; Time</td><td style="font-weight:600">Tue, Feb 25, 2026 at 10:00</td></tr>
         </table>
         <div style="text-align:center">
-          <a href="https://businto.com/quotes/submit?request_id=test&token=test"
+          <a href="https://businto.com/claim/TESTCODE123"
              style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:20px">
             Submit Quote (test link)
           </a>
@@ -129,9 +129,9 @@ const operatorOk = await send('3️⃣  Sending OPERATOR notification email', {
 
 // --- 3. Quote received (mirrors quoteReceived template) ---
 const quoteOk = await send('4️⃣  Sending QUOTE RECEIVED email (user side)', {
-    to: TEST_TO,
-    subject: '[TEST] New Quote Received: $85.00 from Alpha Transit',
-    html: `
+  to: TEST_TO,
+  subject: '[TEST] New Quote Received: $85.00 from Alpha Transit',
+  html: `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:linear-gradient(135deg,#059669,#10b981);color:white;padding:30px;border-radius:12px 12px 0 0;text-align:center">
         <h1>New Quote Received!</h1>
@@ -162,8 +162,8 @@ console.log(`Quote received     : ${quoteOk ? '✅ PASS' : '❌ FAIL'}`);
 console.log('==============================\n');
 
 if (!userOk || !operatorOk || !quoteOk) {
-    console.error('One or more emails failed — check SMTP credentials.');
-    process.exit(1);
+  console.error('One or more emails failed — check SMTP credentials.');
+  process.exit(1);
 }
 console.log('🎉  All emails sent successfully via Brevo!');
 console.log(`    Check inbox: ${TEST_TO}`);

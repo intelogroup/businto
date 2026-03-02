@@ -7,7 +7,7 @@ import { sendSMS, smsTemplates } from '@/lib/sms';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
 import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/validation';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
-import { generateOperatorQuoteLink } from '@/lib/email-helpers';
+import { generateOperatorQuoteLink, generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
@@ -191,8 +191,8 @@ export async function POST(request: NextRequest) {
           };
 
           try {
-            // Generate user trip token for magic-link-style access in email
-            const userAccessToken = await generateUserTripToken(data.id, user_id || undefined);
+            // Generate tracking-resistant claim link for user dashboard access
+            const claimLink = await generateTripViewLink(data.id, user_id, recipientEmail);
 
             const result = await sendEmail({
               to: recipientEmail,
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
                 dropoffAddress: dropoff_fuzzy || dropoff_address,
                 date: start_date,
                 requestId: data.id,
-                accessToken: userAccessToken,
+                claimLink,
                 appBaseUrl
               })
             });
@@ -357,6 +357,8 @@ export async function POST(request: NextRequest) {
             operator.company_email
           );
 
+          console.log(`[API/Requests] Generated claimLink for ${operator.company_email}: ${claimLink}`);
+
           const emailResult = await sendEmail({
             to: operator.company_email,
             ...emailTemplates.operatorNewRequest({
@@ -380,7 +382,10 @@ export async function POST(request: NextRequest) {
               requestId: data.id,
               claimLink, // Short tracking-resistant link
               appBaseUrl
-            })
+            }),
+            // CRITICAL: Disable Brevo click tracking to prevent link corruption
+            // The claimLink is tracking-resistant but Brevo's tracking wrapper would corrupt it
+            trackingClicks: false,
           });
 
           await logEvent({

@@ -101,6 +101,8 @@ export async function redeemClaimCode(
 ): Promise<RedeemClaimCodeResult | null> {
   // Normalize code (remove dashes, uppercase)
   const normalizedCode = code.toUpperCase().replace(/[-\s]/g, '');
+  
+  console.log(`[ClaimCodes] Redeeming code: "${code}" (normalized: "${normalizedCode}") from IP: ${ipAddress}`);
 
   // Find unused, non-expired code
   const { data, error } = await supabaseAdmin
@@ -112,7 +114,7 @@ export async function redeemClaimCode(
     .single();
 
   if (error || !data) {
-    console.warn(`[ClaimCodes] Invalid or expired code: ${normalizedCode}`);
+    console.warn(`[ClaimCodes] Invalid, used, or expired code: "${normalizedCode}". Error: ${error?.message || 'Not found'}`);
     return null;
   }
 

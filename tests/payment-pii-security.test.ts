@@ -22,6 +22,7 @@ vi.mock("@/lib/stripe", () => ({
 // We need to mock the dynamic import of @/lib/email
 vi.mock("@/lib/email", () => ({
     sendEmail: vi.fn(),
+    getAppBaseUrl: vi.fn().mockReturnValue('https://businto.com'),
     emailTemplates: {
         operatorOrderDetails: vi.fn().mockReturnValue({ subject: "Reveal", html: "<p>PII</p>" }),
     },

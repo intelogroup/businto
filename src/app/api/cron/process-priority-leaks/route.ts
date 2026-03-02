@@ -66,6 +66,7 @@ export async function GET(req: Request) {
                 for (const operator of freeOperators) {
                     try {
                         const claimLink = await generateOperatorQuoteLink(request.id, operator.id, operator.company_email);
+                        console.log(`[Cron/Leaks] Generated claimLink for ${operator.company_email}: ${claimLink}`);
 
                         const emailResult = await sendEmail({
                             to: operator.company_email,
@@ -91,7 +92,9 @@ export async function GET(req: Request) {
                                 requestId: request.id,
                                 claimLink,
                                 appBaseUrl
-                            })
+                            }),
+                            // CRITICAL: Disable Brevo click tracking to prevent link corruption
+                            trackingClicks: false,
                         });
 
                         await logEvent({

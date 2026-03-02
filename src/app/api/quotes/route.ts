@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
+import { generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
 
@@ -237,31 +238,8 @@ export async function POST(request: NextRequest) {
 
           // NEW: Create a Magic Link for Auto Sign-in if we have a userEmail
           let autoSignInLink = null;
-          // Generate a guest access token regardless of magic link (needed for fallback/redirection)
-          const tripAccessToken = await generateUserTripToken(request_id, transportRequest.user_id || undefined);
-
-          try {
-            // Only attempt magic link if user belongs to an account (not strictly anonymous)
-            if (transportRequest.user_id) {
-              const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'magiclink',
-                email: userEmail,
-                options: {
-                  // IMPORTANT: Must redirect through auth callback to create a session first
-                  // The callback will exchange the code for a session, then redirect to the final URL
-                  // Note: next param must be URL-encoded, and token uses & not ?
-                  redirectTo: `${appBaseUrl}/api/auth/callback?next=${encodeURIComponent(`/trips/${request_id}?token=${tripAccessToken}`)}`
-                }
-              });
-
-              if (!linkError && linkData?.properties?.action_link) {
-                autoSignInLink = linkData.properties.action_link;
-                console.log(`[Quote API] Generated Magic Link for ${userEmail}`);
-              }
-            }
-          } catch (linkErr) {
-            console.warn('[Quote API] Failed to generate magic link, falling back to token:', linkErr);
-          }
+          // Generate tracking-resistant claim link for user dashboard access
+          const claimLink = await generateTripViewLink(request_id, transportRequest.user_id || null, userEmail);
 
           try {
             const result = await sendEmail({
@@ -273,9 +251,7 @@ export async function POST(request: NextRequest) {
                 vehicleType: vehicle_type,
                 requestId: request_id,
                 quoteId: data.id,
-                // Always use the direct token-based link for the button
-                // This avoids the Brevo/Supabase double-wrapping 404 issue
-                accessToken: tripAccessToken,
+                claimLink,
                 appBaseUrl: appBaseUrl,
               })
             });
