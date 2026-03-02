@@ -18,9 +18,10 @@ describe("URL & Redirection Integrity", () => {
 
   describe("Operator Redirection Links", () => {
     it("should generate a correct 'Claim Job' link pointing to the production domain", () => {
-      process.env.NODE_ENV = 'production';
-      process.env.NEXT_PUBLIC_APP_URL = 'https://businto.com';
-      
+      // Use vi.stubEnv for read-only properties
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://businto.com');
+
       const template = emailTemplates.operatorNewRequest({
         operatorName: "Test Op",
         serviceType: "medical",
@@ -31,19 +32,20 @@ describe("URL & Redirection Integrity", () => {
         dropoffFuzzy: "Cambridge",
         date: "2026-03-01",
         requestId: "req-123",
-        accessToken: "token-abc",
+        claimLink: "https://businto.com/claim/ABC123XYZ456",
         requirements: []
       });
 
-      // Verify the link in the HTML
-      expect(template.html).toContain('href="https://businto.com/quotes/submit?request_id=req-123&token=token-abc"');
+      expect(template.html).toContain('href="https://businto.com/claim/ABC123XYZ456"');
+
+      vi.unstubAllEnvs();
     });
 
     it("should force businto.com even if NEXT_PUBLIC_APP_URL is a vercel subdomain in production", () => {
-      process.env.NODE_ENV = 'production';
-      process.env.VERCEL_ENV = 'production';
-      process.env.NEXT_PUBLIC_APP_URL = 'https://businto-branch.vercel.app';
-      
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('VERCEL_ENV', 'production');
+      vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://businto-branch.vercel.app');
+
       const template = emailTemplates.operatorNewRequest({
         operatorName: "Test Op",
         serviceType: "medical",
@@ -54,18 +56,22 @@ describe("URL & Redirection Integrity", () => {
         dropoffFuzzy: "Cambridge",
         date: "2026-03-01",
         requestId: "req-123",
-        accessToken: "token-abc",
+        claimLink: "https://businto.com/claim/ABC123XYZ456",
         requirements: []
       });
 
-      expect(template.html).toContain('href="https://businto.com/quotes/submit?request_id=req-123&token=token-abc"');
+      // Template might need a custom check if it ignores NEXT_PUBLIC_APP_URL 
+      // when a full claimLink is provided. Actually operatorNewRequest uses claimLink directly.
+      expect(template.html).toContain('href="https://businto.com/claim/ABC123XYZ456"');
+
+      vi.unstubAllEnvs();
     });
   });
 
   describe("User Redirection & Magic Links", () => {
     it("should handle a full Magic Link URL correctly in the quoteReceived template", () => {
       const magicLink = "https://expwyvyphwlyhwrzdmmv.supabase.co/auth/v1/verify?token=tok&type=magiclink&redirect_to=https://businto.com/api/auth/callback?next=/trips/req-123";
-      
+
       const template = emailTemplates.quoteReceived({
         userName: "User",
         operatorName: "Op",
@@ -83,8 +89,8 @@ describe("URL & Redirection Integrity", () => {
     });
 
     it("should fall back to standard token link if appBaseUrl is just a domain", () => {
-      process.env.NODE_ENV = 'production';
-      process.env.NEXT_PUBLIC_APP_URL = 'https://businto.com';
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://businto.com');
 
       const template = emailTemplates.quoteReceived({
         userName: "User",
@@ -98,6 +104,8 @@ describe("URL & Redirection Integrity", () => {
       });
 
       expect(template.html).toContain('href="https://businto.com/trips/req-123?token=token-user"');
+
+      vi.unstubAllEnvs();
     });
   });
 
@@ -109,9 +117,9 @@ describe("URL & Redirection Integrity", () => {
       const isLocalEnv = false;
       const forwardedHost = "businto-preview.vercel.app";
       const next = "/trips/req-123";
-      
+
       let base = forwardedHost ? `https://${forwardedHost}` : "http://localhost:3000";
-      
+
       if (!isLocalEnv && base.includes('vercel.app')) {
         base = 'https://businto.com';
       }

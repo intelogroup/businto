@@ -20,10 +20,13 @@ async function testProductionClaimCodes() {
   try {
     // Step 1: Create a test claim code
     console.log('\n📝 Step 1: Creating test claim code...');
+    const testRequestId = '123e4567-e89b-12d3-a456-' + Date.now().toString().slice(-12).padStart(12, '0');
+    const testOperatorId = '987fcdeb-51a2-43d7-b456-' + Date.now().toString().slice(-12).padStart(12, '0');
+
     const testCode = await createClaimCode({
       resourceType: 'operator_quote',
-      resourceId: 'test-request-' + Date.now(),
-      operatorId: 'test-operator-' + Date.now(),
+      resourceId: testRequestId,
+      operatorId: testOperatorId,
       purpose: 'quote',
       expiresInMinutes: 10, // 10 minutes for testing
       emailSentTo: 'test@example.com'
@@ -90,10 +93,13 @@ async function testProductionClaimCodes() {
 
     // Step 5: Create and test via HTTP again
     console.log('\n🔄 Step 5: Full HTTP flow test...');
+    const testRequestId2 = '456e7890-abc1-23d4-e567-' + Date.now().toString().slice(-12).padStart(12, '0');
+    const testOperatorId2 = '789fedcb-a987-65d4-c321-' + Date.now().toString().slice(-12).padStart(12, '0');
+
     const testCode2 = await createClaimCode({
       resourceType: 'operator_quote',
-      resourceId: 'test-request-http-' + Date.now(),
-      operatorId: 'test-operator-http-' + Date.now(),
+      resourceId: testRequestId2,
+      operatorId: testOperatorId2,
       purpose: 'quote',
       expiresInMinutes: 10,
       emailSentTo: 'test-http@example.com'

@@ -5,8 +5,8 @@ import { verifyOperatorViewToken } from '@/lib/tokens';
 describe('Claim Code System', () => {
     it('should create and redeem a claim code successfully', async () => {
         // 1. Create a claim code
-        const requestId = 'test-request-' + Math.random().toString(36).substring(7);
-        const operatorId = 'test-operator-' + Math.random().toString(36).substring(7);
+        const requestId = '00000000-0000-0000-0000-000000000001';
+        const operatorId = '00000000-0000-0000-0000-000000000002';
 
         const code = await createClaimCode({
             resourceType: 'operator_quote',
@@ -46,8 +46,8 @@ describe('Claim Code System', () => {
 
     it('should correctly exchange claim code for JWT token in the final flow', async () => {
         // This replicates what the route.ts does
-        const requestId = 'test-request-jwt-' + Math.random().toString(36).substring(7);
-        const operatorId = 'test-operator-jwt-' + Math.random().toString(36).substring(7);
+        const requestId = '00000000-0000-0000-0000-000000000003';
+        const operatorId = '00000000-0000-0000-0000-000000000004';
 
         const code = await createClaimCode({
             resourceType: 'operator_quote',
