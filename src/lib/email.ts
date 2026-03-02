@@ -126,7 +126,8 @@ export async function sendEmail({ to, subject, html, headers, trackingClicks, fo
 
   try {
     const transport = await getTransporter();
-    const transportType = transport.options?.host?.includes('ethereal') ? 'ethereal' : 'brevo';
+    const transportOptions = transport.options as Record<string, unknown>;
+    const transportType = (typeof transportOptions?.host === 'string' && transportOptions.host.includes('ethereal')) ? 'ethereal' : 'brevo';
 
     // Prepare headers with tracking control
     const finalHeaders = {
@@ -156,7 +157,7 @@ Tracking: ${headerInspection.trackingStatus}
       headers: finalHeaders,
     });
 
-    const previewUrl = nodemailer.getTestMessageUrl(info);
+    const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
 
     // Log successful send
     await logEmailSend({
