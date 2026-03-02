@@ -67,8 +67,7 @@ export async function GET(
       const token = await generateUserTripToken(
         redemption.resourceId,
         redemption.userId,
-        redemption.operatorId,
-        30 // 30 days for trip viewing
+        redemption.operatorId
       );
 
       let destination = `${baseUrl}/trips/${redemption.resourceId}?token=${token}`;
