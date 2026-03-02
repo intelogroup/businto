@@ -10,27 +10,23 @@ function getEnv(name: string): string | undefined {
 }
 
 /**
- * Basic E.164 phone number formatter.
- * Ensures the number starts with '+' and contains only digits.
- * If no country code is provided, defaults to US (+1).
+ * Phone number formatter for Brevo SMS API.
+ * Brevo expects digits only with country code — no '+' prefix.
+ * If no country code is provided, defaults to US (1).
  */
 export function formatPhoneNumber(phone: string): string {
-  // Remove all non-numeric characters
+  // Remove all non-numeric characters (including any leading '+')
   const cleaned = phone.replace(/\D/g, '');
-  
+
   if (!cleaned) return phone;
 
-  // If it's 10 digits, assume US and add +1
+  // If it's 10 digits, assume US and prepend country code 1
   if (cleaned.length === 10) {
-    return `+1${cleaned}`;
+    return `1${cleaned}`;
   }
-  
-  // If it starts with a country code but no '+', add '+'
-  if (cleaned.length > 10 && !phone.startsWith('+')) {
-    return `+${cleaned}`;
-  }
-  
-  return phone.startsWith('+') ? phone : `+${cleaned}`;
+
+  // Already has country code (11+ digits) — return as-is (digits only)
+  return cleaned;
 }
 
 interface SMSOptions {
@@ -72,7 +68,7 @@ export async function sendSMS({ to, content, tag }: SMSOptions) {
   }
 
   try {
-    const response = await fetch('https://api.brevo.com/v3/transactionalSMS/sms', {
+    const response = await fetch('https://api.brevo.com/v3/transactionalSMS/send', {
       method: 'POST',
       headers: {
         'accept': 'application/json',
@@ -84,7 +80,8 @@ export async function sendSMS({ to, content, tag }: SMSOptions) {
         recipient: recipient,
         content: content,
         type: 'transactional',
-        tag: tag || 'businto_alert'
+        tag: tag || 'businto_alert',
+        organisationPrefix: 'Businto' // Required for US carrier compliance
       })
     });
 
