@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redeemClaimCode } from '@/lib/claim-codes';
-import { generateOperatorViewToken } from '@/lib/tokens';
+import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { getAppBaseUrl } from '@/lib/email';
 
 /**
@@ -64,14 +64,20 @@ export async function GET(
 
     case 'trip_view': {
       // Generate JWT for user to view trip
-      const token = await generateOperatorViewToken(
+      const token = await generateUserTripToken(
         redemption.resourceId,
         redemption.userId,
-        'view',
+        redemption.operatorId,
         30 // 30 days for trip viewing
       );
 
-      const destination = `${baseUrl}/trips/${redemption.resourceId}?token=${token}`;
+      let destination = `${baseUrl}/trips/${redemption.resourceId}?token=${token}`;
+      
+      // If we have an operatorId, we want to highlight that specific quote
+      if (redemption.operatorId) {
+        destination += `&highlight_operator=${redemption.operatorId}`;
+      }
+      
       console.log(`[Claim] Redirecting to trip view: ${destination}`);
       return NextResponse.redirect(destination);
     }
