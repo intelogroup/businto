@@ -573,7 +573,7 @@ export const emailTemplates = {
     studentCount?: string;
     requirements: string[];
     requestId: string;
-    accessToken: string;
+    claimLink: string;
     appBaseUrl?: string;
   }) => {
     // Define colors and icons for each service type
@@ -690,7 +690,7 @@ export const emailTemplates = {
               <p>If you would like to provide pricing or availability, click below to submit an indicative quote:</p>
 
               <div style="text-align: center;">
-                <a href="${appBaseUrl}/quotes/submit?request_id=${encodeURIComponent(data.requestId)}&token=${encodeURIComponent(data.accessToken)}" class="button">
+                <a href="${data.claimLink}" class="button">
                   Claim Job
                 </a>
               </div>

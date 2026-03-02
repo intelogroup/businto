@@ -7,6 +7,7 @@ import { sendSMS, smsTemplates } from '@/lib/sms';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
 import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/validation';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
+import { generateOperatorQuoteLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
@@ -349,12 +350,11 @@ export async function POST(request: NextRequest) {
       // Send email to each matching operator
       for (const operator of operatorsToNotify) {
         try {
-          // Generate signed token for operator access (7 day expiry)
-          const accessToken = await generateOperatorViewToken(
+          // Generate tracking-resistant claim link (survives email provider click tracking)
+          const claimLink = await generateOperatorQuoteLink(
             data.id,
             operator.id,
-            'quote',
-            7
+            operator.company_email
           );
 
           const emailResult = await sendEmail({
@@ -378,7 +378,7 @@ export async function POST(request: NextRequest) {
               studentCount: metadata?.student_count,
               requirements,
               requestId: data.id,
-              accessToken, // Pass token to email template
+              claimLink, // Short tracking-resistant link
               appBaseUrl
             })
           });

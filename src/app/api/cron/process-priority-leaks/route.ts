@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorViewToken } from '@/lib/tokens';
+import { generateOperatorQuoteLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 
 export const dynamic = 'force-dynamic';
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
 
                 for (const operator of freeOperators) {
                     try {
-                        const accessToken = await generateOperatorViewToken(request.id, operator.id, 'quote', 7);
+                        const claimLink = await generateOperatorQuoteLink(request.id, operator.id, operator.company_email);
 
                         const emailResult = await sendEmail({
                             to: operator.company_email,
@@ -88,7 +89,7 @@ export async function GET(req: Request) {
                                 studentCount: request.metadata?.student_count,
                                 requirements,
                                 requestId: request.id,
-                                accessToken,
+                                claimLink,
                                 appBaseUrl
                             })
                         });
