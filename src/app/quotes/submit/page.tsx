@@ -55,33 +55,69 @@ function SubmitQuoteContent() {
   const [vehicleType, setVehicleType] = useState("");
   const [message, setMessage] = useState("");
 
+  const logClientError = async (message: string, metadata: any = {}) => {
+    try {
+      await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'operator_claim_page_error',
+          status: 'error',
+          message,
+          request_id: requestId,
+          metadata
+        })
+      });
+    } catch (e) {
+      console.error('Failed to send error log to server', e);
+    }
+  };
+
   useEffect(() => {
     async function init() {
       console.log('🔍 Quote Submit Page - Initializing...');
+      
+      // Early log for tracking link clicks
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'operator_claim_page_load_start',
+          status: 'info',
+          message: 'Operator clicked claim link and page started loading',
+          request_id: requestId,
+          metadata: {
+            has_token: !!accessToken,
+            referrer: typeof document !== 'undefined' ? document.referrer : 'unknown'
+          }
+        })
+      }).catch(e => console.error('Failed to log page load start', e));
+
       console.log('📋 Request ID:', requestId);
       console.log('🔑 Access Token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'MISSING');
-
-      if (!requestId) {
-        console.error('❌ No request ID provided');
-        setError("No request ID provided");
-        setLoading(false);
-        return;
-      }
 
       if (!accessToken) {
         console.error('❌ No access token provided');
         setError("Access token required. Please use the link from your email.");
         setLoading(false);
+        logClientError("Missing token in URL", { request_id: requestId });
         return;
       }
 
-      console.log('✅ Both requestId and accessToken present');
+      console.log('✅ AccessToken present. Fetching request details...');
 
       // Fetch sanitized request details via operator view API with token
       // This endpoint only returns safe fields, no PII
       try {
-        const apiUrl = `/api/requests/${requestId}/operator-view?token=${accessToken}`;
-        console.log('🌐 Fetching from:', apiUrl.replace(accessToken, accessToken.substring(0, 20) + '...'));
+        const apiUrl = requestId 
+          ? `/api/requests/${requestId}/operator-view?token=${accessToken}`
+          : `/api/requests/view-by-token?token=${accessToken}`;
+        
+        const sanitizedUrl = apiUrl.includes('token=') 
+          ? apiUrl.split('token=')[0] + 'token=[REDACTED]' 
+          : apiUrl;
+          
+        console.log('🌐 Fetching from:', sanitizedUrl);
 
         const response = await fetch(apiUrl);
         console.log('📡 Response status:', response.status, response.statusText);
@@ -89,16 +125,26 @@ function SubmitQuoteContent() {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('❌ API Error Response:', errorText);
+          
+          await logClientError("API Fetch Failed", { 
+            status: response.status, 
+            statusText: response.statusText,
+            errorText,
+            url: sanitizedUrl
+          });
 
           if (response.status === 401) {
             console.error('🔒 Authentication failed - invalid or expired token');
             setError("Invalid or expired access token. Please use the link from your email.");
+            logClientError("Invalid/Expired Token", { status: 401, errorText });
           } else if (response.status === 429) {
             console.error('⏱️ Rate limit exceeded');
             setError("Rate limit exceeded. Please try again later.");
+            logClientError("Rate Limited", { status: 429 });
           } else {
             console.error(`🚫 Request failed with status ${response.status}`);
             setError(`Request not found (${response.status})`);
+            logClientError("Upstream API Error", { status: response.status, errorText });
           }
           setLoading(false);
           return;
@@ -116,20 +162,34 @@ function SubmitQuoteContent() {
         // Explicitly set to null if not present to avoid 'undefined' issues
         setOperatorId(requestData.operator_id || null);
         setLoading(false);
+
+        // Log successful open
+        fetch('/api/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'operator_claim_page_open',
+            status: 'success',
+            message: 'Operator opened inquiry page',
+            request_id: requestId,
+            operator_id: requestData.operator_id
+          })
+        }).catch(e => console.error('Failed to log page open', e));
+
       } catch (err) {
         console.error('💥 Fatal error fetching request:', err);
-        console.error('Error details:', {
-          name: err instanceof Error ? err.name : 'Unknown',
-          message: err instanceof Error ? err.message : String(err),
+        const errMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(`Failed to load request details: ${errMessage}`);
+        logClientError("Fetch Exception", {
+          message: errMessage,
           stack: err instanceof Error ? err.stack : undefined
         });
-        setError(`Failed to load request details: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setLoading(false);
       }
     }
 
     init();
-  }, [requestId, accessToken, router]);
+  }, [requestId, accessToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +197,7 @@ function SubmitQuoteContent() {
 
     if (!request) {
       console.error('❌ No request data available');
+      logClientError("Submission Attempted Without Request Data");
       return;
     }
 
@@ -146,54 +207,53 @@ function SubmitQuoteContent() {
     const priceNum = price ? parseFloat(price) : 0;
     const quotePayload = {
       request_id: request.id,
-      operator_id: operatorId || null, // Use ID from token if available, otherwise null
+      operator_id: operatorId || null,
       total_price: priceNum,
       vehicle_type: vehicleType.trim(),
       note: message.trim() || undefined,
     };
 
-    console.log('📋 Validating payload:', quotePayload);
-
-    // Use safeParse to avoid throwing and handle error manually
     const validation = quoteSchema.safeParse(quotePayload);
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message || "Invalid quote data";
       console.error('❌ Quote validation failed:', validation.error.format());
       setError(firstError);
       setSubmitting(false);
+      logClientError("Quote Validation Failed", { errors: validation.error.format() });
       return;
     }
 
     try {
-      console.log('📋 Quote payload:', validation.data);
-
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validation.data),
       });
 
-      console.log('📡 Quote submission response:', response.status, response.statusText);
-
       const data = await response.json();
-      console.log('📄 Response data:', data);
 
       if (!response.ok) {
-        console.error('❌ Quote submission failed:', data.error);
         throw new Error(data.error || "Failed to submit quote");
       }
 
-      console.log('✅ Quote submitted successfully!');
       setSubmitted(true);
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: 'operator_claim_submit_success',
+          status: 'success',
+          message: 'Operator submitted quote successfully',
+          request_id: requestId,
+          operator_id: operatorId
+        })
+      }).catch(e => console.error('Failed to log submission success', e));
+
     } catch (err: any) {
-      console.error('💥 Quote submission error:', err);
-      console.error('Error details:', {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      });
-      setError(err.message || "Failed to submit quote");
+      const errMessage = err.message || "Failed to submit quote";
+      setError(errMessage);
       setSubmitting(false);
+      logClientError("Quote Submission Failed", { message: errMessage });
     }
   };
 

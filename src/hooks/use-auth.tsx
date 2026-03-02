@@ -32,36 +32,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
 
     useEffect(() => {
         let isMounted = true;
 
         console.log("[Auth] Setting up auth state listener...");
-        
+
         // Use onAuthStateChange as the single source of truth for session state.
         // It fires immediately with the current session upon subscription.
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
             console.log("[Auth] onAuthStateChange event:", event, "session:", !!nextSession);
-            
+
             if (!isMounted) return;
 
             setSession(nextSession);
-            
-            try {
-                if (nextSession?.user) {
-                    // Map the user profile from unified_profiles view
-                    const mapped = await mapSupabaseUser(nextSession.user, supabase);
-                    if (!isMounted) return;
-                    setUser(mapped);
-                } else {
-                    setUser(null);
-                }
-            } catch (err) {
-                console.error("[Auth] Error mapping user in onAuthStateChange:", err);
-                if (isMounted) setUser(null);
-            } finally {
-                if (isMounted) setIsLoading(false);
+
+            if (nextSession?.user) {
+                // Enrich user state concurrently without blocking the SDK's thread/promise
+                mapSupabaseUser(nextSession.user, supabase)
+                    .then((mapped) => {
+                        if (isMounted) {
+                            console.log("[Auth] User mapping successful, id:", mapped.id);
+                            setUser(mapped);
+                            setIsLoading(false);
+                        }
+                    })
+                    .catch((err) => {
+                        console.error("[Auth] Error mapping user:", err);
+                        if (isMounted) {
+                            setUser(null);
+                            setIsLoading(false);
+                        }
+                    });
+            } else {
+                setUser(null);
+                setIsLoading(false);
             }
         });
 

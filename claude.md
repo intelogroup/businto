@@ -35,5 +35,81 @@ You are a senior engineer who prioritizes structural simplicity over quick fixes
 *   **Magic Links**: Use `admin.generateLink` for "Auto Sign-in" buttons in notification emails. Ensure the `redirectTo` points directly to the client page (e.g. `/trips/[id]`), NOT a server-side route like `/api/auth/callback`, since server environments drop the URL hash token.
 *   **Safety Gates**: `no_adult_release` and `medical specialties` use strict filtering. If matches are zero, check operator specialties vs request metadata.
 
+## 📧 Email Link Generation Technical Schema
+
+This section documents how URLs in emails are generated to ensure consistency and avoid 404 errors.
+
+### Core Function: `getAppBaseUrl()`
+
+**Location**: `src/lib/email.ts:73-91`
+
+```typescript
+export function getAppBaseUrl(providedUrl?: string): string {
+  let url = providedUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
+
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev) return url.replace(/\/$/, "");
+
+  const isVercelProd = process.env.VERCEL_ENV === 'production';
+  if (isVercelProd && url.includes('vercel.app')) {
+    return 'https://businto.com';
+  }
+
+  return url.replace(/\/$/, "");
+}
+```
+
+**Critical Vercel Configuration**:
+- Set `NEXT_PUBLIC_APP_URL=https://businto.com` in Vercel dashboard → Settings → Environment Variables
+- Do NOT use `.vercel.app` domain for production emails - operators will receive broken links
+- The function has a fallback safeguard, but it's best to set the env var correctly
+
+### Token Generation: `generateOperatorViewToken()`
+
+**Location**: `src/lib/tokens.ts`
+
+Generates JWT tokens for operator access to request data without authentication.
+
+```typescript
+generateOperatorViewToken(requestId: string, operatorId?: string, purpose: 'view' | 'quote', expiryDays: number): string
+```
+
+- **requestId**: The transport request UUID
+- **operatorId**: Optional operator UUID for audit tracking
+- **purpose**: `'view'` (read-only) or `'quote'` (can submit quotes)
+- **expiryDays**: Token validity (typically 7 days for operator links)
+
+### Email Template Link Pattern
+
+**Operator "Claim Job" Link** (line 680 in email.ts):
+```
+https://businto.com/quotes/submit?request_id={requestId}&token={accessToken}
+```
+
+**Components**:
+1. `request_id`: UUID from `transport_requests.id`
+2. `accessToken`: JWT from `generateOperatorViewToken()` with `purpose: 'quote'`
+
+### Critical Paths
+
+| Email Type | Template | Link Format |
+|------------|----------|-------------|
+| New Request (Operator) | `operatorNewRequest` | `/quotes/submit?request_id={id}&token={token}` |
+| Request Confirmation (Parent) | `requestConfirmation` | `/trips/{id}?token={token}` |
+| Quote Received (Parent) | `quoteReceived` | `/trips/{id}?token={token}` |
+| Order Details (Operator) | `operatorOrderDetails` | `/dashboard/bookings` (no token - requires auth) |
+
+### Testing
+
+Run link integrity tests:
+```bash
+npm run test -- tests/link-integrity.test.ts
+```
+
+Tests verify:
+- Correct URL format in all email templates
+- Token presence and validity
+- Domain resolves to `businto.com` (not `.vercel.app`)
+
 ---
 *Updated: March 2026*

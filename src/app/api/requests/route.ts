@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { stripe } from '@/lib/stripe';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
 import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/validation';
-import { generateOperatorViewToken } from '@/lib/tokens';
+import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
@@ -18,13 +18,8 @@ export async function POST(request: NextRequest) {
     const user_id = user?.id ?? null;
     // ─────────────────────────────────────────────────────────────────────
 
-    // Base URL for links (prefer env var, then origin)
-    let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-
-    // Safety check: never allow localhost URLs in operator emails
-    if (appBaseUrl.includes('localhost') || appBaseUrl.includes('127.0.0.1')) {
-      appBaseUrl = 'https://businto.com';
-    }
+    // Use helper for consistent base URL logic (handles production domain forcing)
+    const appBaseUrl = getAppBaseUrl(process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin);
     const body = await request.json();
     const {
       service_type,
@@ -195,6 +190,9 @@ export async function POST(request: NextRequest) {
           };
 
           try {
+            // Generate user trip token for magic-link-style access in email
+            const userAccessToken = await generateUserTripToken(data.id, user_id || undefined);
+
             const result = await sendEmail({
               to: recipientEmail,
               ...emailTemplates.requestConfirmation({
@@ -204,6 +202,8 @@ export async function POST(request: NextRequest) {
                 dropoffAddress: dropoff_fuzzy || dropoff_address,
                 date: start_date,
                 requestId: data.id,
+                accessToken: userAccessToken,
+                appBaseUrl
               })
             });
 

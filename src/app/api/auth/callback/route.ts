@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getAppBaseUrl } from '@/lib/email';
 
 /**
  * Auth callback handler for:
@@ -31,16 +32,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      const forwardedHost = request.headers.get('x-forwarded-host');
-      const isLocalEnv = process.env.NODE_ENV === 'development';
-      
-      let base = (isLocalEnv || !forwardedHost) ? origin : `https://${forwardedHost}`;
-      
-      // PRODUCTION GUARD: Force businto.com if not in local dev
-      if (!isLocalEnv && base.includes('vercel.app')) {
-        base = 'https://businto.com';
-      }
-
+      const base = getAppBaseUrl(new URL(request.url).origin);
       const redirectTo = `${base}${next}`;
       console.log('[Auth Callback] Session exchange success, redirecting to:', redirectTo);
       return NextResponse.redirect(redirectTo);
@@ -56,10 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   // If no code or exchange failed, redirect to login with error flag
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const base = (process.env.NODE_ENV !== 'development' && forwardedHost)
-    ? `https://${forwardedHost}`
-    : origin;
+  const base = getAppBaseUrl(new URL(request.url).origin);
   console.warn('[Auth Callback] Falling back to error redirect:', `${base}/login?error=auth_callback_failed`);
   return NextResponse.redirect(`${base}/login?error=auth_callback_failed`);
 }

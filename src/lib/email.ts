@@ -70,12 +70,20 @@ const FROM_EMAIL = env('SMTP_FROM_EMAIL') || 'Businto <noreply@businto.com>';
  * Always prefers the provided URL, then environment variable, then fallback.
  * Forces businto.com in production environments.
  */
-function getAppBaseUrl(providedUrl?: string): string {
+export function getAppBaseUrl(providedUrl?: string): string {
   let url = providedUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
 
-  // If it's a vercel subdomain and we are NOT in development, force .com
+  // If we are explicitly testing or in dev, allow localhost/previews
   const isDev = process.env.NODE_ENV === 'development';
-  if (!isDev && url.includes('vercel.app')) {
+  if (isDev) return url.replace(/\/$/, "");
+
+  // For production, if we're on a Vercel preview branch but want to test end-to-end,
+  // we SHOULD allow the preview URL. Only force .com if explicitly requested or if it's the final prod build.
+  // Actually, for safety in PRODUCTION (Final), we should keep the force .com logic
+  // but move it to a more specific check.
+
+  const isVercelProd = process.env.VERCEL_ENV === 'production';
+  if (isVercelProd && url.includes('vercel.app')) {
     return 'https://businto.com';
   }
 
@@ -86,9 +94,10 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  headers?: Record<string, string>;
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions) {
+export async function sendEmail({ to, subject, html, headers }: EmailOptions) {
   try {
     const transport = await getTransporter();
 
@@ -97,6 +106,11 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
       to,
       subject,
       html,
+      headers: {
+        ...headers,
+        // Default identification header for Sendinblue/Brevo
+        'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'transactional-email',
+      }
     });
 
     const previewUrl = nodemailer.getTestMessageUrl(info);
@@ -140,6 +154,7 @@ export const emailTemplates = {
     dropoffAddress: string;
     date: string;
     requestId: string;
+    accessToken?: string;
     appBaseUrl?: string;
   }) => ({
     subject: 'Your Transport Request Has Been Submitted',
@@ -189,9 +204,16 @@ export const emailTemplates = {
                 </div>
               </div>
 
-              <p>You'll receive an email when operators submit quotes. You can also check your dashboard for real-time updates.</p>
+              <p>You'll receive an email when operators submit quotes. You can also check your live status for real-time updates.</p>
 
-              <a href="${getAppBaseUrl(data.appBaseUrl)}/dashboard" class="button">View Dashboard</a>
+              <a href="${(data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
+        ? data.appBaseUrl
+        : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
+          ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
+          : data.appBaseUrl?.startsWith('http')
+            ? data.appBaseUrl
+            : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
+      }" class="button">View Live Status</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -251,10 +273,10 @@ export const emailTemplates = {
               <a href="${(data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
         ? data.appBaseUrl
         : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
-          ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}`
+          ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
           : data.appBaseUrl?.startsWith('http')
             ? data.appBaseUrl
-            : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${data.accessToken}` : ''}`
+            : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
       }" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
@@ -280,6 +302,7 @@ export const emailTemplates = {
     vehicleType: string;
     confirmationCode: string;
     bookingId: string;
+    appBaseUrl?: string;
   }) => ({
     subject: `Order Details - Booking ${data.confirmationCode} Confirmed`,
     html: `
@@ -358,6 +381,10 @@ export const emailTemplates = {
               <div class="next-steps">
                 <strong>💡 Next Steps:</strong><br>
                 Please contact the customer directly using the information above to finalize any remaining logistical details.
+              </div>
+
+              <div style="text-align: center; margin-top: 20px;">
+                <a href="${getAppBaseUrl(data.appBaseUrl)}/dashboard/bookings" class="button" style="background: #10b981;">Manage in Dashboard</a>
               </div>
 
               <div class="footer">
@@ -663,7 +690,7 @@ export const emailTemplates = {
               <p>If you would like to provide pricing or availability, click below to submit an indicative quote:</p>
 
               <div style="text-align: center;">
-                <a href="${appBaseUrl}/quotes/submit?request_id=${data.requestId}&token=${data.accessToken}" class="button">
+                <a href="${appBaseUrl}/quotes/submit?request_id=${encodeURIComponent(data.requestId)}&token=${encodeURIComponent(data.accessToken)}" class="button">
                   Claim Job
                 </a>
               </div>

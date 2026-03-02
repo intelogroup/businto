@@ -4,48 +4,24 @@ import { verifyUserTripToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 
 export async function GET(
-    request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    request: NextRequest
 ) {
     try {
-        const { id } = await params;
         const { searchParams } = new URL(request.url);
         const token = searchParams.get('token');
 
-        console.log(`[Trip API] Fetching ID: ${id}, hasToken: ${!!token}`);
-
         if (!token) {
-            await logEvent({
-                event_type: 'trip_api.auth_failed',
-                status: 'error',
-                request_id: id,
-                message: 'Missing token in trip detail fetch'
-            });
             return NextResponse.json({ error: 'Auth required' }, { status: 401 });
         }
 
         // Verify token
         const decoded = await verifyUserTripToken(token);
-        if (!decoded) {
-            await logEvent({
-                event_type: 'trip_api.auth_failed',
-                status: 'error',
-                request_id: id,
-                message: 'Invalid or expired token signature'
-            });
+        if (!decoded || !decoded.requestId) {
             return NextResponse.json({ error: 'Invalid or expired token' }, { status: 403 });
         }
 
-        if (decoded.requestId !== id) {
-            await logEvent({
-                event_type: 'trip_api.auth_failed',
-                status: 'error',
-                request_id: id,
-                message: 'Token resource mismatch',
-                metadata: { token_request_id: decoded.requestId }
-            });
-            return NextResponse.json({ error: 'Invalid or expired token' }, { status: 403 });
-        }
+        const id = decoded.requestId;
+        console.log(`[Trip API (Token)] Fetching ID: ${id}`);
 
         // Fetch trip details using admin client to bypass user RLS
         const { data: trip, error: tripError } = await supabaseAdmin

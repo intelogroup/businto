@@ -41,6 +41,7 @@ describe("URL & Redirection Integrity", () => {
 
     it("should force businto.com even if NEXT_PUBLIC_APP_URL is a vercel subdomain in production", () => {
       process.env.NODE_ENV = 'production';
+      process.env.VERCEL_ENV = 'production';
       process.env.NEXT_PUBLIC_APP_URL = 'https://businto-branch.vercel.app';
       
       const template = emailTemplates.operatorNewRequest({

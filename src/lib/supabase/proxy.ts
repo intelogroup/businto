@@ -26,10 +26,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: Do not add any code between createServerClient and getClaims().
-  // getClaims() validates the JWT signature — never use getSession() in server code.
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  // IMPORTANT: Do not add any code between createServerClient and getUser().
+  // getUser() validates the session/JWT with the server.
+  const { data, error } = await supabase.auth.getUser();
+  const user = data?.user;
 
   const { pathname } = request.nextUrl;
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));

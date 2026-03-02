@@ -1,6 +1,7 @@
 import { type EmailOtpType } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getAppBaseUrl } from '@/lib/email';
 
 /**
  * Handles token-hash based email confirmation for:
@@ -31,14 +32,8 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       console.log('[Auth Confirm] verifyOtp success');
-      
-      const isLocalEnv = process.env.NODE_ENV === 'development';
-      let base = origin;
-      
-      // PRODUCTION GUARD: Force businto.com if not in local dev
-      if (!isLocalEnv && base.includes('vercel.app')) {
-        base = 'https://businto.com';
-      }
+
+      const base = getAppBaseUrl(new URL(request.url).origin);
 
       const redirectTo = `${base}${next}`;
       console.log('[Auth Confirm] Redirecting to:', redirectTo);

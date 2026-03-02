@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
 import { useAuth } from "@/hooks/use-auth";
-import { useSearchParams } from "next/navigation";
 
 interface Quote {
     id: string;
@@ -47,7 +46,7 @@ interface TransportRequest {
     metadata_safe?: Record<string, any>;
 }
 
-export default function TripDetailPage() {
+function TripDetailContent() {
     const { id } = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -58,12 +57,50 @@ export default function TripDetailPage() {
     const [loading, setLoading] = useState(true);
     const [acceptingQuoteId, setAcceptingQuoteId] = useState<string | null>(null);
 
+    const logClientError = async (message: string, metadata: any = {}) => {
+        try {
+            await fetch('/api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_type: 'trip_detail_page_error',
+                    status: 'error',
+                    message,
+                    request_id: id,
+                    metadata: {
+                        ...metadata,
+                        has_user: !!user,
+                        has_token: !!token
+                    }
+                })
+            });
+        } catch (e) {
+            console.error('Failed to send error log to server', e);
+        }
+    };
+
     const fetchData = async () => {
         // Don't start fetching until auth is determined
         if (authLoading) return;
         
         setLoading(true);
         console.log("[TripDetail] Fetching data, auth state:", { hasUser: !!user });
+
+        // Log page open
+        fetch('/api/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_type: 'trip_detail_page_open',
+                status: 'success',
+                message: 'User opened trip detail page',
+                request_id: id,
+                metadata: {
+                    has_user: !!user,
+                    has_token: !!token
+                }
+            })
+        }).catch(e => console.error('Failed to log page open', e));
 
         const supabase = createClient();
         
@@ -77,7 +114,14 @@ export default function TripDetailPage() {
                     .eq('id', id)
                     .single();
 
-                if (!tripError && tripData) {
+                if (tripError) {
+                    console.error('Trip fetch error:', tripError);
+                    if (tripError.code !== 'PGRST116') { // PGRST116 is not found
+                        logClientError("Supabase Trip Fetch Error", { error: tripError });
+                    }
+                }
+
+                if (tripData) {
                     setTrip(tripData);
 
                     // Fetch quotes
@@ -103,7 +147,10 @@ export default function TripDetailPage() {
                         .eq('request_id', id)
                         .order('total_price', { ascending: true });
 
-                    if (!quotesError) {
+                    if (quotesError) {
+                        console.error('Quotes fetch error:', quotesError);
+                        logClientError("Supabase Quotes Fetch Error", { error: quotesError });
+                    } else {
                         setQuotes(quotesData || []);
                         setLoading(false);
                         return; // Successfully loaded via session
@@ -111,6 +158,7 @@ export default function TripDetailPage() {
                 }
             } catch (err) {
                 console.log('Standard fetch failed, will try token if available');
+                logClientError("Standard Fetch Exception", { error: err instanceof Error ? err.message : err });
             }
         }
 
@@ -124,9 +172,13 @@ export default function TripDetailPage() {
                     setQuotes(data.quotes);
                     setLoading(false);
                     return;
+                } else {
+                    const errText = await res.text();
+                    logClientError("Token Fetch API Error", { status: res.status, error: errText });
                 }
             } catch (err) {
                 console.error('Token fetch failed:', err);
+                logClientError("Token Fetch Exception", { error: err instanceof Error ? err.message : err });
             }
         }
 
@@ -134,8 +186,11 @@ export default function TripDetailPage() {
     };
 
     useEffect(() => {
-        if (id && !authLoading) fetchData();
-    }, [id, authLoading]);
+        // If we have a token, fetch instantly. Otherwise, wait for auth to finish loading.
+        if (id && (token || !authLoading)) {
+            fetchData();
+        }
+    }, [id, authLoading, token]);
 
     const handleAcceptQuote = async (quoteId: string) => {
         if (!user && !token) {
@@ -158,14 +213,29 @@ export default function TripDetailPage() {
 
             if (!response.ok) {
                 const error = await response.json();
+                logClientError("Quote Acceptance Failed", { quoteId, error: error.error });
                 throw new Error(error.error || 'Failed to accept quote');
             }
+
+            // Log successful acceptance
+            fetch('/api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_type: 'trip_quote_accept_success',
+                    status: 'success',
+                    message: 'User accepted quote successfully',
+                    request_id: id,
+                    metadata: { quoteId }
+                })
+            }).catch(e => console.error('Failed to log acceptance success', e));
 
             // Success! Refresh data
             await fetchData();
             alert('Quote accepted successfully!');
         } catch (error: any) {
             console.error('Error accepting quote:', error);
+            logClientError("Quote Acceptance Exception", { quoteId, message: error.message });
             alert(error.message || 'Error accepting quote. Please try again.');
         } finally {
             setAcceptingQuoteId(null);
@@ -378,5 +448,13 @@ export default function TripDetailPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function TripDetailPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+            <TripDetailContent />
+        </Suspense>
     );
 }

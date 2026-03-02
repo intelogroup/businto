@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
@@ -8,13 +8,8 @@ import { validateQuote } from '@/lib/quote-validation';
 
 export async function POST(request: NextRequest) {
   try {
-    // Base URL for links (prefer env var, then origin)
-    let appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
-
-    // Safety check: never allow localhost URLs in emails
-    if (appBaseUrl.includes('localhost') || appBaseUrl.includes('127.0.0.1')) {
-      appBaseUrl = 'https://businto.com';
-    }
+    // Use helper for consistent base URL logic (handles production domain forcing)
+    const appBaseUrl = getAppBaseUrl(process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin);
     const body = await request.json();
 
     // VALIDATE INPUT with Zod schema
@@ -242,6 +237,9 @@ export async function POST(request: NextRequest) {
 
           // NEW: Create a Magic Link for Auto Sign-in if we have a userEmail
           let autoSignInLink = null;
+          // Generate a guest access token regardless of magic link (needed for fallback/redirection)
+          const tripAccessToken = await generateUserTripToken(request_id, transportRequest.user_id || undefined);
+
           try {
             // Only attempt magic link if user belongs to an account (not strictly anonymous)
             if (transportRequest.user_id) {
@@ -249,7 +247,10 @@ export async function POST(request: NextRequest) {
                 type: 'magiclink',
                 email: userEmail,
                 options: {
-                  redirectTo: `${appBaseUrl}/trips/${request_id}`
+                  // IMPORTANT: Must redirect through auth callback to create a session first
+                  // The callback will exchange the code for a session, then redirect to the final URL
+                  // Note: next param must be URL-encoded, and token uses & not ?
+                  redirectTo: `${appBaseUrl}/api/auth/callback?next=${encodeURIComponent(`/trips/${request_id}?token=${tripAccessToken}`)}`
                 }
               });
 
@@ -272,9 +273,10 @@ export async function POST(request: NextRequest) {
                 vehicleType: vehicle_type,
                 requestId: request_id,
                 quoteId: data.id,
-                // Use the Magic Link if available, otherwise fall back to tokenized URL
-                accessToken: autoSignInLink ? undefined : await generateUserTripToken(request_id, transportRequest.user_id || undefined),
-                appBaseUrl: autoSignInLink || appBaseUrl,
+                // Always use the direct token-based link for the button
+                // This avoids the Brevo/Supabase double-wrapping 404 issue
+                accessToken: tripAccessToken,
+                appBaseUrl: appBaseUrl,
               })
             });
 

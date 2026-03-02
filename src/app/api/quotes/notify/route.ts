@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import { generateUserTripToken } from '@/lib/tokens';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +32,9 @@ export async function POST(request: NextRequest) {
     if (profileError || !profile?.email) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
+
+    // Generate a guest access token for the trip
+    const tripAccessToken = await generateUserTripToken(tripRequestId, user.id);
 
     // Fetch the request + most recent quote for context
     const { data: tripRequest, error: requestError } = await supabase
@@ -88,6 +92,7 @@ export async function POST(request: NextRequest) {
           vehicleType: latestQuote.vehicle_type,
           requestId: tripRequest.id,
           quoteId: latestQuote.id,
+          accessToken: tripAccessToken,
           appBaseUrl: process.env.NEXT_PUBLIC_APP_URL,
         })
       });
@@ -96,7 +101,7 @@ export async function POST(request: NextRequest) {
       await sendEmail({
         to: profile.email,
         subject: `${quoteCount} operator${quoteCount > 1 ? 's' : ''} quoted your route`,
-        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${quoteCount} quote(s) for your transport request. <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">View them in your dashboard →</a></p>`
+        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${quoteCount} quote(s) for your transport request. <a href="${process.env.NEXT_PUBLIC_APP_URL}/trips/view?token=${tripAccessToken}">View them in your dashboard →</a></p>`
       });
     }
 

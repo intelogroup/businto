@@ -101,7 +101,8 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (tripData?.request && tripData?.operator?.company_email) {
-            const { sendEmail, emailTemplates } = await import('@/lib/email');
+            const { sendEmail, emailTemplates, getAppBaseUrl } = await import('@/lib/email');
+            const appBaseUrl = getAppBaseUrl();
             const privateMetadata = tripData.request.metadata_private || {};
 
             try {
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest) {
                   time: tripData.request.start_time,
                   vehicleType: tripData.request.vehicle_type || 'Standard',
                   confirmationCode: tripData.confirmation_code || 'PENDING',
-                  bookingId: tripData.id
+                  bookingId: tripData.id,
+                  appBaseUrl
                 })
               });
               console.log(`[PII Reveal] Contact info sent to operator for booking ${bookingId}`);

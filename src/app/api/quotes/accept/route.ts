@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
 import { verifyUserTripToken } from '@/lib/tokens';
@@ -308,7 +308,7 @@ export async function POST(request: NextRequest) {
               ...smsTemplates.quoteAccepted({
                 operatorName,
                 requestId: tripRequestId,
-                appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com'
+                appUrl: getAppBaseUrl()
               })
             });
             console.log(`✓ Notified user via SMS: ${userProfile.full_name}`);

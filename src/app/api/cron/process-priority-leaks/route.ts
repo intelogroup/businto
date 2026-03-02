@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorViewToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 
@@ -53,7 +53,7 @@ export async function GET(req: Request) {
 
             if (freeOperators.length > 0) {
                 const requirements = extractRequirements(request.service_type, request.metadata);
-                const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const appBaseUrl = getAppBaseUrl();
                 const serviceTypeMap: Record<string, string> = {
                     school: 'School Transportation',
                     medical: 'Medical Transportation',
@@ -68,6 +68,7 @@ export async function GET(req: Request) {
 
                         const emailResult = await sendEmail({
                             to: operator.company_email,
+                            headers: { 'X-Mailin-Tag': 'operator-new-request' },
                             ...emailTemplates.operatorNewRequest({
                                 operatorName: operator.company_name,
                                 serviceType: request.service_type,
@@ -168,7 +169,7 @@ export async function GET(req: Request) {
                 <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
               </div>
               <p>Please log in immediately to review available operators and assign manually to protect the Businto brand.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Admin Dashboard</a>
+              <a href="${getAppBaseUrl()}/admin" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Admin Dashboard</a>
             </div>
           `
                 });

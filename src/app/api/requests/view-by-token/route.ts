@@ -31,30 +31,17 @@ const supabaseAdmin = createClient(
  * PII is never exposed through this endpoint.
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest
 ) {
   try {
-    const { id } = await params;
-
-    console.log(`[Operator View] Processing request for ID: ${id}`);
-
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Request ID is required' },
-        { status: 400 }
-      );
-    }
-
     // SECURITY: Require signed token for access
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
     if (!token) {
       await logEvent({
-        event_type: 'operator_view.auth_failed',
+        event_type: 'operator_view_token.auth_failed',
         status: 'error',
-        request_id: id,
         message: 'Missing access token in request'
       });
       return NextResponse.json(
@@ -65,11 +52,10 @@ export async function GET(
 
     // Verify token signature and expiry
     const payload = await verifyOperatorViewToken(token);
-    if (!payload) {
+    if (!payload || !payload.requestId) {
       await logEvent({
-        event_type: 'operator_view.auth_failed',
+        event_type: 'operator_view_token.auth_failed',
         status: 'error',
-        request_id: id,
         message: 'Invalid or expired token signature'
       });
       return NextResponse.json(
@@ -78,20 +64,8 @@ export async function GET(
       );
     }
 
-    // Verify token matches requested resource
-    if (payload.requestId !== id) {
-      await logEvent({
-        event_type: 'operator_view.auth_failed',
-        status: 'error',
-        request_id: id,
-        message: 'Token resource mismatch',
-        metadata: { token_request_id: payload.requestId }
-      });
-      return NextResponse.json(
-        { error: 'Token does not match requested resource' },
-        { status: 403 }
-      );
-    }
+    const id = payload.requestId;
+    console.log(`[Operator View (Token)] Processing request for ID: ${id}`);
 
     // RATE LIMITING: Prevent abuse and scraping
     const clientIP = getClientIP(request);
