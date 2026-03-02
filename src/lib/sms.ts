@@ -108,8 +108,8 @@ export async function sendSMS({ to, content, tag }: SMSOptions) {
  * SMS Templates for specific events
  */
 export const smsTemplates = {
-  newRequestAlert: (data: { serviceType: string; location: string; requestId: string; appUrl: string; token: string }) => ({
-    content: `[Businto] New 🚌 ${data.serviceType} Request in ${data.location}. View & Quote: ${data.appUrl}/quotes/submit?request_id=${data.requestId}&token=${data.token}`,
+  newRequestAlert: (data: { serviceType: string; location: string; requestId: string; claimLink: string }) => ({
+    content: `[Businto] New 🚌 ${data.serviceType} Request in ${data.location}. View & Quote: ${data.claimLink}`,
     tag: 'operator_new_request'
   }),
   

@@ -430,8 +430,7 @@ export async function POST(request: NextRequest) {
                   serviceType: service_type,
                   location: pickup_fuzzy || pickup_address.split(',')[0],
                   requestId: data.id,
-                  token: accessToken,
-                  appUrl: appBaseUrl
+                  claimLink: claimLink
                 })
               });
               console.log(`✓ Notified operator via SMS: ${operator.company_name}`);

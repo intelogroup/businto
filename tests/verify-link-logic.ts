@@ -1,5 +1,6 @@
 import { emailTemplates } from '../src/lib/email';
 import { generateOperatorViewToken, generateUserTripToken } from '../src/lib/tokens';
+import { generateOperatorQuoteLink } from '../src/lib/email-helpers';
 
 const mockRequestId = 'req_id_123';
 const mockUserId = 'user_id_456';
@@ -26,8 +27,8 @@ async function verifyLinks() {
     console.log(`[Request Confirmation] Link valid: ${requestConfirmed ? '✅' : '❌'}`);
     if (!requestConfirmed) console.log(`Expected: ${expectedRequestLink} but not found in HTML.`);
 
-    // 2. Operator New Request Link
-    const opToken = await generateOperatorViewToken(mockRequestId, mockOperatorId, 'quote', 7);
+    // 2. Operator New Request Link (Now uses claim codes)
+    const opClaimLink = await generateOperatorQuoteLink(mockRequestId, mockOperatorId, 'test@example.com');
     const operatorNewRequest = emailTemplates.operatorNewRequest({
         operatorName: 'Test Operator',
         serviceType: 'school',
@@ -39,12 +40,12 @@ async function verifyLinks() {
         date: '2026-03-01',
         requirements: ['WiFi'],
         requestId: mockRequestId,
-        accessToken: opToken,
+        claimLink: opClaimLink,
         appBaseUrl: mockAppBaseUrl
     });
-    const expectedOpLink = `${mockAppBaseUrl}/quotes/submit?request_id=${mockRequestId}&token=${opToken}`;
-    const opConfirmed = operatorNewRequest.html.includes(expectedOpLink);
+    const opConfirmed = operatorNewRequest.html.includes(opClaimLink);
     console.log(`[Operator New Request] Link valid: ${opConfirmed ? '✅' : '❌'}`);
+    console.log(`  Claim link: ${opClaimLink}`);
 
     // 3. Quote Received Link
     const quoteReceived = emailTemplates.quoteReceived({
