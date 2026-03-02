@@ -93,8 +93,10 @@ export async function GET(req: Request) {
                                 claimLink,
                                 appBaseUrl
                             }),
-                            // CRITICAL: Disable Brevo click tracking to prevent link corruption
+                            // CRITICAL: Force SMTP relay (not REST API) to ensure X-Mailin-Track-Click header is respected
+                            // Brevo's click tracking corrupts the link; SMTP relay respects this header better than API
                             trackingClicks: false,
+                            forceSmtp: true,
                         });
 
                         await logEvent({

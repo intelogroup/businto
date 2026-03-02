@@ -106,7 +106,7 @@ interface EmailOptions {
   trackingClicks?: boolean;
 }
 
-export async function sendEmail({ to, subject, html, headers, trackingClicks, forceApi }: EmailOptions & { forceApi?: boolean }) {
+export async function sendEmail({ to, subject, html, headers, trackingClicks, forceApi, forceSmtp }: EmailOptions & { forceApi?: boolean; forceSmtp?: boolean }) {
   const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
   
   // Validate links before sending to catch corruption early
@@ -119,10 +119,42 @@ export async function sendEmail({ to, subject, html, headers, trackingClicks, fo
     await logLinkValidation(to, linkValidation);
   }
 
-  // Use API if forceApi is set or if we have an API key and want better tracking control
-  if (forceApi || (apiKey && !env('SMTP_HOST') && !env('SMTP_USER'))) {
-    return sendEmailViaApi({ to, subject, html, headers, trackingClicks });
+  // CRITICAL: forceSmtp is required for operator emails to ensure X-Mailin-Track-Click header is respected
+  // SMTP relay respects this header; REST API likely does not.
+  if (forceSmtp) {
+    const smtpHost = env('SMTP_HOST');
+    const smtpUser = env('SMTP_USER');
+    const smtpPass = env('SMTP_PASS') || env('BREVO_SMTP_KEY');
+    
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      throw new Error(
+        'Cannot send operator email: forceSmtp=true but SMTP credentials not configured. ' +
+        'Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (or BREVO_SMTP_KEY) in environment.'
+      );
+    }
+    
+    // Ensure tracking is disabled for operator emails via SMTP
+    const finalHeaders = {
+      ...headers,
+      'X-Mailin-Track-Click': '0',
+      'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'operator-request',
+    };
+    
+    console.log(`[Email] Sending operator email via SMTP (forceSmtp=true, tracking disabled)`);
+    return sendEmailViaSMTP({ to, subject, html, headers: finalHeaders, trackingClicks: false });
   }
+
+  return sendEmailViaSMTP({ to, subject, html, headers, trackingClicks });
+}
+
+/**
+ * Internal helper to send via SMTP relay.
+ * Separated from sendEmail to allow forceSmtp routing with SMTP-only enforcement.
+ */
+async function sendEmailViaSMTP({ to, subject, html, headers, trackingClicks }: EmailOptions) {
+  // For telemetry inside the SMTP path, we need linkMatches again
+  const linkMatches = html.match(/href="([^"]+)"/g) || [];
+  const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
 
   try {
     const transport = await getTransporter();
@@ -215,6 +247,7 @@ Tracking: ${headerInspection.trackingStatus}
 
     console.error('Failed to send email via SMTP:', error);
     // If SMTP fails, try API as a backup if we have a key
+    const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
     if (apiKey) {
       console.log('🔄 Attempting API fallback after SMTP failure...');
       return sendEmailViaApi({ to, subject, html, headers, trackingClicks });

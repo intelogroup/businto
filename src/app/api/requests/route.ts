@@ -383,9 +383,10 @@ export async function POST(request: NextRequest) {
               claimLink, // Short tracking-resistant link
               appBaseUrl
             }),
-            // CRITICAL: Disable Brevo click tracking to prevent link corruption
-            // The claimLink is tracking-resistant but Brevo's tracking wrapper would corrupt it
+            // CRITICAL: Force SMTP relay (not REST API) to ensure X-Mailin-Track-Click header is respected
+            // Brevo's click tracking corrupts the link; SMTP relay respects this header better than API
             trackingClicks: false,
+            forceSmtp: true,
           });
 
           await logEvent({
