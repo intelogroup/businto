@@ -12,6 +12,7 @@
     "test:security": "vitest tests/metadata-security.test.ts",
     "test:forms": "tsx tests/form-submission.test.ts",
     "test:production": "./tests/run-production-tests.sh",
+    "test:production-claim": "node -r dotenv/config -r tsx/cjs test-production-claim.ts dotenv_config_path=.env.local",
     "test:payment": "vitest tests/payment-routing-fee.test.ts",
     "test:marketplace": "vitest tests/marketplace-integrity.test.ts",
     "prepare": "husky"

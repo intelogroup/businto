@@ -5,13 +5,6 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 );
 
-// Legacy secret for tokens generated before JWT_SECRET was set in env.
-// Allows operators whose emails were sent before the env var was added to
-// still access their quote links without needing a resend.
-const JWT_SECRET_LEGACY = new TextEncoder().encode(
-  'your-secret-key-change-in-production'
-);
-
 export interface OperatorViewTokenPayload {
   requestId: string;
   rid?: string; // Abbreviated version
@@ -132,32 +125,18 @@ export async function generateUserTripToken(
 export async function verifyOperatorViewToken(
   token: string
 ): Promise<OperatorViewTokenPayload | null> {
-  // Try primary secret first, then fall back to legacy secret so tokens
-  // generated before JWT_SECRET was configured in the environment still work.
-  const secrets = [JWT_SECRET];
-  if (process.env.JWT_SECRET) {
-    // Only add the legacy secret as a fallback when a custom secret IS set,
-    // otherwise both entries are the same key and the second try is redundant.
-    secrets.push(JWT_SECRET_LEGACY);
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return {
+      requestId: fromShortId(payload.rid as string)!,
+      operatorId: fromShortId(payload.oid as string | undefined),
+      purpose: payload.p as 'view' | 'quote',
+      exp: payload.exp as number,
+    };
+  } catch (err) {
+    console.error('Token verification failed');
+    return null;
   }
-
-  for (const secret of secrets) {
-    try {
-      const { payload } = await jwtVerify(token, secret);
-      return {
-        // Handle both compressed/short keys and old full keys for backward compatibility
-        requestId: fromShortId((payload.rid || payload.requestId) as string)!,
-        operatorId: fromShortId((payload.oid || payload.operatorId) as string | undefined),
-        purpose: (payload.p || payload.purpose) as 'view' | 'quote',
-        exp: payload.exp as number,
-      };
-    } catch (err) {
-      // Try next secret
-    }
-  }
-
-  console.error('Token verification failed with all known secrets');
-  return null;
 }
 
 /**
@@ -168,26 +147,18 @@ export async function verifyOperatorViewToken(
 export async function verifyUserTripToken(
   token: string
 ): Promise<UserTripTokenPayload | null> {
-  const secrets = [JWT_SECRET];
-  if (process.env.JWT_SECRET) {
-    secrets.push(JWT_SECRET_LEGACY);
-  }
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.purpose !== 'view_trip') return null;
 
-  for (const secret of secrets) {
-    try {
-      const { payload } = await jwtVerify(token, secret);
-      if (payload.purpose !== 'view_trip') continue;
-
-      return {
-        // Handle both compressed/short keys and old full keys
-        requestId: fromShortId((payload.rid || payload.requestId) as string)!,
-        userId: fromShortId((payload.uid || payload.userId) as string | undefined),
-        purpose: 'view_trip',
-        exp: payload.exp as number,
-      };
-    } catch (err) {
-      // Try next secret
-    }
+    return {
+      requestId: fromShortId(payload.rid as string)!,
+      userId: fromShortId(payload.uid as string | undefined),
+      purpose: 'view_trip',
+      exp: payload.exp as number,
+    };
+  } catch (err) {
+    return null;
   }
 
   return null;
