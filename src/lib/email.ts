@@ -1,77 +1,46 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+import nodemailer from 'nodemailer'; // dev-only Ethereal fallback
 import { maskStreetNumber } from './location-utils';
 import {
   validateEmailLinks,
   logEmailSend,
   logLinkValidation,
-  logBrevoError,
-  inspectBrevoHeaders,
   type EmailSendLog,
 } from './email-logger';
-
-// Ethereal fallback for local testing when SMTP credentials are not configured
-let transporter: nodemailer.Transporter | null = null;
-let testAccount: { user: string; pass: string; smtp: { host: string; port: number; secure: boolean } } | null = null;
 
 function env(name: string): string | undefined {
   const value = process.env[name];
   return typeof value === 'string' ? value.trim() : undefined;
 }
 
-async function getTransporter() {
-  if (transporter) return transporter;
+const FROM_EMAIL = env('SMTP_FROM_EMAIL') || 'Businto <noreply@businto.com>';
 
-  const brevoKey = env('BREVO_SMTP_KEY') || env('BREVO_API_KEY');
-  const smtpHost = env('SMTP_HOST') || (brevoKey ? 'smtp-relay.brevo.com' : undefined);
-  const smtpPort = Number(env('SMTP_PORT') || (brevoKey ? '587' : '0'));
-  const smtpUser = env('SMTP_USER') || env('BREVO_SMTP_LOGIN');
-  const smtpPass = env('SMTP_PASS') || brevoKey;
-  const smtpSecure = env('SMTP_SECURE') === 'true';
-
-  // If any SMTP fields are present, require complete configuration
-  const hasAnySmtpConfig = Boolean(smtpHost || smtpUser || smtpPass);
-  const hasCompleteSmtpConfig = Boolean(smtpHost && smtpPort && smtpUser && smtpPass);
-
-  if (hasAnySmtpConfig && !hasCompleteSmtpConfig) {
-    throw new Error('Incomplete SMTP config: set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS (or BREVO_SMTP_KEY + BREVO_SMTP_LOGIN).');
-  }
-
-  if (hasCompleteSmtpConfig) {
-    transporter = nodemailer.createTransport({
-      host: smtpHost!,
-      port: smtpPort,
-      secure: smtpSecure,
-      auth: {
-        user: smtpUser!,
-        pass: smtpPass!,
-      },
-    });
-    console.log(`📧 SMTP configured: ${smtpHost}:${smtpPort} (${smtpUser})`);
-    return transporter;
-  }
-
-  // Fallback to Ethereal when no SMTP settings are configured
-  if (!testAccount) {
-    testAccount = await nodemailer.createTestAccount();
-    console.log('📧 Ethereal Email Account Created:');
-    console.log('   Email:', testAccount.user);
-    console.log('   Password:', testAccount.pass);
-  }
-
-  transporter = nodemailer.createTransport({
-    host: testAccount.smtp.host,
-    port: testAccount.smtp.port,
-    secure: testAccount.smtp.secure,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-
-  return transporter;
+// Lazy Resend singleton
+let resendClient: Resend | null = null;
+function getResend(): Resend {
+  if (!resendClient) resendClient = new Resend(env('RESEND_API_KEY')!);
+  return resendClient;
 }
 
-const FROM_EMAIL = env('SMTP_FROM_EMAIL') || 'Businto <noreply@businto.com>';
+// Ethereal transporter — only used in dev when RESEND_API_KEY is absent
+let etherealTransporter: nodemailer.Transporter | null = null;
+let etherealAccount: { user: string; pass: string; smtp: { host: string; port: number; secure: boolean } } | null = null;
+
+async function getEtherealTransporter() {
+  if (etherealTransporter) return etherealTransporter;
+  if (!etherealAccount) {
+    etherealAccount = await nodemailer.createTestAccount();
+    console.log('📧 Ethereal fallback active (no RESEND_API_KEY):');
+    console.log('   Email:', etherealAccount.user);
+  }
+  etherealTransporter = nodemailer.createTransport({
+    host: etherealAccount.smtp.host,
+    port: etherealAccount.smtp.port,
+    secure: etherealAccount.smtp.secure,
+    auth: { user: etherealAccount.user, pass: etherealAccount.pass },
+  });
+  return etherealTransporter;
+}
 
 /**
  * Helper to get the correct base URL for links in emails.
@@ -106,293 +75,98 @@ interface EmailOptions {
   trackingClicks?: boolean;
 }
 
-export async function sendEmail({ to, subject, html, headers, trackingClicks, forceSmtp }: EmailOptions & { forceSmtp?: boolean }) {
-  // Validate links before sending to catch corruption early
-  const linkValidation = validateEmailLinks(html);
+export async function sendEmail({ to, subject, html }: EmailOptions & { forceSmtp?: boolean }) {
   const linkMatches = html.match(/href="([^"]+)"/g) || [];
   const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
 
-  // Log validation issues
+  const linkValidation = validateEmailLinks(html);
   if (!linkValidation.valid) {
     await logLinkValidation(to, linkValidation);
   }
 
-  // AUTO-DETECT: If the email contains a /claim/ link and tracking was not explicitly
-  // set by the caller, force tracking off as a safety net — Brevo wrapping /claim/ links
-  // breaks the one-time-use redemption flow.
-  if (claimLinkFound && trackingClicks === undefined) {
-    console.log(`[Email] /claim/ link detected — auto-disabling click tracking for: ${to}`);
-    trackingClicks = false;
-    forceSmtp = true;
+  const apiKey = env('RESEND_API_KEY');
+
+  if (!apiKey) {
+    console.warn('[Email] RESEND_API_KEY not set — using Ethereal preview (dev only)');
+    return sendEmailEthereal({ to, subject, html, linkMatches, claimLinkFound });
   }
 
-  // forceSmtp: send via SMTP relay with tracking headers (more reliable for header enforcement).
-  // Falls back to API if SMTP is not configured, but preserves trackingClicks intent.
-  if (forceSmtp) {
-    const smtpHost = env('SMTP_HOST');
-    const smtpUser = env('SMTP_USER');
-    const smtpPass = env('SMTP_PASS') || env('BREVO_SMTP_KEY');
-
-    if (smtpHost && smtpUser && smtpPass) {
-      // Ensure tracking is disabled for operator emails via SMTP
-      const finalHeaders = {
-        ...headers,
-        'X-Mailin-Track-Click': '0',
-        'X-Mailin-Track-Open': '0',
-        'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'operator-request',
-      };
-
-      console.log(`[Email] Sending via SMTP (forceSmtp=true, tracking disabled) to: ${to}`);
-      return sendEmailViaSMTP({ to, subject, html, headers: finalHeaders, trackingClicks: false });
-    }
-
-    // SMTP not configured — fall through to API path with tracking disabled
-    console.warn(`[Email] forceSmtp=true but SMTP not configured — falling back to API with trackingClicks:false`);
-    return sendEmailViaApi({ to, subject, html, headers, trackingClicks: false });
-  }
-
-  return sendEmailViaSMTP({ to, subject, html, headers, trackingClicks });
-}
-
-/**
- * Internal helper to send via SMTP relay.
- * Separated from sendEmail to allow forceSmtp routing with SMTP-only enforcement.
- */
-async function sendEmailViaSMTP({ to, subject, html, headers, trackingClicks }: EmailOptions) {
-  // For telemetry inside the SMTP path, we need linkMatches again
-  const linkMatches = html.match(/href="([^"]+)"/g) || [];
-  const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
+  console.log(`[Email/Resend] Sending to ${to}: "${subject}"`);
 
   try {
-    const transport = await getTransporter();
-    const transportOptions = transport.options as Record<string, unknown>;
-    const transportType = (typeof transportOptions?.host === 'string' && transportOptions.host.includes('ethereal')) ? 'ethereal' : 'brevo';
-
-    // Prepare headers with tracking control
-    const finalHeaders = {
-      ...headers,
-      // Default identification header for Sendinblue/Brevo
-      'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'transactional-email',
-      // Optional: Disable click tracking per email if explicitly requested (0 to disable, 1 to enable)
-      ...(trackingClicks !== undefined ? { 'X-Mailin-Track-Click': trackingClicks ? '1' : '0' } : {}),
-    };
-
-    const headerInspection = inspectBrevoHeaders(finalHeaders);
-
-    console.log(`
-📧 EMAIL SEND ATTEMPT
-To: ${to}
-Subject: ${subject}
-Transport: ${transportType}
-Links: ${linkMatches.length} found, Claim link: ${claimLinkFound}
-Tracking: ${headerInspection.trackingStatus}
-`);
-
-    const info = await transport.sendMail({
+    const { data, error } = await getResend().emails.send({
       from: FROM_EMAIL,
       to,
       subject,
       html,
-      headers: finalHeaders,
     });
 
-    const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
+    if (error) throw new Error(error.message);
 
-    // Log successful send
     await logEmailSend({
-      messageId: info.messageId,
+      messageId: data?.id,
       to,
       subject,
       linkCount: linkMatches.length,
       claimLinkFound,
       timestamp: new Date().toISOString(),
-      transportType: transportType as 'brevo' | 'ethereal' | 'test',
-      trackingDisabled: trackingClicks === false,
-      previewUrl,
+      transportType: 'resend',
+      trackingDisabled: true,
       status: 'sent',
-      brevoHeaders: finalHeaders,
     });
 
-    console.log('\n==============================================');
-    console.log(`✅ EMAIL SENT SUCCESSFULLY TO: ${to}`);
-    if (previewUrl) {
-      console.log('📧 CLICK THIS URL TO VIEW EMAIL:');
-      console.log(previewUrl);
-    } else {
-      console.log(`🆔 Message ID: ${info.messageId}`);
-    }
-    console.log('==============================================\n');
-
-    if (previewUrl) {
-      // Also write preview URLs to file for easy access in test mode
-      const fs = require('fs');
-      const path = require('path');
-      const logFile = path.join(process.cwd(), 'email-preview-urls.txt');
-      fs.appendFileSync(logFile, `${new Date().toISOString()} - ${to}\n${previewUrl}\n\n`);
-      console.log(`📝 URL also saved to: email-preview-urls.txt`);
-    }
-
-    return {
-      id: info.messageId,
-      previewUrl,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    // Log error
+    console.log(`✅ Email sent via Resend to ${to} (ID: ${data?.id})`);
+    return { id: data?.id, previewUrl: null };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     await logEmailSend({
       to,
       subject,
       linkCount: linkMatches.length,
       claimLinkFound,
       timestamp: new Date().toISOString(),
-      transportType: 'brevo',
-      trackingDisabled: trackingClicks === false,
+      transportType: 'resend',
       status: 'failed',
       error: errorMessage,
     });
-
-    console.error('Failed to send email via SMTP:', error);
-    // If SMTP fails, try API as a backup if we have a key.
-    // IMPORTANT: preserve trackingClicks intent — do not let fallback silently re-enable tracking.
-    const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
-    if (apiKey) {
-      console.log('🔄 Attempting API fallback after SMTP failure (preserving trackingClicks intent)...');
-      return sendEmailViaApi({ to, subject, html, headers, trackingClicks });
-    }
-    throw error;
+    console.error('💥 Resend email failure:', err);
+    throw err;
   }
 }
 
-/**
- * Sends a transactional email via Brevo REST API.
- * This is more reliable for link integrity and provides better tracking control.
- */
-export async function sendEmailViaApi({ to, subject, html, headers, trackingClicks }: EmailOptions) {
-  const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
-  
-  if (!apiKey) {
-    throw new Error('BREVO_API_KEY or BREVO_SMTP_KEY is required for API-based email.');
+async function sendEmailEthereal({
+  to, subject, html, linkMatches, claimLinkFound,
+}: EmailOptions & { linkMatches: RegExpMatchArray | string[]; claimLinkFound: boolean }) {
+  const transport = await getEtherealTransporter();
+  const info = await transport.sendMail({ from: FROM_EMAIL, to, subject, html });
+  const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
+
+  await logEmailSend({
+    messageId: info.messageId,
+    to,
+    subject,
+    linkCount: linkMatches.length,
+    claimLinkFound,
+    timestamp: new Date().toISOString(),
+    transportType: 'ethereal',
+    trackingDisabled: true,
+    previewUrl,
+    status: 'sent',
+  });
+
+  console.log('\n==============================================');
+  console.log(`✅ EMAIL SENT (Ethereal) TO: ${to}`);
+  if (previewUrl) {
+    console.log('📧 PREVIEW URL:', previewUrl);
+    const fs = require('fs');
+    const path = require('path');
+    fs.appendFileSync(
+      path.join(process.cwd(), 'email-preview-urls.txt'),
+      `${new Date().toISOString()} - ${to}\n${previewUrl}\n\n`
+    );
   }
-
-  // Validate links before sending
-  const linkValidation = validateEmailLinks(html);
-  const linkMatches = html.match(/href="([^"]+)"/g) || [];
-  const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
-
-  if (!linkValidation.valid) {
-    await logLinkValidation(to, linkValidation);
-  }
-
-  // Parse sender info
-  const fromMatch = FROM_EMAIL.match(/^(.*)\s+<(.*)>$/) || [null, 'Businto', 'noreply@businto.com'];
-  const senderName = fromMatch[1];
-  const senderEmail = fromMatch[2];
-
-  try {
-    const apiHeaders: Record<string, string> = {
-      ...headers,
-      'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'transactional-email',
-    };
-
-    // Add tracking control header for API
-    if (trackingClicks !== undefined) {
-      apiHeaders['X-Mailin-Track-Click'] = trackingClicks ? '1' : '0';
-    }
-
-    console.log(`[Email/API] Sending to ${to}: "${subject}" (tracking: ${trackingClicks ?? 'default'}, links: ${linkMatches.length})`);
-
-    // Build body — include trackingSettings when tracking must be disabled.
-    // NOTE: X-Mailin-Track-Click in `headers` is NOT honored by the Brevo v3 REST API;
-    // the only way to disable click tracking per-send via API is the trackingSettings field.
-    const body: Record<string, unknown> = {
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: to }],
-      subject: subject,
-      htmlContent: html,
-      headers: apiHeaders,
-    };
-
-    if (trackingClicks === false) {
-      body.trackingSettings = {
-        clickTracking: { enabled: false },
-        openTracking: { enabled: false },
-      };
-    }
-
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': apiKey,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    const data = await response.json();
-
-    // Log Brevo response details for debugging
-    console.log(`[Email/API] Brevo response status: ${response.status}`);
-    console.log(`[Email/API] Brevo response headers:`, {
-      'content-type': response.headers.get('content-type'),
-      'x-sib-id': response.headers.get('x-sib-id'),
-    });
-    console.log(`[Email/API] Brevo response body:`, JSON.stringify(data, null, 2).substring(0, 500));
-
-    if (!response.ok) {
-      console.error('❌ Brevo API Email Error:', data);
-      
-      await logBrevoError(
-        { message: data.message || 'API request failed', code: data.code || response.status, response: data },
-        { to, subject }
-      );
-      
-      throw new Error(data.message || 'Failed to send email via API');
-    }
-
-    // Log successful send with response metadata
-    await logEmailSend({
-      messageId: data.messageId,
-      to,
-      subject,
-      linkCount: linkMatches.length,
-      claimLinkFound,
-      timestamp: new Date().toISOString(),
-      transportType: 'brevo',
-      trackingDisabled: trackingClicks === false,
-      status: 'sent',
-      brevoHeaders: {
-        ...apiHeaders,
-        'message-id': data.messageId,
-      },
-    });
-
-    console.log(`✅ Email sent successfully via API to ${to} (ID: ${data.messageId})`);
-    
-    return {
-      id: data.messageId,
-      previewUrl: null,
-    };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    
-    // Log error
-    await logEmailSend({
-      to,
-      subject,
-      linkCount: linkMatches.length,
-      claimLinkFound,
-      timestamp: new Date().toISOString(),
-      transportType: 'brevo',
-      trackingDisabled: trackingClicks === false,
-      status: 'failed',
-      error: errorMessage,
-    });
-
-    console.error('💥 Email API failure:', error);
-    throw error;
-  }
+  console.log('==============================================\n');
+  return { id: info.messageId, previewUrl };
 }
 
 // Email Templates
@@ -457,14 +231,7 @@ export const emailTemplates = {
 
               <p>You'll receive an email when operators submit quotes. You can also check your live status for real-time updates.</p>
 
-              <a href="${data.claimLink || (data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
-        ? data.appBaseUrl
-        : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
-          ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
-          : data.appBaseUrl?.startsWith('http')
-            ? data.appBaseUrl
-            : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
-      }" class="button">View Live Status</a>
+              <a href="${data.claimLink || `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`}" class="button">View Live Status</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -522,14 +289,7 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.claimLink || (data.appBaseUrl?.startsWith('http') && (data.appBaseUrl.includes('?token=') || data.appBaseUrl.includes('&token=')))
-        ? data.appBaseUrl
-        : data.appBaseUrl?.startsWith('http') && !data.appBaseUrl.includes('/trips/')
-          ? `${data.appBaseUrl}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
-          : data.appBaseUrl?.startsWith('http')
-            ? data.appBaseUrl
-            : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`
-      }" class="button">View &amp; Accept Quote</a>
+              <a href="${data.claimLink || `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`}" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -903,12 +663,12 @@ export const emailTemplates = {
 
     const config = serviceConfig[data.serviceType as keyof typeof serviceConfig] || serviceConfig.school;
     const appBaseUrl = getAppBaseUrl(data.appBaseUrl);
-    
+
     // Resolve the effective link: prefer claimLink (short code), fall back to legacy token URL
     const effectiveClaimLink: string = data.claimLink
       || (data.accessToken
-          ? `${appBaseUrl}/quotes/submit?request_id=${data.requestId}&token=${data.accessToken}`
-          : '');
+        ? `${appBaseUrl}/quotes/submit?request_id=${data.requestId}&token=${data.accessToken}`
+        : '');
 
     console.log(`[Email/Template] Generating operatorNewRequest for ${data.operatorName}. effectiveLink: ${effectiveClaimLink}`);
 

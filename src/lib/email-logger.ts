@@ -18,7 +18,7 @@ export interface EmailSendLog {
   linkCount: number;
   claimLinkFound: boolean;
   timestamp: string;
-  transportType: 'brevo' | 'ethereal' | 'test';
+  transportType: 'resend' | 'ethereal' | 'test';
   trackingDisabled?: boolean;
   previewUrl?: string;
   status: 'pending' | 'sent' | 'failed';
@@ -96,8 +96,6 @@ export function validateEmailLinks(html: string): LinkValidationResult {
  * Logs email sending details to both console and event system
  */
 export async function logEmailSend(log: EmailSendLog): Promise<void> {
-  const timestamp = new Date(log.timestamp);
-
   console.log(`
 ┌─ EMAIL LOG ─────────────────────────────────────────────────────
 │ To: ${log.to}
