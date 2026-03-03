@@ -486,13 +486,13 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
         {/* Headline — above the grid so it doesn't offset the form/chat alignment */}
         {!user && (
-          <div className="mb-12 md:mb-16 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out flex flex-col items-center text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-neutral-900 mb-4 leading-[1.1] font-[family-name:var(--font-dm-sans)]">
-              Smarter routing for <br />
-              <span className="text-neutral-500 italic">private rides.</span>
+          <div className="mb-12 md:mb-16 flex flex-col items-center text-center max-w-3xl mx-auto">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-neutral-900 mb-6 leading-tight">
+              Professional transport <br />
+              management platform.
             </h1>
-            <p className="text-lg md:text-xl text-neutral-500 leading-relaxed font-medium max-w-xl">
-              School runs, medical transports, and full-day charters managed by one intelligent platform.
+            <p className="text-lg md:text-xl text-neutral-500 leading-relaxed max-w-2xl">
+              Coordinating school runs, medical transports, and specialized charters with a unified, intelligent marketplace.
             </p>
           </div>
         )}
@@ -503,54 +503,54 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
 
             <div className="animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both h-full">
-              <div className="bg-white rounded-xl p-7 md:p-10 shadow-none border border-neutral-200 relative transition-colors duration-150 h-full flex flex-col">
+              <div className="bg-white rounded-lg p-7 md:p-10 shadow-none border border-neutral-200 relative transition-colors duration-150 h-full flex flex-col">
 
                 <ServiceSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
-                <div className="mt-12 min-h-[120px] transition-all duration-300">
+                <div className="mt-12 min-h-[120px]">
                   {activeTab === "school" && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="space-y-6">
 
                       {/* Section: Locations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pickup Address</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Pickup Address</label>
                           <LocationInput
                             placeholder="Your home address..."
                             value={pickupZip}
                             onSelect={(addr) => setPickupZip(addr)}
-                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
-                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">School Name & Campus</label>
+                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">School Name & Campus</label>
                           <LocationInput
                             placeholder="e.g. Malden Catholic, Main Entrance..."
                             value={schoolName}
                             onSelect={(addr) => setSchoolName(addr)}
-                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                       </div>
 
                       {/* Section: Student Details */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
-                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Grade Level</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Grade Level</label>
                           <Select value={gradeLevel} onValueChange={setGradeLevel}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="k" className="rounded-md py-3 px-4 text-xs font-bold">Kindergarten</SelectItem>
-                              <SelectItem value="elem" className="rounded-md py-3 px-4 text-xs font-bold">Elementary 1–5</SelectItem>
-                              <SelectItem value="middle" className="rounded-md py-3 px-4 text-xs font-bold">Middle 6–8</SelectItem>
-                              <SelectItem value="high" className="rounded-md py-3 px-4 text-xs font-bold">High 9–12</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="k" className="text-sm font-medium">Kindergarten</SelectItem>
+                              <SelectItem value="elem" className="text-sm font-medium">Elementary 1–5</SelectItem>
+                              <SelectItem value="middle" className="text-sm font-medium">Middle 6–8</SelectItem>
+                              <SelectItem value="high" className="text-sm font-medium">High 9–12</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Age</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Age</label>
                           <Input
                             type="number"
                             placeholder="9"
@@ -558,39 +558,39 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             max="18"
                             value={studentAge}
                             onChange={(e) => setStudentAge(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Students</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Students</label>
                           <Input
                             type="number"
                             placeholder="1"
                             min="1"
                             value={studentCount}
                             onChange={(e) => setStudentCount(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Car Seat Needed</label>
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Car Seat Needed</label>
                           <Select value={boosterSeat} onValueChange={setBoosterSeat}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="none" className="rounded-md py-3 px-4 text-xs font-bold">None</SelectItem>
-                              <SelectItem value="booster" className="rounded-md py-3 px-4 text-xs font-bold">Booster Seat</SelectItem>
-                              <SelectItem value="forward-facing" className="rounded-md py-3 px-4 text-xs font-bold">Forward-Facing Seat</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="none" className="text-sm font-medium">None</SelectItem>
+                              <SelectItem value="booster" className="text-sm font-medium">Booster Seat</SelectItem>
+                              <SelectItem value="forward-facing" className="text-sm font-medium">Forward-Facing Seat</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
 
                       {/* Section: Route Schedule */}
-                      <div className="grid grid-cols-4 gap-3 pt-1">
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Frequency</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Frequency</label>
                           <Select
                             value={schoolRecurring}
                             onValueChange={(v) => {
@@ -601,67 +601,67 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               }
                             }}
                           >
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="one-time" className="rounded-md py-3 px-4 text-xs font-bold">One-Time</SelectItem>
-                              <SelectItem value="recurring" className="rounded-md py-3 px-4 text-xs font-bold">Recurring</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="one-time" className="text-sm font-medium">One-Time</SelectItem>
+                              <SelectItem value="recurring" className="text-sm font-medium">Recurring</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Start Date</label>
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Start Date</label>
                           <Input
                             type="date"
                             value={isImmediate ? new Date().toISOString().split('T')[0] : startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             disabled={isImmediate}
                             className={cn(
-                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                             )}
                           />
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">AM/PM</label>
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">AM/PM</label>
                           <Select value={scheduleType} onValueChange={setScheduleType}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="round-trip" className="rounded-md py-3 px-4 text-xs font-bold">Round Trip</SelectItem>
-                              <SelectItem value="am-only" className="rounded-md py-3 px-4 text-xs font-bold">AM Only</SelectItem>
-                              <SelectItem value="pm-only" className="rounded-md py-3 px-4 text-xs font-bold">PM Only</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="round-trip" className="text-sm font-medium">Round Trip</SelectItem>
+                              <SelectItem value="am-only" className="text-sm font-medium">AM Only</SelectItem>
+                              <SelectItem value="pm-only" className="text-sm font-medium">PM Only</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         {(scheduleType === 'round-trip' || scheduleType === 'am-only') && (
-                          <div className="col-span-1 space-y-2">
-                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Bell Time</label>
+                          <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 ml-1">Bell Time</label>
                             <Input
                               type="time"
                               value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : (schoolStartTime || amTime)}
                               onChange={(e) => { setSchoolStartTime(e.target.value); setAmTime(e.target.value); }}
                               disabled={isImmediate}
                               className={cn(
-                                "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
-                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                                "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                               )}
                             />
                           </div>
                         )}
                         {(scheduleType === 'round-trip' || scheduleType === 'pm-only') && (
-                          <div className="col-span-1 space-y-2">
-                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Dismissal Time</label>
+                          <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 ml-1">Dismissal Time</label>
                             <Input
                               type="time"
                               value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : (schoolDismissalTime || pmTime)}
                               onChange={(e) => { setSchoolDismissalTime(e.target.value); setPmTime(e.target.value); }}
                               disabled={isImmediate}
                               className={cn(
-                                "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
-                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                                "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                               )}
                             />
                           </div>
@@ -670,8 +670,8 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
                       {/* Days of Week - only for recurring */}
                       {schoolRecurring === 'recurring' && (
-                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Days of the Week</label>
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Days of the Week</label>
                           <div className="flex gap-2">
                             {(['M', 'T', 'W', 'Th', 'F'] as const).map((day) => (
                               <button
@@ -680,8 +680,8 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                                 onClick={() => setSelectedDays(prev =>
                                   prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
                                 )}
-                                className={`h-9 w-9 rounded-lg text-[10px] font-black border transition-all duration-150 ${selectedDays.includes(day)
-                                  ? 'bg-amber-500 border-amber-500 text-white'
+                                className={`h-9 w-9 rounded-md text-[10px] font-bold border transition-colors duration-150 duration-150 ${selectedDays.includes(day)
+                                  ? 'bg-neutral-900 border-neutral-900 text-white'
                                   : 'bg-white border-neutral-200 text-neutral-400 hover:border-neutral-300'
                                   }`}
                               >
@@ -696,7 +696,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                         {schoolRecurring === 'recurring' && (
                           <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
                               End Date
                               <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
                             </label>
@@ -712,91 +712,86 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Section: Guardian & Security */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
 
-                        <div className="col-span-1 sm:col-span-2 md:col-span-4 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-4 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">
                             Parent's Name
-                            <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                            <span className="ml-1 text-[10px] font-normal text-neutral-400 italic">(optional)</span>
                           </label>
                           <Input
                             type="text"
-                            placeholder="Parent Name"
+                            placeholder="Full Name"
                             value={authorizedPickups}
                             onChange={(e) => setAuthorizedPickups(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">
                             Phone Number
-                            <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                            <span className="ml-1 text-[10px] font-normal text-neutral-400 italic">(optional)</span>
                           </label>
                           <Input
                             type="tel"
                             placeholder="555-000-0000"
                             value={guardianPhone}
                             onChange={(e) => setGuardianPhone(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
                       </div>
 
                       {/* Checkboxes Row */}
-                      <div className="flex flex-wrap gap-6 px-1 pt-1">
+                      <div className="flex flex-wrap gap-6 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={specialNeeds}
                             onChange={(e) => setSpecialNeeds(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                           />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Special Needs / IEP</span>
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Special Needs / IEP</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={noAdultRelease}
                             onChange={(e) => setNoAdultRelease(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                           />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">No-Adult Release OK</span>
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">No-Adult Release OK</span>
                         </label>
                         <label className={cn(
-                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border transition-all duration-200",
-                          isImmediate ? "bg-amber-50 border-amber-500 shadow-md ring-1 ring-amber-200" : "border-neutral-200 hover:bg-neutral-50"
+                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-md border transition-colors duration-150",
+                          isImmediate ? "bg-amber-50 border-amber-200" : "border-neutral-200 hover:bg-neutral-50"
                         )}>
                           <input
                             type="checkbox"
                             checked={isImmediate}
                             onChange={(e) => setIsImmediate(e.target.checked)}
-                            className={cn(
-                              "w-4 h-4 rounded border-neutral-300 text-amber-500 focus:ring-amber-500",
-                              isImmediate && "animate-pulse"
-                            )}
+                            className="w-4 h-4 rounded border-neutral-300 text-amber-600 focus:ring-amber-500"
                           />
                           <span className={cn(
-                            "text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
-                            isImmediate ? "text-amber-600 italic" : "text-neutral-500 group-hover:text-neutral-900"
+                            "text-sm font-semibold transition-colors",
+                            isImmediate ? "text-amber-700" : "text-neutral-500 group-hover:text-neutral-900"
                           )}>ASAP / Immediate Request</span>
                         </label>
                       </div>
 
                       {/* Note */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                        <div className="col-span-2 sm:col-span-4 md:col-span-6 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
-                            Additional Note
-                            <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
-                          </label>
-                          <Input
-                            type="text"
-                            placeholder={`"Child is shy, please wait at the front porch."`}
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
+                      <div className="space-y-1.5 pt-2">
+                        <label className="text-xs font-medium text-neutral-500 ml-1">
+                          Additional Note
+                          <span className="ml-1 text-[10px] font-normal text-neutral-400 italic">(optional)</span>
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder={`"Child is shy, please wait at the front porch."`}
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
+                        />
                       </div>
 
                     </div>
@@ -804,124 +799,124 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
 
                   {activeTab === "medical" && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="space-y-6">
                       {/* Row 1: Locations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                        <div className="col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pickup Location</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Pickup Location</label>
                           <LocationInput
                             placeholder="Home, hospice, etc..."
                             value={pickupLocation}
                             onSelect={(addr) => setPickupLocation(addr)}
-                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
-                        <div className="col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Dropoff Location</label>
+                        <div className="col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Dropoff Location</label>
                           <LocationInput
                             placeholder="Hospital or clinic..."
                             value={dropoffLocation}
                             onSelect={(addr) => setDropoffLocation(addr)}
-                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                       </div>
                       {/* Row 2: Mobility & Service Details */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                        <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Access Type</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Access Type</label>
                           <Select value={mobilityLevel} onValueChange={setMobilityLevel}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="ambulatory" className="rounded-md py-3 px-4 text-xs font-bold">Ambulatory</SelectItem>
-                              <SelectItem value="manual-wheelchair" className="rounded-md py-3 px-4 text-xs font-bold">Manual Wheelchair</SelectItem>
-                              <SelectItem value="electric-wheelchair" className="rounded-md py-3 px-4 text-xs font-bold">Electric Wheelchair</SelectItem>
-                              <SelectItem value="stretcher" className="rounded-md py-3 px-4 text-xs font-bold">Stretcher</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="ambulatory" className="text-sm font-medium">Ambulatory</SelectItem>
+                              <SelectItem value="manual-wheelchair" className="text-sm font-medium">Manual Wheelchair</SelectItem>
+                              <SelectItem value="electric-wheelchair" className="text-sm font-medium">Electric Wheelchair</SelectItem>
+                              <SelectItem value="stretcher" className="text-sm font-medium">Stretcher</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Service Level</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Service Level</label>
                           <Select value={serviceLevel} onValueChange={setServiceLevel}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="curb-to-curb" className="rounded-md py-3 px-4 text-xs font-bold">Curb-to-Curb</SelectItem>
-                              <SelectItem value="door-to-door" className="rounded-md py-3 px-4 text-xs font-bold">Door-to-Door</SelectItem>
-                              <SelectItem value="hand-to-hand" className="rounded-md py-3 px-4 text-xs font-bold">Hand-to-Hand</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="curb-to-curb" className="text-sm font-medium">Curb-to-Curb</SelectItem>
+                              <SelectItem value="door-to-door" className="text-sm font-medium">Door-to-Door</SelectItem>
+                              <SelectItem value="hand-to-hand" className="text-sm font-medium">Hand-to-Hand</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-2 sm:col-span-2 md:col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Facility (Room/Suite)</label>
+                        <div className="col-span-2 sm:col-span-2 md:col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Facility (Room/Suite)</label>
                           <Input
                             placeholder="Room #, Suite, Wing..."
                             value={facilityDetails}
                             onChange={(e) => setFacilityDetails(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
                       </div>
 
-                      {/* Row 2b: Trip details — equal width 4-col grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Trip Type</label>
+                      {/* Row 2b: Trip details */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Trip Type</label>
                           <Select value={tripType} onValueChange={setTripType}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="one-way" className="rounded-md py-3 px-4 text-xs font-bold">One-Way</SelectItem>
-                              <SelectItem value="round-trip" className="rounded-md py-3 px-4 text-xs font-bold">Round Trip</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="one-way" className="text-sm font-medium">One-Way</SelectItem>
+                              <SelectItem value="round-trip" className="text-sm font-medium">Round Trip</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         {tripType === 'round-trip' && (
                           <>
-                            <div className="col-span-1 space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                              <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Return Status</label>
+                            <div className="col-span-1 space-y-1.5">
+                              <label className="text-xs font-medium text-neutral-500 ml-1">Return Status</label>
                               <Select value={returnStatus} onValueChange={setReturnStatus}>
-                                <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                                <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                                   <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                                  <SelectItem value="fixed" className="rounded-md py-3 px-4 text-xs font-bold">Fixed Time</SelectItem>
-                                  <SelectItem value="will-call" className="rounded-md py-3 px-4 text-xs font-bold">Will-Call</SelectItem>
+                                <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                                  <SelectItem value="fixed" className="text-sm font-medium">Fixed Time</SelectItem>
+                                  <SelectItem value="will-call" className="text-sm font-medium">Will-Call</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
                             {returnStatus === 'fixed' && (
-                              <div className="col-span-1 space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                                <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Return Time</label>
+                              <div className="col-span-1 space-y-1.5">
+                                <label className="text-xs font-medium text-neutral-500 ml-1">Return Time</label>
                                 <Input
                                   type="time"
                                   value={medicalReturnTime}
                                   onChange={(e) => setMedicalReturnTime(e.target.value)}
-                                  className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                                  className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium"
                                 />
                               </div>
                             )}
                           </>
                         )}
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Stairs</label>
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Stairs</label>
                           <Select value={stairFactor} onValueChange={setStairFactor}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="none" className="rounded-md py-3 px-4 text-xs font-bold">No Stairs</SelectItem>
-                              <SelectItem value="1-5" className="rounded-md py-3 px-4 text-xs font-bold">1-5 Stairs</SelectItem>
-                              <SelectItem value="flight" className="rounded-md py-3 px-4 text-xs font-bold">Full Flight</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="none" className="text-sm font-medium">No Stairs</SelectItem>
+                              <SelectItem value="1-5" className="text-sm font-medium">1-5 Stairs</SelectItem>
+                              <SelectItem value="flight" className="text-sm font-medium">Full Flight</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Service Type</label>
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Service Type</label>
                           <Select
                             value={medicalDurationType}
                             onValueChange={(v) => {
@@ -934,144 +929,141 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               }
                             }}
                           >
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="one-time" className="rounded-md py-3 px-4 text-xs font-bold">One-Time</SelectItem>
-                              <SelectItem value="recurring" className="rounded-md py-3 px-4 text-xs font-bold">Recurring</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="one-time" className="text-sm font-medium">One-Time</SelectItem>
+                              <SelectItem value="recurring" className="text-sm font-medium">Recurring</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Addl. Passeng.</label>
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Addl. Passeng.</label>
                           <Input
                             type="number"
                             min="0"
                             placeholder="0"
                             value={additionalPassengers}
                             onChange={(e) => setAdditionalPassengers(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
                       </div>
 
                       {/* Toggles Row */}
-                      <div className="flex flex-wrap gap-6 px-1 pt-1">
+                      <div className="flex flex-wrap gap-6 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={oxygenUse}
                             onChange={(e) => setOxygenUse(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                           />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Oxygen Use</span>
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Oxygen Use</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={isBariatric}
                             onChange={(e) => setIsBariatric(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                           />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Bariatric</span>
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Bariatric</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={serviceAnimal}
                             onChange={(e) => setServiceAnimal(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
                           />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Service Animal</span>
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Service Animal</span>
                         </label>
                         <label className={cn(
-                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border transition-all duration-200",
-                          isImmediate ? "bg-sky-50 border-sky-500 shadow-md ring-1 ring-sky-200" : "border-neutral-200 hover:bg-neutral-50"
+                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-md border transition-colors duration-150",
+                          isImmediate ? "bg-sky-50 border-sky-200" : "border-neutral-200 hover:bg-neutral-50"
                         )}>
                           <input
                             type="checkbox"
                             checked={isImmediate}
                             onChange={(e) => setIsImmediate(e.target.checked)}
-                            className={cn(
-                              "w-4 h-4 rounded border-neutral-300 text-sky-500 focus:ring-sky-500",
-                              isImmediate && "animate-pulse"
-                            )}
+                            className="w-4 h-4 rounded border-neutral-300 text-sky-600 focus:ring-sky-500"
                           />
                           <span className={cn(
-                            "text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
-                            isImmediate ? "text-sky-600 italic" : "text-neutral-500 group-hover:text-neutral-900"
+                            "text-sm font-semibold transition-colors",
+                            isImmediate ? "text-sky-700" : "text-neutral-500 group-hover:text-neutral-900"
                           )}>ASAP / Immediate Request</span>
                         </label>
                       </div>
 
                       {/* Row 3: Times & Dates */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-1">
-                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Appt Time</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 pt-2">
+                        <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Appt Time</label>
                           <Input
                             type="time"
                             value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : appointmentTime}
                             onChange={(e) => setAppointmentTime(e.target.value)}
                             disabled={isImmediate}
                             className={cn(
-                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                             )}
                           />
                         </div>
                         {medicalDurationType === "recurring" ? (
                           <>
-                            <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                              <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Start Date</label>
+                            <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
+                              <label className="text-xs font-medium text-neutral-500 ml-1">Start Date</label>
                               <Input
                                 type="date"
                                 value={isImmediate ? new Date().toISOString().split('T')[0] : medicalStartDate}
                                 onChange={(e) => setMedicalStartDate(e.target.value)}
                                 disabled={isImmediate}
                                 className={cn(
-                                  "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
-                                  isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                                  "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                                  isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                                 )}
                               />
                             </div>
-                            <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                              <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                            <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
+                              <label className="text-xs font-medium text-neutral-500 ml-1">
                                 End Date
-                                <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
+                                <span className="ml-1 text-[10px] font-normal text-neutral-400 italic">(optional)</span>
                               </label>
                               <Input
                                 type="date"
                                 value={medicalEndDate}
                                 min={medicalStartDate || undefined}
                                 onChange={(e) => setMedicalEndDate(e.target.value)}
-                                className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                                className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium"
                               />
                             </div>
                           </>
                         ) : (
-                          <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2">
-                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Appt Date</label>
+                          <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 ml-1">Appt Date</label>
                             <Input
                               type="date"
                               value={isImmediate ? new Date().toISOString().split('T')[0] : appointmentDate}
                               onChange={(e) => setAppointmentDate(e.target.value)}
                               disabled={isImmediate}
                               className={cn(
-                                "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
-                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                                "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                               )}
                             />
                           </div>
                         )}
                         {medicalDurationType === "custom" && (
-                          <div className="col-span-2 space-y-2">
-                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pick Dates</label>
+                          <div className="col-span-2 space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 ml-1">Pick Dates</label>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold justify-start transition-colors duration-150 hover:bg-white"
+                                  className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-neutral-50"
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {medicalCustomDates.length > 0 ? `${medicalCustomDates.length} dates` : "Select"}
@@ -1091,9 +1083,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Row 4: Requester Info */}
-                      <div className="grid grid-cols-2 gap-3 pb-2 pt-2 border-t">
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                      <div className="grid grid-cols-2 gap-4 pb-2 pt-4 border-t">
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">
                             Requester Name
                           </label>
                           <Input
@@ -1101,11 +1093,11 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="Your Name"
                             value={medicalContactName}
                             onChange={(e) => setMedicalContactName(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">
                             Phone Number
                           </label>
                           <Input
@@ -1113,271 +1105,266 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="555-000-0000"
                             value={medicalContactPhone}
                             onChange={(e) => setMedicalContactPhone(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
                       </div>
 
                       {/* Row 5: Note */}
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
-                            Additional Note <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
-                          </label>
-                          <Input
-                            type="text"
-                            placeholder="Any special requirements or instructions..."
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-neutral-500 ml-1">
+                          Additional Note
+                          <span className="ml-1 text-[10px] font-normal text-neutral-400 italic">(optional)</span>
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder="Any special requirements or instructions..."
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
+                        />
                       </div>
                     </div>
                   )}
 
                   {activeTab === "wedding" && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                    <div className="space-y-6">
                       {/* Row 1: Category & Basic Info */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                        <div className="col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Event Category</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Event Category</label>
                           <Select value={eventCategory} onValueChange={setEventCategory}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="wedding" className="rounded-md py-3 px-4 font-bold">Wedding</SelectItem>
-                              <SelectItem value="corporate" className="rounded-md py-3 px-4 font-bold">Corporate Event</SelectItem>
-                              <SelectItem value="party" className="rounded-md py-3 px-4 font-bold">Private Party</SelectItem>
-                              <SelectItem value="other" className="rounded-md py-3 px-4 font-bold">Other</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="wedding" className="text-sm font-medium">Wedding</SelectItem>
+                              <SelectItem value="corporate" className="text-sm font-medium">Corporate Event</SelectItem>
+                              <SelectItem value="party" className="text-sm font-medium">Private Party</SelectItem>
+                              <SelectItem value="other" className="text-sm font-medium">Other</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Guests</label>
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Guests</label>
                           <Input
                             type="number"
                             placeholder="0"
                             min="1"
                             value={guestCount}
                             onChange={(e) => setGuestCount(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-1 sm:col-span-1 md:col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Vehicle Preference</label>
+                        <div className="col-span-1 sm:col-span-1 md:col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Vehicle Preference</label>
                           <Select value={vehicleStyle} onValueChange={setVehicleStyle}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="school-bus" className="rounded-md py-3 px-4 font-bold">School Bus (Budget Hack)</SelectItem>
-                              <SelectItem value="shuttle" className="rounded-md py-3 px-4 font-bold">Executive Shuttle/Sprinter</SelectItem>
-                              <SelectItem value="coach" className="rounded-md py-3 px-4 font-bold">Motor Coach (55+ Pax)</SelectItem>
-                              <SelectItem value="limo" className="rounded-md py-3 px-4 font-bold">Limousine / Luxury Van</SelectItem>
-                              <SelectItem value="party-bus" className="rounded-md py-3 px-4 font-bold">Party Bus</SelectItem>
-                              <SelectItem value="vintage" className="rounded-md py-3 px-4 font-bold">Vintage / Classic</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="school-bus" className="text-sm font-medium">School Bus (Budget Hack)</SelectItem>
+                              <SelectItem value="shuttle" className="text-sm font-medium">Executive Shuttle/Sprinter</SelectItem>
+                              <SelectItem value="coach" className="text-sm font-medium">Motor Coach (55+ Pax)</SelectItem>
+                              <SelectItem value="limo" className="text-sm font-medium">Limousine / Luxury Van</SelectItem>
+                              <SelectItem value="party-bus" className="text-sm font-medium">Party Bus</SelectItem>
+                              <SelectItem value="vintage" className="text-sm font-medium">Vintage / Classic</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
 
                       {/* Row 2: Locations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                        <div className="col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Pickup (e.g. Hotel)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Pickup (e.g. Hotel)</label>
                           <LocationInput
                             placeholder="Hotel or starting point..."
                             value={hotelZip}
                             onSelect={(addr) => setHotelZip(addr)}
-                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
-                        <div className="col-span-3 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Venue Location</label>
+                        <div className="col-span-3 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Venue Location</label>
                           <LocationInput
                             placeholder="Event venue..."
                             value={venueZip}
                             onSelect={(addr) => setVenueZip(addr)}
-                            className="h-10 rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                       </div>
 
-                      {/* Row 3a: Logistics — Shuttle Mode + Itinerary Type + Event Date */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Shuttle Mode</label>
+                      {/* Row 3a: Logistics */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Shuttle Mode</label>
                           <Select value={shuttleMode} onValueChange={setShuttleMode}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="single-trip" className="rounded-md py-3 px-4 font-bold">Single Trip (Drop & Leave)</SelectItem>
-                              <SelectItem value="continuous" className="rounded-md py-3 px-4 font-bold">Continuous Loop (2-3 hrs)</SelectItem>
-                              <SelectItem value="end-of-night" className="rounded-md py-3 px-4 font-bold">End-of-Night Return Trip</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="single-trip" className="text-sm font-medium">Single Trip (Drop & Leave)</SelectItem>
+                              <SelectItem value="continuous" className="text-sm font-medium">Continuous Loop (2-3 hrs)</SelectItem>
+                              <SelectItem value="end-of-night" className="text-sm font-medium">End-of-Night Return Trip</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Itinerary Type</label>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Itinerary Type</label>
                           <Select value={itineraryType} onValueChange={setItineraryType}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="hotel-to-venue" className="rounded-md py-3 px-4 font-bold">Hotel → Venue</SelectItem>
-                              <SelectItem value="venue-to-hotel" className="rounded-md py-3 px-4 font-bold">Venue → Hotel</SelectItem>
-                              <SelectItem value="shuttle-service" className="rounded-md py-3 px-4 font-bold">Shuttle Loop</SelectItem>
-                              <SelectItem value="full-day" className="rounded-md py-3 px-4 font-bold">Full Day Charter</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="hotel-to-venue" className="text-sm font-medium">Hotel → Venue</SelectItem>
+                              <SelectItem value="venue-to-hotel" className="text-sm font-medium">Venue → Hotel</SelectItem>
+                              <SelectItem value="shuttle-service" className="text-sm font-medium">Shuttle Loop</SelectItem>
+                              <SelectItem value="full-day" className="text-sm font-medium">Full Day Charter</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         {(itineraryType === 'shuttle-service' || itineraryType === 'full-day') && (
-                          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                            <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Return Time</label>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 ml-1">Return Time</label>
                             <Input
                               type="time"
                               value={weddingReturnTime}
                               onChange={(e) => setWeddingReturnTime(e.target.value)}
-                              className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0"
+                              className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium"
                             />
                           </div>
                         )}
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Event Date</label>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Event Date</label>
                           <Input
                             type="date"
                             value={isImmediate ? new Date().toISOString().split('T')[0] : eventDate}
                             onChange={(e) => setEventDate(e.target.value)}
                             disabled={isImmediate}
                             className={cn(
-                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                             )}
                           />
                         </div>
                       </div>
 
                       {/* Row 3b: Departs + Ceremony */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Departs</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Departs</label>
                           <Input
                             type="time"
                             value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : pickupTime}
                             onChange={(e) => setPickupTime(e.target.value)}
                             disabled={isImmediate}
                             className={cn(
-                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                             )}
                           />
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Ceremony</label>
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Ceremony</label>
                           <Input
                             type="time"
                             value={isImmediate ? new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : eventStartTime}
                             onChange={(e) => setEventStartTime(e.target.value)}
                             disabled={isImmediate}
                             className={cn(
-                              "h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-3 py-0 text-xs text-neutral-900 font-semibold transition-colors duration-150 focus:bg-white focus:border-neutral-300 [&::-webkit-datetime-edit]:py-0 [&::-webkit-datetime-edit-fields-wrapper]:py-0",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50"
+                              "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
+                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
                             )}
                           />
                         </div>
                       </div>
 
                       {/* Row 4: Coordinator & Extras */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Planner Name</label>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Planner Name</label>
                           <Input
                             placeholder="Name..."
                             value={dayOfContactName}
                             onChange={(e) => setDayOfContactName(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-1 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Contact</label>
+                        <div className="col-span-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Contact</label>
                           <Input
                             placeholder="555-000-0000"
                             value={dayOfContactPhone}
                             onChange={(e) => setDayOfContactPhone(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
+                            className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
-                        <div className="col-span-2 space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">Duration/Type</label>
+                        <div className="col-span-2 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500 ml-1">Duration/Type</label>
                           <Select value={eventDurationType} onValueChange={setEventDurationType}>
-                            <SelectTrigger className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus:ring-0 px-3 text-xs text-neutral-900 font-semibold overflow-hidden transition-colors duration-150 focus:bg-white focus:border-neutral-300">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
-                            <SelectContent className="rounded-lg border-neutral-100 shadow-sm p-2">
-                              <SelectItem value="single-day" className="rounded-md py-3 px-4 font-bold">Single Day</SelectItem>
-                              <SelectItem value="multi-day" className="rounded-md py-3 px-4 font-bold">Multi-Day Event</SelectItem>
-                              <SelectItem value="weekend" className="rounded-md py-3 px-4 font-bold">Full Weekend</SelectItem>
-                              <SelectItem value="custom" className="rounded-md py-3 px-4 font-bold">Custom Dates</SelectItem>
+                            <SelectContent className="rounded-md border-neutral-200 shadow-lg">
+                              <SelectItem value="single-day" className="text-sm font-medium">Single Day</SelectItem>
+                              <SelectItem value="multi-day" className="text-sm font-medium">Multi-Day Event</SelectItem>
+                              <SelectItem value="weekend" className="text-sm font-medium">Full Weekend</SelectItem>
+                              <SelectItem value="custom" className="text-sm font-medium">Custom Dates</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </div>
 
                       {/* Row 5: Amenities Toggles */}
-                      <div className="flex flex-wrap gap-5 px-1 pt-1">
+                      <div className="flex flex-wrap gap-6 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={alcoholAllowed} onChange={(e) => setAlcoholAllowed(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Alcohol OK</span>
+                          <input type="checkbox" checked={alcoholAllowed} onChange={(e) => setAlcoholAllowed(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Alcohol OK</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={refreshmentsProvided} onChange={(e) => setRefreshmentsProvided(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Refreshments</span>
+                          <input type="checkbox" checked={refreshmentsProvided} onChange={(e) => setRefreshmentsProvided(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Refreshments</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={avNeeds} onChange={(e) => setAvNeeds(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Bluetooth/AUX</span>
+                          <input type="checkbox" checked={avNeeds} onChange={(e) => setAvNeeds(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Bluetooth/AUX</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={specialDecor} onChange={(e) => setSpecialDecor(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500" />
-                          <span className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.15em] group-hover:text-neutral-900 transition-colors">Decorations</span>
+                          <input type="checkbox" checked={specialDecor} onChange={(e) => setSpecialDecor(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Decorations</span>
                         </label>
                         <label className={cn(
-                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border transition-all duration-200",
-                          isImmediate ? "bg-indigo-50 border-indigo-500 shadow-md ring-1 ring-indigo-200" : "border-neutral-200 hover:bg-neutral-50"
+                          "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-md border transition-colors duration-150",
+                          isImmediate ? "bg-violet-50 border-violet-200" : "border-neutral-200 hover:bg-neutral-50"
                         )}>
                           <input
                             type="checkbox"
                             checked={isImmediate}
                             onChange={(e) => setIsImmediate(e.target.checked)}
-                            className={cn(
-                              "w-4 h-4 rounded border-neutral-300 text-indigo-500 focus:ring-indigo-500",
-                              isImmediate && "animate-pulse"
-                            )}
+                            className="w-4 h-4 rounded border-neutral-300 text-violet-600 focus:ring-violet-500"
                           />
                           <span className={cn(
-                            "text-[10px] font-black uppercase tracking-[0.15em] transition-colors",
-                            isImmediate ? "text-indigo-600 italic" : "text-neutral-500 group-hover:text-neutral-900"
+                            "text-sm font-semibold transition-colors",
+                            isImmediate ? "text-violet-700" : "text-neutral-500 group-hover:text-neutral-900"
                           )}>ASAP / Immediate Request</span>
                         </label>
                       </div>
 
                       {/* Row 4: Note */}
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
-                            Additional Note <span className="ml-1 text-[8px] font-medium text-neutral-400 normal-case tracking-normal">(optional)</span>
-                          </label>
-                          <Input
-                            type="text"
-                            placeholder="Any special requirements or instructions..."
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                            className="h-10 w-full rounded-lg bg-white border border-neutral-200 focus-visible:ring-0 px-4 text-xs text-neutral-900 font-semibold placeholder:text-neutral-400 transition-colors duration-150 focus:bg-white focus:border-neutral-300"
-                          />
-                        </div>
+                      <div className="space-y-1.5 pt-2">
+                        <label className="text-xs font-medium text-neutral-500 ml-1">
+                          Additional Note
+                          <span className="ml-1 text-[10px] font-normal text-neutral-400 italic">(optional)</span>
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder="Any special requirements or instructions..."
+                          value={note}
+                          onChange={(e) => setNote(e.target.value)}
+                          className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
+                        />
                       </div>
                     </div>
                   )}
@@ -1410,9 +1397,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       onClick={handleSubmit}
                       disabled={isSubmitting}
                       size="lg"
-                      className={`w-full h-10 rounded-md text-white transition-colors duration-150 shadow-sm font-semibold text-base relative overflow-hidden ${cta.color} disabled:opacity-50 disabled:cursor-not-allowed`}
+                      className={`w-full h-10 rounded-md text-white transition-colors duration-150 shadow-sm font-semibold text-base ${cta.color} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      <span className="relative z-10 flex items-center justify-center gap-3">
+                      <span className="flex items-center justify-center gap-3">
                         {isSubmitting ? (
                           <>
                             <Loader2 className="h-5 w-5 animate-spin" />
@@ -1427,33 +1414,28 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </span>
                     </Button>
                   ) : (
-                    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
-                      <div className="bg-neutral-900 rounded-lg overflow-hidden text-white shadow-sm relative">
-                        <div className="absolute top-0 right-0 p-8 opacity-10">
-                          {activeTab === 'school' && <Bus className="w-32 h-32" />}
-                          {activeTab === 'medical' && <HeartPulse className="w-32 h-32" />}
-                          {activeTab === 'wedding' && <Gem className="w-32 h-32" />}
-                        </div>
+                    <div className="space-y-6">
+                      <div className="bg-neutral-900 rounded-lg overflow-hidden text-white shadow-lg relative">
                         <div className="p-8 space-y-6 relative z-10">
                           <div className="flex justify-between items-start">
                             <div className="space-y-1">
                               <div className={cn(
-                                "text-[10px] font-black uppercase tracking-[0.2em]",
+                                "text-[10px] font-bold uppercase tracking-wider",
                                 activeTab === 'school' && "text-amber-500",
                                 activeTab === 'medical' && "text-sky-400",
-                                activeTab === 'wedding' && "text-indigo-400"
+                                activeTab === 'wedding' && "text-violet-400"
                               )}>
-                                Request #{submittedData?.id?.slice(0, 6)}
+                                Request ID: {submittedData?.id?.slice(0, 8).toUpperCase()}
                               </div>
                               <h3 className="text-2xl font-semibold tracking-tight">
                                 {submittedData?.matched_operators_count === 0 ? "Under Review" : "Trip Submitted!"}
                               </h3>
                             </div>
                             <div className={cn(
-                              "h-12 w-12 rounded-full flex items-center justify-center shadow-lg",
+                              "h-12 w-12 rounded-full flex items-center justify-center shadow-sm",
                               submittedData?.matched_operators_count === 0
-                                ? "bg-amber-500 shadow-amber-500/20"
-                                : "bg-green-500 shadow-green-500/20"
+                                ? "bg-amber-500"
+                                : "bg-green-600"
                             )}>
                               {submittedData?.matched_operators_count === 0 ? (
                                 <AlertCircle className="h-6 w-6 text-white" />
@@ -1462,80 +1444,72 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               )}
                             </div>
                           </div>
-                          <p className="text-neutral-400 text-sm">
+                          <p className="text-neutral-400 text-sm leading-relaxed">
                             {submittedData?.matched_operators_count === 0 ? (
                               <>
                                 We couldn't find operators matching your strict requirements (e.g., Immediate or Stretcher).{" "}
-                                <span className="text-white block mt-2">Our team has been notified to manually handle this specialized request. You won't be charged priority fees yet.</span>
+                                <span className="text-white block mt-2 font-medium">Our team has been notified to manually handle this specialized request. You won't be charged priority fees yet.</span>
                               </>
                             ) : (
-                              "Broadcasting to 50+ local operators. You'll be notified when quotes arrive."
+                              "Broadcasting to our network of local operators. You'll receive quotes in your dashboard and via email shortly."
                             )}
                           </p>
-                          {activeTab === 'medical' && (
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              {mobilityLevel && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">{mobilityLevel}</Badge>}
-                              {oxygenUse && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Oxygen</Badge>}
-                              {isBariatric && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Bariatric</Badge>}
-                              {serviceAnimal && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Service Animal</Badge>}
-                              {isImmediate && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">Immediate</Badge>}
-                              {parseInt(additionalPassengers) > 0 && <Badge variant="outline" className="text-[9px] border-sky-500/30 text-sky-400 bg-sky-500/5 uppercase tracking-wider">+{additionalPassengers} Passengers</Badge>}
-                            </div>
-                          )}
-                          {activeTab === 'school' && (
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              {specialNeeds && <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 uppercase tracking-wider">Special Needs</Badge>}
-                              {noAdultRelease && <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 uppercase tracking-wider">No-Adult Release</Badge>}
-                              {isImmediate && <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-500/5 uppercase tracking-wider">Immediate</Badge>}
-                            </div>
-                          )}
-                          {activeTab === 'wedding' && (
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              {alcoholAllowed && <Badge variant="outline" className="text-[9px] border-indigo-500/30 text-indigo-400 bg-indigo-500/5 uppercase tracking-wider">Alcohol OK</Badge>}
-                              {isImmediate && <Badge variant="outline" className="text-[9px] border-indigo-500/30 text-indigo-400 bg-indigo-500/5 uppercase tracking-wider">Immediate</Badge>}
-                            </div>
-                          )}
+                          
+                          <div className="flex flex-wrap gap-2">
+                            {activeTab === 'medical' && (
+                              <>
+                                {mobilityLevel && <Badge variant="outline" className="text-[10px] border-sky-500/30 text-sky-400 bg-sky-500/10 font-medium capitalize">{mobilityLevel}</Badge>}
+                                {oxygenUse && <Badge variant="outline" className="text-[10px] border-sky-500/30 text-sky-400 bg-sky-500/10 font-medium">Oxygen</Badge>}
+                                {isBariatric && <Badge variant="outline" className="text-[10px] border-sky-500/30 text-sky-400 bg-sky-500/10 font-medium">Bariatric</Badge>}
+                              </>
+                            )}
+                            {activeTab === 'school' && (
+                              <>
+                                {specialNeeds && <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10 font-medium">Special Needs</Badge>}
+                                {noAdultRelease && <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10 font-medium">No-Adult Release</Badge>}
+                              </>
+                            )}
+                            {isImmediate && <Badge variant="outline" className="text-[10px] border-red-500/30 text-red-400 bg-red-500/10 font-bold uppercase">ASAP</Badge>}
+                          </div>
                         </div>
                         <div className={cn(
-                          "p-4 text-center border-t",
-                          activeTab === 'school' && "bg-amber-500/10 border-amber-500/20",
-                          activeTab === 'medical' && "bg-sky-500/10 border-sky-500/20",
-                          activeTab === 'wedding' && "bg-indigo-500/10 border-indigo-500/20"
+                          "p-4 text-center border-t border-white/5",
+                          activeTab === 'school' && "bg-amber-500/5",
+                          activeTab === 'medical' && "bg-sky-500/5",
+                          activeTab === 'wedding' && "bg-violet-500/5"
                         )}>
                           <div className={cn(
-                            "text-[10px] font-black uppercase tracking-[0.3em]",
+                            "text-[10px] font-bold uppercase tracking-widest",
                             activeTab === 'school' && "text-amber-400",
                             activeTab === 'medical' && "text-sky-400",
-                            activeTab === 'wedding' && "text-indigo-400"
+                            activeTab === 'wedding' && "text-violet-400"
                           )}>
                             {submittedData?.matched_operators_count === 0 ? "Status: Manual Review Needed" : "Status: Matching Operators"}
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex flex-col sm:flex-row gap-3">
                         {paymentUrl && submittedData?.matched_operators_count > 0 && (
                           <Button
-                            className="flex-1 h-10 rounded-md font-semibold bg-violet-600 text-white hover:bg-violet-700"
+                            className="flex-1 h-10 rounded-md font-semibold bg-violet-600 text-white hover:bg-violet-700 shadow-sm"
                             onClick={() => window.location.href = paymentUrl}
                           >
                             <Gem className="h-4 w-4 mr-2" />
-                            Submit $1.99 Fee
-                          </Button>
-                        )}
-                        {!paymentUrl && (
-                          <Button
-                            variant="outline"
-                            className="flex-1 h-10 rounded-md font-semibold"
-                            onClick={() => setIsSubmitted(false)}
-                          >
-                            Submit Another
+                            Submit $1.99 Priority Fee
                           </Button>
                         )}
                         <Button
-                          className="flex-1 h-10 rounded-md font-semibold bg-black text-white"
-                          onClick={() => window.dispatchEvent(new CustomEvent('open-trips-sidebar'))}
+                          variant="outline"
+                          className="flex-1 h-10 rounded-md font-semibold border-neutral-200 hover:bg-neutral-50"
+                          onClick={() => setIsSubmitted(false)}
                         >
-                          View Trips
+                          Submit Another
+                        </Button>
+                        <Button
+                          className="flex-1 h-10 rounded-md font-semibold bg-neutral-900 text-white hover:bg-black shadow-sm"
+                          onClick={() => router.push('/trips')}
+                        >
+                          View My Trips
                         </Button>
                       </div>
                     </div>
@@ -1546,76 +1520,67 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
           </div>
 
           {/* Right Column - AI Dispatch Interface */}
-          <div className="relative animate-in fade-in slide-in-from-right-8 duration-1000 delay-400 ease-out lg:pl-10 h-full">
+          <div className="relative lg:pl-10 h-full">
             <AIChatPanel />
           </div>
         </div>
 
         {/* Recent Trips Section - Only for logged-in users */}
         {user && recentTrips.length > 0 && !hideRecentTrips && (
-          <div className="mt-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-neutral-900 uppercase tracking-widest">Recent Trips</h2>
-              <a href="/trips" className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors flex items-center gap-1">
-                View all <ArrowRight className="w-3 h-3" />
-              </a>
+          <div className="mt-16">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-semibold text-neutral-900 uppercase tracking-widest">Recent Activity</h2>
+              <Link href="/trips" className="text-xs font-medium text-neutral-500 hover:text-black transition-colors flex items-center gap-1">
+                View all trips <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {recentTrips.map((trip) => (
-                <Card key={trip.id} className="px-4 py-3 shadow-none border border-neutral-200 hover:border-neutral-300 transition-colors duration-150 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    {/* Left: icon + type + id */}
-                    <div className="flex items-center gap-2.5 min-w-0">
+                <Card key={trip.id} className="p-4 shadow-sm border border-neutral-200 hover:border-neutral-300 transition-colors duration-150 cursor-pointer">
+                  <div className="flex items-center justify-between mb-3">
+                    {/* Left: icon + type */}
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className={cn(
-                        "w-7 h-7 rounded-md flex items-center justify-center shrink-0",
-                        trip.service_type === 'school' && "bg-amber-50 text-amber-500",
-                        trip.service_type === 'medical' && "bg-sky-50 text-sky-500",
-                        trip.service_type === 'wedding' && "bg-violet-50 text-violet-500"
+                        "w-8 h-8 rounded flex items-center justify-center shrink-0",
+                        trip.service_type === 'school' && "bg-amber-100 text-amber-600",
+                        trip.service_type === 'medical' && "bg-sky-100 text-sky-600",
+                        trip.service_type === 'wedding' && "bg-violet-100 text-violet-600"
                       )}>
-                        {trip.service_type === 'school' ? <Bus className="h-3.5 w-3.5" /> :
-                          trip.service_type === 'medical' ? <HeartPulse className="h-3.5 w-3.5" /> :
-                            <Plane className="h-3.5 w-3.5" />}
+                        {trip.service_type === 'school' ? <Bus className="h-4 w-4" /> :
+                          trip.service_type === 'medical' ? <HeartPulse className="h-4 w-4" /> :
+                            <Plane className="h-4 w-4" />}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-neutral-900 truncate">
+                        <div className="text-sm font-semibold text-neutral-900 truncate">
                           {trip.service_type === 'school' ? 'School Run' :
                             trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
                         </div>
-                        <div className="text-[10px] text-neutral-400 font-mono">#{trip.id.slice(0, 8)}</div>
+                        <div className="text-[10px] text-neutral-400 font-mono">#{trip.id.slice(0, 8).toUpperCase()}</div>
                       </div>
                     </div>
 
-                    {/* Right: status pill + date */}
-                    <div className="flex flex-col items-end gap-1 shrink-0 ml-3">
-                      <span className={cn(
-                        "text-[10px] font-semibold px-1.5 py-0.5 rounded",
-                        trip.status === 'pending' && "bg-amber-50 text-amber-600",
-                        trip.status === 'matched' && "bg-violet-50 text-violet-600",
-                        trip.status === 'booked' && "bg-green-50 text-green-600",
-                        trip.status === 'completed' && "bg-neutral-100 text-neutral-500"
-                      )}>
-                        {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
-                      </span>
-                      <span className="text-[10px] text-neutral-400">
-                        {new Date(trip.start_date || trip.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        {trip.start_time && ` · ${trip.start_time.slice(0, 5)}`}
-                      </span>
-                    </div>
+                    {/* Right: status badge */}
+                    <Badge variant="outline" className={cn(
+                      "text-[10px] h-5 px-1.5 font-bold uppercase",
+                      trip.status === 'pending' && "border-amber-200 text-amber-600 bg-amber-50",
+                      trip.status === 'booked' && "border-green-200 text-green-600 bg-green-50",
+                      trip.status === 'completed' && "border-neutral-200 text-neutral-500 bg-neutral-50"
+                    )}>
+                      {trip.status}
+                    </Badge>
                   </div>
 
                   {/* Location row */}
-                  {(trip.pickup_address || trip.dropoff_address) && (
-                    <div className="mt-2.5 pt-2.5 border-t border-neutral-100 flex items-center gap-1.5 text-[11px] text-neutral-500 min-w-0">
-                      <MapPin className="h-3 w-3 shrink-0 text-neutral-300" />
-                      <span className="truncate">{trip.pickup_address || 'Not specified'}</span>
-                      {trip.dropoff_address && (
-                        <>
-                          <ArrowRight className="h-2.5 w-2.5 shrink-0 text-neutral-300" />
-                          <span className="truncate">{trip.dropoff_address}</span>
-                        </>
-                      )}
+                  <div className="space-y-1.5 pt-3 border-t border-neutral-100">
+                    <div className="flex items-center gap-2 text-[11px] text-neutral-600">
+                      <Calendar className="h-3 w-3 text-neutral-400" />
+                      <span>{new Date(trip.start_date || trip.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
-                  )}
+                    <div className="flex items-start gap-2 text-[11px] text-neutral-900">
+                      <MapPin className="h-3 w-3 text-neutral-400 mt-0.5 shrink-0" />
+                      <span className="truncate font-medium">{trip.pickup_address}</span>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>
