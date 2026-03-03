@@ -340,7 +340,8 @@ export async function POST(request: NextRequest) {
                 bookingId: booking.id,
                 appBaseUrl: getAppBaseUrl()
               }),
-              trackingClicks: false
+              trackingClicks: false,
+              forceSmtp: true
             });
             console.log(`✓ Notified operator via email: ${operatorEmail}`);
             

@@ -106,9 +106,7 @@ interface EmailOptions {
   trackingClicks?: boolean;
 }
 
-export async function sendEmail({ to, subject, html, headers, trackingClicks, forceApi, forceSmtp }: EmailOptions & { forceApi?: boolean; forceSmtp?: boolean }) {
-  const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
-  
+export async function sendEmail({ to, subject, html, headers, trackingClicks, forceSmtp }: EmailOptions & { forceSmtp?: boolean }) {
   // Validate links before sending to catch corruption early
   const linkValidation = validateEmailLinks(html);
   const linkMatches = html.match(/href="([^"]+)"/g) || [];
@@ -119,29 +117,38 @@ export async function sendEmail({ to, subject, html, headers, trackingClicks, fo
     await logLinkValidation(to, linkValidation);
   }
 
-  // CRITICAL: forceSmtp is required for operator emails to ensure X-Mailin-Track-Click header is respected
-  // SMTP relay respects this header; REST API likely does not.
+  // AUTO-DETECT: If the email contains a /claim/ link and tracking was not explicitly
+  // set by the caller, force tracking off as a safety net — Brevo wrapping /claim/ links
+  // breaks the one-time-use redemption flow.
+  if (claimLinkFound && trackingClicks === undefined) {
+    console.log(`[Email] /claim/ link detected — auto-disabling click tracking for: ${to}`);
+    trackingClicks = false;
+    forceSmtp = true;
+  }
+
+  // forceSmtp: send via SMTP relay with tracking headers (more reliable for header enforcement).
+  // Falls back to API if SMTP is not configured, but preserves trackingClicks intent.
   if (forceSmtp) {
     const smtpHost = env('SMTP_HOST');
     const smtpUser = env('SMTP_USER');
     const smtpPass = env('SMTP_PASS') || env('BREVO_SMTP_KEY');
-    
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      throw new Error(
-        'Cannot send operator email: forceSmtp=true but SMTP credentials not configured. ' +
-        'Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (or BREVO_SMTP_KEY) in environment.'
-      );
+
+    if (smtpHost && smtpUser && smtpPass) {
+      // Ensure tracking is disabled for operator emails via SMTP
+      const finalHeaders = {
+        ...headers,
+        'X-Mailin-Track-Click': '0',
+        'X-Mailin-Track-Open': '0',
+        'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'operator-request',
+      };
+
+      console.log(`[Email] Sending via SMTP (forceSmtp=true, tracking disabled) to: ${to}`);
+      return sendEmailViaSMTP({ to, subject, html, headers: finalHeaders, trackingClicks: false });
     }
-    
-    // Ensure tracking is disabled for operator emails via SMTP
-    const finalHeaders = {
-      ...headers,
-      'X-Mailin-Track-Click': '0',
-      'X-Mailin-Tag': headers?.['X-Mailin-Tag'] || 'operator-request',
-    };
-    
-    console.log(`[Email] Sending operator email via SMTP (forceSmtp=true, tracking disabled)`);
-    return sendEmailViaSMTP({ to, subject, html, headers: finalHeaders, trackingClicks: false });
+
+    // SMTP not configured — fall through to API path with tracking disabled
+    console.warn(`[Email] forceSmtp=true but SMTP not configured — falling back to API with trackingClicks:false`);
+    return sendEmailViaApi({ to, subject, html, headers, trackingClicks: false });
   }
 
   return sendEmailViaSMTP({ to, subject, html, headers, trackingClicks });
@@ -246,10 +253,11 @@ Tracking: ${headerInspection.trackingStatus}
     });
 
     console.error('Failed to send email via SMTP:', error);
-    // If SMTP fails, try API as a backup if we have a key
+    // If SMTP fails, try API as a backup if we have a key.
+    // IMPORTANT: preserve trackingClicks intent — do not let fallback silently re-enable tracking.
     const apiKey = env('BREVO_API_KEY') || env('BREVO_SMTP_KEY');
     if (apiKey) {
-      console.log('🔄 Attempting API fallback after SMTP failure...');
+      console.log('🔄 Attempting API fallback after SMTP failure (preserving trackingClicks intent)...');
       return sendEmailViaApi({ to, subject, html, headers, trackingClicks });
     }
     throw error;
@@ -293,8 +301,11 @@ export async function sendEmailViaApi({ to, subject, html, headers, trackingClic
     }
 
     console.log(`[Email/API] Sending to ${to}: "${subject}" (tracking: ${trackingClicks ?? 'default'}, links: ${linkMatches.length})`);
-    
-    const body = {
+
+    // Build body — include trackingSettings when tracking must be disabled.
+    // NOTE: X-Mailin-Track-Click in `headers` is NOT honored by the Brevo v3 REST API;
+    // the only way to disable click tracking per-send via API is the trackingSettings field.
+    const body: Record<string, unknown> = {
       sender: { name: senderName, email: senderEmail },
       to: [{ email: to }],
       subject: subject,
@@ -302,10 +313,13 @@ export async function sendEmailViaApi({ to, subject, html, headers, trackingClic
       headers: apiHeaders,
     };
 
-    // Note: Brevo API v3 tracking parameters are slightly different
-    // By default click tracking is managed in the Brevo dashboard settings
-    // But can be overridden in the API call if needed.
-    
+    if (trackingClicks === false) {
+      body.trackingSettings = {
+        clickTracking: { enabled: false },
+        openTracking: { enabled: false },
+      };
+    }
+
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -716,6 +730,54 @@ export const emailTemplates = {
               <p>The operator will contact you before your trip. You can also message them directly through your dashboard.</p>
 
               <a href="${getAppBaseUrl(data.appBaseUrl)}/dashboard/bookings" class="button">Manage Booking</a>
+
+              <div class="footer">
+                <p>&copy; 2026 Businto. All rights reserved.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+  }),
+
+  tripCompletedFollowUp: (data: {
+    userName: string;
+    operatorName: string;
+    date: string;
+    requestId: string;
+    appBaseUrl?: string;
+  }) => ({
+    subject: `How was your trip with ${data.operatorName}?`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+            .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 12px 12px; }
+            .button { display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; margin-right: 10px; }
+            .button-outline { display: inline-block; background: white; color: #ef4444; border: 1px solid #ef4444; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+            .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Did your trip happen?</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${data.userName},</p>
+              <p>We hope your trip on <strong>${data.date}</strong> with <strong>${data.operatorName}</strong> went well!</p>
+
+              <p>Your feedback is critical to keeping the Businto marketplace safe and high-quality. Please let us know if everything went as planned.</p>
+
+              <div style="text-align: center; margin-top: 30px;">
+                <a href="${getAppBaseUrl(data.appBaseUrl)}/dashboard/bookings?review=${data.requestId}" class="button">Yes, Rate My Trip</a>
+                <a href="${getAppBaseUrl(data.appBaseUrl)}/contact?report=${data.requestId}" class="button-outline">No, I Need Help</a>
+              </div>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
