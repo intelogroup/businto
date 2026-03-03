@@ -44,36 +44,41 @@ export function Navbar() {
       )}
     >
       <div className="container mx-auto max-w-7xl flex items-center justify-between px-6">
-        <Link href="/" className="font-semibold text-2xl tracking-tighter text-neutral-900 group cursor-pointer flex items-center gap-3">
-          <div className="w-9 h-9 bg-black rounded-full flex items-center justify-center transition-all duration-200 group-hover:shadow-lg group-hover:shadow-black/30">
+        <Link href="/" className="font-semibold text-2xl tracking-tight text-neutral-900 group cursor-pointer flex items-center gap-3">
+          <div className="w-9 h-9 bg-black rounded-full flex items-center justify-center transition-colors duration-150">
             <Image src="/brand-mark.svg" alt="Businto" width={28} height={28} />
           </div>
-          <span className="text-neutral-900 tracking-[-0.04em]">Businto</span>
+          <span className="text-neutral-900">Businto</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-10 mr-auto ml-16">
+        <div className="hidden md:flex items-center gap-8 mr-auto ml-16">
           <Link
             href="/operators"
-            className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
+            className="text-sm font-medium text-neutral-600 hover:text-black transition-colors duration-150"
           >
             Operators
-            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
           </Link>
           <Link
             href="/pricing"
-            className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
+            className="text-sm font-medium text-neutral-600 hover:text-black transition-colors duration-150"
           >
             Pricing
-            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
           </Link>
           {isAuthenticated && (
-            <Link
-              href="/trips"
-              className="text-[13px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors duration-150 relative group"
-            >
-              My Trips
-              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-neutral-950 transition-all duration-150 group-hover:w-full" />
-            </Link>
+            <>
+              <Link
+                href="/trips"
+                className="text-sm font-medium text-neutral-600 hover:text-black transition-colors duration-150"
+              >
+                My Trips
+              </Link>
+              <Link
+                href="/dashboard/bookings"
+                className="text-sm font-medium text-neutral-600 hover:text-black transition-colors duration-150"
+              >
+                Bookings
+              </Link>
+            </>
           )}
         </div>
 
@@ -118,14 +123,24 @@ export function Navbar() {
                     </Link>
                   </SheetClose>
                   {isAuthenticated && (
-                    <SheetClose asChild>
-                      <Link
-                        href="/trips"
-                        className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
-                      >
-                        My Trips
-                      </Link>
-                    </SheetClose>
+                    <>
+                      <SheetClose asChild>
+                        <Link
+                          href="/trips"
+                          className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                        >
+                          My Trips
+                        </Link>
+                      </SheetClose>
+                      <SheetClose asChild>
+                        <Link
+                          href="/dashboard/bookings"
+                          className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                        >
+                          Bookings
+                        </Link>
+                      </SheetClose>
+                    </>
                   )}
                 </div>
                 <div className="p-6 border-t border-neutral-100 space-y-3">
@@ -172,8 +187,8 @@ export function Navbar() {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 flex items-center gap-2 px-2 hover:bg-neutral-100/50 rounded-md transition-colors duration-150">
-                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-200">
+                    <Button variant="ghost" className="relative h-10 flex items-center gap-2 px-2 hover:bg-neutral-100 rounded-md transition-colors duration-150">
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-200">
                         <img
                           src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`}
                           alt={user?.name}
@@ -181,43 +196,43 @@ export function Navbar() {
                           suppressHydrationWarning
                         />
                       </div>
-                      <div className="hidden lg:flex flex-col items-start leading-none gap-0.5">
-                        <span className="text-[11px] font-bold text-neutral-900 uppercase tracking-wider">{user?.name}</span>
-                        <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-[0.1em]">{user?.role}</span>
+                      <div className="hidden lg:flex flex-col items-start leading-tight">
+                        <span className="text-sm font-medium text-neutral-900">{user?.name}</span>
+                        <span className="text-[10px] font-medium text-neutral-400 capitalize">{user?.role}</span>
                       </div>
                       <ChevronDown size={14} className="text-neutral-400 hidden lg:block" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 mt-2 p-2 rounded-lg border-neutral-100 shadow-sm bg-white">
+                  <DropdownMenuContent align="end" className="w-56 mt-2 p-2 rounded-lg border-neutral-100 shadow-lg bg-white">
                     <DropdownMenuLabel className="px-3 py-2">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-bold text-neutral-900">{user?.name}</span>
-                        <span className="text-xs text-neutral-500 font-medium">{user?.email}</span>
+                        <span className="text-sm font-semibold text-neutral-900">{user?.name}</span>
+                        <span className="text-xs text-neutral-500 font-normal">{user?.email}</span>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-neutral-100 mx-1" />
                     <DropdownMenuItem asChild className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
                       <Link href="/users" className="flex items-center w-full">
-                        <User size={16} className="mr-3 text-neutral-400 group-hover:text-black transition-colors duration-150" />
-                        <span className="text-sm font-semibold text-neutral-600 group-hover:text-black transition-colors duration-150">Users & Team</span>
+                        <User size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
+                        <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Users & Team</span>
                       </Link>
                     </DropdownMenuItem>
 
                     {(user?.role === "admin" || user?.role === "manager") && (
-                      <DropdownMenuItem asChild className="focus:bg-indigo-50 rounded-md px-3 py-2 cursor-pointer group">
+                      <DropdownMenuItem asChild className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
                         <Link href="/admin" className="flex items-center w-full">
-                          <LayoutDashboard size={16} className="mr-3 text-indigo-400 group-hover:text-indigo-600 transition-colors duration-150" />
-                          <span className="text-sm font-semibold text-neutral-600 group-hover:text-indigo-600 transition-colors duration-150">Admin Panel</span>
+                          <LayoutDashboard size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
+                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Admin Panel</span>
                         </Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
-                      <Settings size={16} className="mr-3 text-neutral-400 group-hover:text-black transition-colors duration-150" />
-                      <span className="text-sm font-semibold text-neutral-600 group-hover:text-black transition-colors duration-150">Settings</span>
+                      <Settings size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
+                      <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Settings</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
-                      <Shield size={16} className="mr-3 text-neutral-400 group-hover:text-black transition-colors duration-150" />
-                      <span className="text-sm font-semibold text-neutral-600 group-hover:text-black transition-colors duration-150">Security</span>
+                      <Shield size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
+                      <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Security</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-neutral-100 mx-1" />
                     <DropdownMenuItem
@@ -228,19 +243,19 @@ export function Navbar() {
                       className="focus:bg-red-50 rounded-md px-3 py-2 cursor-pointer group"
                     >
                       <LogOut size={16} className="mr-3 text-red-400 group-hover:text-red-600 transition-colors duration-150" />
-                      <span className="text-sm font-semibold text-red-500 group-hover:text-red-600 transition-colors duration-150">Sign out</span>
+                      <span className="text-sm font-medium text-red-500 group-hover:text-red-600 transition-colors duration-150">Sign out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
                 <>
                   <Link href="/login">
-                    <Button variant="ghost" size="sm" className="flex text-xs font-semibold uppercase tracking-widest text-neutral-500 hover:text-black hover:bg-neutral-100/50 rounded-md px-5 h-10 transition-colors duration-150">
+                    <Button variant="ghost" size="sm" className="text-sm font-medium text-neutral-600 hover:text-black hover:bg-neutral-100 rounded-md h-9 transition-colors duration-150">
                       Sign In
                     </Button>
                   </Link>
                   <Link href="/signup" className="hidden sm:block">
-                    <Button size="lg" className="bg-neutral-950 text-white text-xs font-semibold uppercase tracking-widest rounded-md px-7 h-10 hover:bg-black shadow-sm transition-colors duration-150">
+                    <Button size="sm" className="bg-neutral-900 text-white text-sm font-medium rounded-md h-9 hover:bg-black transition-colors duration-150">
                       Sign Up
                     </Button>
                   </Link>

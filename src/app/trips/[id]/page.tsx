@@ -299,65 +299,66 @@ function TripDetailContent() {
             <Navbar />
 
             <div className="container mx-auto max-w-4xl px-4 sm:px-6 pt-24">
-                <Link href="/trips" className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 mb-6 transition-colors">
+                <Link href="/trips" className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 mb-6 transition-colors duration-150">
                     <ChevronLeft className="h-4 w-4" />
-                    <span>Back to Trips</span>
+                    <span className="text-sm font-medium">Back to Trips</span>
                 </Link>
 
                 {/* Trip Header */}
-                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-neutral-100 mb-8">
+                <div className="bg-white rounded-lg p-6 md:p-8 shadow-sm border border-neutral-200 mb-8">
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                         <div className="flex items-start gap-4">
                             <div className={cn(
-                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                "w-12 h-12 rounded flex items-center justify-center",
                                 trip.service_type === 'school' && "bg-amber-100 text-amber-600",
-                                trip.service_type === 'medical' && "bg-green-100 text-green-600",
-                                trip.service_type === 'wedding' && "bg-indigo-100 text-indigo-600"
+                                trip.service_type === 'medical' && "bg-sky-100 text-sky-600",
+                                trip.service_type === 'wedding' && "bg-violet-100 text-violet-600"
                             )}>
                                 {getServiceIcon(trip.service_type)}
                             </div>
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h1 className="text-2xl font-bold text-neutral-900">
+                                <div className="flex items-center gap-3 mb-1">
+                                    <h1 className="text-2xl font-semibold text-neutral-900">
                                         {trip.service_type.charAt(0).toUpperCase() + trip.service_type.slice(1)} Trip
                                     </h1>
                                     <Badge className={cn(
-                                        trip.status === 'booked' || trip.status === 'quote_accepted' ? "bg-green-500" : "bg-blue-500"
+                                        "text-[10px] h-5 px-1.5 font-bold uppercase",
+                                        trip.status === 'booked' || trip.status === 'quote_accepted' ? "bg-green-600 hover:bg-green-600" : "bg-sky-600 hover:bg-sky-600"
                                     )}>
-                                        {trip.status === 'quote_accepted' ? 'Booked' : trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
+                                        {trip.status === 'quote_accepted' ? 'Booked' : trip.status}
                                     </Badge>
                                 </div>
-                                <p className="text-sm text-neutral-500 font-mono">Request #{trip.id.slice(0, 8)}</p>
+                                <p className="text-[11px] text-neutral-400 font-mono uppercase tracking-wider">Request ID: {trip.id.slice(0, 8)}</p>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-sm text-neutral-600">
-                                <Calendar className="h-4 w-4" />
-                                <span>{new Date(trip.start_date).toLocaleDateString()}</span>
+                                <Calendar className="h-4 w-4 text-neutral-400" />
+                                <span className="font-medium">{new Date(trip.start_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-neutral-600">
-                                <Clock className="h-4 w-4" />
-                                <span>{trip.start_time?.slice(0, 5) || 'TBA'}</span>
+                                <Clock className="h-4 w-4 text-neutral-400" />
+                                <span className="font-medium">{trip.start_time?.slice(0, 5) || 'TBA'}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 pt-8 border-t border-neutral-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-8 pt-8 border-t border-neutral-100">
                         <div>
-                            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-4">Route Details</h3>
-                            <div className="space-y-4">
+                            <h3 className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-5">Route Details</h3>
+                            <div className="space-y-5">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5" />
+                                    <div className="w-2 h-2 rounded-full bg-neutral-300 mt-1.5 shrink-0" />
                                     <div>
-                                        <p className="text-xs text-neutral-400">Pickup</p>
+                                        <p className="text-[10px] text-neutral-400 uppercase font-bold tracking-tight mb-0.5">Pickup</p>
                                         <p className="text-sm font-medium text-neutral-900 leading-relaxed">{trip.pickup_address}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5" />
+                                    <div className="w-2 h-2 rounded-full bg-neutral-900 mt-1.5 shrink-0" />
                                     <div>
-                                        <p className="text-xs text-neutral-400">Drop-off</p>
+                                        <p className="text-[10px] text-neutral-400 uppercase font-bold tracking-tight mb-0.5">Drop-off</p>
                                         <p className="text-sm font-medium text-neutral-900 leading-relaxed">{trip.dropoff_address}</p>
                                     </div>
                                 </div>
@@ -365,22 +366,22 @@ function TripDetailContent() {
                         </div>
 
                         <div>
-                            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-4">Requirements</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <h3 className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-5">Requirements</h3>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                                 {Object.entries(trip.metadata_safe || {}).map(([key, value]) => {
                                     if (typeof value === 'boolean' && value) {
                                         return (
                                             <div key={key} className="flex items-center gap-2 text-sm text-neutral-700">
-                                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                <span className="capitalize">{key.replace(/_/g, ' ')}</span>
+                                                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                                <span className="font-medium capitalize">{key.replace(/_/g, ' ')}</span>
                                             </div>
                                         );
                                     }
                                     if (typeof value === 'string' || typeof value === 'number') {
                                         return (
-                                            <div key={key} className="text-sm">
-                                                <span className="text-neutral-400 block text-[10px] uppercase font-bold">{key.replace(/_/g, ' ')}</span>
-                                                <span className="text-neutral-900 font-medium capitalize">{value}</span>
+                                            <div key={key} className="space-y-0.5">
+                                                <span className="text-neutral-400 block text-[10px] uppercase font-bold tracking-tight">{key.replace(/_/g, ' ')}</span>
+                                                <span className="text-neutral-900 font-semibold text-sm capitalize">{value}</span>
                                             </div>
                                         );
                                     }
@@ -394,19 +395,19 @@ function TripDetailContent() {
                 {/* Quotes Section */}
                 <div className="mb-8">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-neutral-900">
-                            Quotes {quotes.length > 0 && `(${quotes.length})`}
+                        <h2 className="text-xl font-semibold text-neutral-900">
+                            Available Quotes {quotes.length > 0 && `(${quotes.length})`}
                         </h2>
                     </div>
 
                     {quotes.length === 0 ? (
-                        <Card className="p-12 text-center bg-white border-dashed border-2 border-neutral-200 shadow-none">
-                            <RefreshCw className="h-10 w-10 text-neutral-300 mx-auto mb-4 animate-spin-slow" />
-                            <h3 className="text-lg font-semibold text-neutral-900">Waiting for operators...</h3>
-                            <p className="text-sm text-neutral-500 mt-1">Quotes usually arrive within 15-60 minutes.</p>
+                        <Card className="p-16 text-center bg-white border-dashed border-2 border-neutral-200 shadow-none rounded-lg">
+                            <RefreshCw className="h-8 w-8 text-neutral-300 mx-auto mb-4 animate-spin" />
+                            <h3 className="text-lg font-semibold text-neutral-900">Broadcasting Request</h3>
+                            <p className="text-sm text-neutral-500 mt-1 max-w-xs mx-auto">Operators are reviewing your route. Quotes usually arrive within 15–60 minutes.</p>
                         </Card>
                     ) : (
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {quotes.map((quote, index) => (
                                 <QuoteCard
                                     key={quote.id}

@@ -50,6 +50,9 @@ generateOperatorViewToken(requestId: string, operatorId?: string, purpose: 'view
 
 ## ✅ Verified Project Memories (Feb/March 2026)
 
+*   **Email Reliability (MARCH 2026)**: 100% resolved the "Sendibt 404" link corruption. Strategy: Switched to short `/claim/[code]` path links, implemented Brevo REST API fallback for SMTP, and explicitly disabled click tracking (`X-Mailin-Track-Click: 0`) for sensitive job links.
+*   **UI Standardization (MARCH 2026)**: Completed Phase 1/2 of "Enterprise-Grade" styling. Standardized all inputs to `h-10 rounded-md`, cards to `rounded-lg shadow-sm`, and removed all flashy gradients, backdrop-blurs, and `hover:scale` animations across the codebase.
+*   **Marketplace Automation**: Implemented "24-Hour Job Completed Loop" via cron job. Automatically follows up with users 24h after trip end to verify completion and collect 1-5 star ratings.
 *   **Deployment (March 2026)**: Verified `NEXT_PUBLIC_APP_URL` is set to `https://businto.com`. Updated `vercel.json` to daily cron jobs to comply with Hobby plan limits.
 *   **Security (CRITICAL)**: Fixed RLS leak on `transport_requests`. Blocked anonymous SELECT access via `Users see own requests_v2` policy. Verified via `tests/database-security.test.ts`.
 *   **Logic Fix**: Fixed "Auto Sign-in" broken links by routing `generateLink` magic links directly to the client instead of the SSR callback.

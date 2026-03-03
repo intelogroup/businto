@@ -222,7 +222,7 @@ export default function AdminDashboard() {
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setIsBroadcasting(false)}
-                                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                                className="absolute inset-0 bg-black/40 "
                             />
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -506,7 +506,7 @@ export default function AdminDashboard() {
                                     <div className="px-8">
                                         <table className="w-full">
                                             <thead className="sticky top-0 bg-white z-10 border-b border-neutral-100">
-                                                <tr className="text-[11px] font-black uppercase tracking-widest text-neutral-400">
+                                                <tr className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                                                     <th className="text-left py-5">Operator</th>
                                                     <th className="text-left py-5">Fleet Size</th>
                                                     <th className="text-left py-5">Status</th>
@@ -521,7 +521,7 @@ export default function AdminDashboard() {
                                                         <td className="py-6 text-sm font-semibold text-neutral-500">{op.fleet} Vehicles</td>
                                                         <td className="py-6">
                                                             <Badge className={cn(
-                                                                "border-none font-black uppercase text-[10px] px-2 py-0.5 tracking-wider",
+                                                                "border-none font-bold uppercase text-[10px] px-2 py-0.5 tracking-wider",
                                                                 op.status === "Active" ? "bg-emerald-100 text-emerald-600" :
                                                                     op.status === "Idle" ? "bg-neutral-100 text-neutral-600" :
                                                                         "bg-red-100 text-red-600"
@@ -537,10 +537,10 @@ export default function AdminDashboard() {
                                                                         style={{ width: op.reliability }}
                                                                     />
                                                                 </div>
-                                                                <span className="text-[11px] font-black text-neutral-900">{op.reliability}</span>
+                                                                <span className="text-[11px] font-bold text-neutral-900">{op.reliability}</span>
                                                             </div>
                                                         </td>
-                                                        <td className="py-6 text-right font-black text-neutral-900">{op.revenue}</td>
+                                                        <td className="py-6 text-right font-bold text-neutral-900">{op.revenue}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -570,7 +570,7 @@ export default function AdminDashboard() {
                                     <div className="px-8">
                                         <table className="w-full">
                                             <thead className="sticky top-0 bg-white z-10 border-b border-neutral-100">
-                                                <tr className="text-[11px] font-black uppercase tracking-widest text-neutral-400">
+                                                <tr className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">
                                                     <th className="text-left py-5">Manager</th>
                                                     <th className="text-left py-5">Role</th>
                                                     <th className="text-left py-5">Status</th>
@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                                                                         style={{ width: mgr.performance }}
                                                                     />
                                                                 </div>
-                                                                <span className="text-[11px] font-black text-neutral-900">{mgr.performance}</span>
+                                                                <span className="text-[11px] font-bold text-neutral-900">{mgr.performance}</span>
                                                             </div>
                                                         </td>
                                                         <td className="py-6 text-right pr-4">

@@ -49,16 +49,16 @@ export default function AdminLoginPage() {
             <div className="w-full max-w-[440px] z-10">
                 <div className="mb-10 text-center">
                     <Link href="/" className="inline-flex items-center gap-3 group">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center group-hover:scale-105 group-hover:rotate-3 transition-all duration-300 shadow-xl shadow-white/5">
+                        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center group- group-hover:rotate-3 transition-colors duration-150 duration-300 shadow-xl shadow-white/5">
                             <div className="w-5 h-5 bg-neutral-950 rounded-full animate-pulse" />
                         </div>
-                        <h1 className="text-3xl font-black text-white tracking-tighter">Businto</h1>
+                        <h1 className="text-3xl font-bold text-white tracking-tighter">Businto</h1>
                     </Link>
                 </div>
 
-                <Card className="border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-neutral-900/50 backdrop-blur-xl transition-all duration-300 rounded-[32px]">
+                <Card className="border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-neutral-900  transition-colors duration-150 duration-300 rounded-lg">
                     <CardHeader className="space-y-1 pb-8 text-center">
-                        <div className="mx-auto w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 text-indigo-400">
+                        <div className="mx-auto w-12 h-12 bg-indigo-500/10 rounded-lg flex items-center justify-center mb-4 text-indigo-400">
                             <Shield size={24} />
                         </div>
                         <CardTitle className="text-2xl font-bold tracking-tight text-white">Admin Portal</CardTitle>
@@ -73,9 +73,9 @@ export default function AdminLoginPage() {
                                 variant="outline"
                                 type="button"
                                 onClick={() => fillAdminEmail("jimkalinov@gmail.com")}
-                                className="h-14 border-white/10 bg-white/5 hover:bg-white/10 hover:border-indigo-500/50 hover:text-indigo-400 text-neutral-300 transition-all font-semibold gap-2 rounded-2xl flex-col items-center justify-center px-0"
+                                className="h-14 border-white/10 bg-white/5 hover:bg-white/10 hover:border-indigo-500/50 hover:text-indigo-400 text-neutral-300 transition-colors duration-150 font-semibold gap-2 rounded-lg flex-col items-center justify-center px-0"
                             >
-                                <span className="text-[10px] uppercase tracking-widest font-black opacity-50">Demo</span>
+                                <span className="text-[10px] uppercase tracking-widest font-bold opacity-50">Demo</span>
                                 <div className="flex items-center gap-2">
                                     <KeyRound size={16} />
                                     Admin
@@ -85,9 +85,9 @@ export default function AdminLoginPage() {
                                 variant="outline"
                                 type="button"
                                 onClick={() => fillAdminEmail("manager@businto.com")}
-                                className="h-14 border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 hover:text-emerald-400 text-neutral-300 transition-all font-semibold gap-2 rounded-2xl flex-col items-center justify-center px-0"
+                                className="h-14 border-white/10 bg-white/5 hover:bg-white/10 hover:border-emerald-500/50 hover:text-emerald-400 text-neutral-300 transition-colors duration-150 font-semibold gap-2 rounded-lg flex-col items-center justify-center px-0"
                             >
-                                <span className="text-[10px] uppercase tracking-widest font-black opacity-50">Demo</span>
+                                <span className="text-[10px] uppercase tracking-widest font-bold opacity-50">Demo</span>
                                 <div className="flex items-center gap-2">
                                     <LayoutDashboard size={16} />
                                     Manager
@@ -121,7 +121,7 @@ export default function AdminLoginPage() {
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="h-12 pl-12 bg-black/20 border-white/10 text-white placeholder:text-neutral-700 focus:border-indigo-500 focus:ring-0 transition-all rounded-xl"
+                                        className="h-12 pl-12 bg-black/20 border-white/10 text-white placeholder:text-neutral-700 focus:border-indigo-500 focus:ring-0 transition-colors duration-150 rounded-lg"
                                     />
                                 </div>
                             </div>
@@ -137,13 +137,13 @@ export default function AdminLoginPage() {
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="h-12 pl-12 bg-black/20 border-white/10 text-white focus:border-indigo-500 focus:ring-0 transition-all rounded-xl"
+                                        className="h-12 pl-12 bg-black/20 border-white/10 text-white focus:border-indigo-500 focus:ring-0 transition-colors duration-150 rounded-lg"
                                     />
                                 </div>
                             </div>
                             <Button
                                 type="submit"
-                                className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase tracking-widest rounded-xl transition-all shadow-[0_10px_30px_-10px_rgba(79,70,229,0.5)] hover:shadow-[0_15px_30px_-5px_rgba(79,70,229,0.6)] active:scale-[0.98] gap-2"
+                                className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase tracking-widest rounded-lg transition-colors duration-150 shadow-[0_10px_30px_-10px_rgba(79,70,229,0.5)] hover:shadow-[0_15px_30px_-5px_rgba(79,70,229,0.6)] active:scale-[0.98] gap-2"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (

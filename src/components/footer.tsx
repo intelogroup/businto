@@ -40,7 +40,7 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="bg-neutral-900/50 rounded-lg p-10 border border-white/5 space-y-8">
+          <div className="bg-neutral-900 rounded-lg p-10 border border-white/5 space-y-8">
             <div className="space-y-2">
               <h3 className="text-2xl font-semibold tracking-tight">Call for ride operators to join the network!</h3>
               <p className="text-neutral-400 font-medium">Get the latest operator insights and regional route availability.</p>

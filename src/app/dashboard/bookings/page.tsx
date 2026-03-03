@@ -86,28 +86,28 @@ export default function BookingsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
-        return <Badge className="bg-blue-100 text-blue-700">Confirmed</Badge>;
+        return <Badge className="bg-sky-600 hover:bg-sky-600 text-white font-bold text-[10px] h-5 px-1.5 uppercase">Confirmed</Badge>;
       case "in_progress":
-        return <Badge className="bg-amber-100 text-amber-700">In Progress</Badge>;
+        return <Badge className="bg-amber-500 hover:bg-amber-500 text-white font-bold text-[10px] h-5 px-1.5 uppercase">In Progress</Badge>;
       case "completed":
-        return <Badge className="bg-green-100 text-green-700">Completed</Badge>;
+        return <Badge className="bg-green-600 hover:bg-green-600 text-white font-bold text-[10px] h-5 px-1.5 uppercase">Completed</Badge>;
       case "cancelled":
-        return <Badge className="bg-red-100 text-red-700">Cancelled</Badge>;
+        return <Badge className="bg-red-600 hover:bg-red-600 text-white font-bold text-[10px] h-5 px-1.5 uppercase">Cancelled</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="text-[10px] h-5 px-1.5 uppercase">{status}</Badge>;
     }
   };
 
   const getPaymentBadge = (status: string) => {
     switch (status) {
       case "paid":
-        return <Badge className="bg-green-100 text-green-700"><CheckCircle className="h-3 w-3 mr-1" />Paid</Badge>;
+        return <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50 text-[10px] font-bold h-5 px-1.5 uppercase"><CheckCircle className="h-2.5 w-2.5 mr-1" />Paid</Badge>;
       case "pending":
-        return <Badge className="bg-amber-100 text-amber-700"><AlertCircle className="h-3 w-3 mr-1" />Pending</Badge>;
+        return <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50 text-[10px] font-bold h-5 px-1.5 uppercase"><AlertCircle className="h-2.5 w-2.5 mr-1" />Unpaid</Badge>;
       case "failed":
-        return <Badge className="bg-red-100 text-red-700"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+        return <Badge variant="outline" className="border-red-200 text-red-700 bg-red-50 text-[10px] font-bold h-5 px-1.5 uppercase"><XCircle className="h-2.5 w-2.5 mr-1" />Failed</Badge>;
       case "refunded":
-        return <Badge className="bg-neutral-100 text-neutral-700">Refunded</Badge>;
+        return <Badge variant="outline" className="text-neutral-500 text-[10px] font-bold h-5 px-1.5 uppercase">Refunded</Badge>;
       default:
         return null;
     }
@@ -116,11 +116,11 @@ export default function BookingsPage() {
   const getServiceIcon = (type: string) => {
     switch (type) {
       case "school":
-        return <Bus className="h-5 w-5 text-amber-500" />;
+        return <Bus className="h-5 w-5 text-amber-600" />;
       case "medical":
-        return <HeartPulse className="h-5 w-5 text-sky-500" />;
+        return <HeartPulse className="h-5 w-5 text-sky-600" />;
       case "wedding":
-        return <Gem className="h-5 w-5 text-indigo-500" />;
+        return <Gem className="h-5 w-5 text-violet-600" />;
       default:
         return <Bus className="h-5 w-5" />;
     }
@@ -130,122 +130,136 @@ export default function BookingsPage() {
   const pastBookings = bookings.filter(b => ["completed", "cancelled"].includes(b.status));
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
+    <div className="min-h-screen bg-neutral-50">
       <Navbar />
 
-      <main className="pt-32 pb-20 container mx-auto max-w-[1200px] px-8">
+      <main className="pt-24 pb-20 container mx-auto max-w-[1200px] px-4 sm:px-8">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-neutral-900">My Bookings</h1>
-          <Button variant="outline" onClick={fetchBookings}>
+          <h1 className="text-2xl font-semibold text-neutral-900">My Bookings</h1>
+          <Button variant="outline" size="sm" onClick={fetchBookings} className="h-9 rounded-md">
             Refresh
           </Button>
         </div>
 
         <Tabs defaultValue="active" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="active">
+          <TabsList className="mb-6 bg-white p-1 border border-neutral-200 shadow-sm rounded-md">
+            <TabsTrigger value="active" className="text-sm font-medium rounded px-6">
               Active ({activeBookings.length})
             </TabsTrigger>
-            <TabsTrigger value="past">
+            <TabsTrigger value="past" className="text-sm font-medium rounded px-6">
               Past ({pastBookings.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="active">
             {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin h-8 w-8 border-2 border-indigo-600 border-t-transparent rounded-full" />
+              <div className="flex justify-center py-24">
+                <div className="animate-spin h-6 w-6 border-2 border-neutral-900 border-t-transparent rounded-full" />
               </div>
             ) : activeBookings.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Calendar className="h-12 w-12 text-neutral-300 mb-4" />
-                  <h3 className="font-semibold text-neutral-900 mb-2">No Active Bookings</h3>
+              <Card className="border-dashed border-2 bg-white shadow-none rounded-lg">
+                <CardContent className="flex flex-col items-center justify-center py-20">
+                  <div className="w-12 h-12 rounded bg-neutral-100 flex items-center justify-center mb-4">
+                    <Calendar className="h-6 w-6 text-neutral-400" />
+                  </div>
+                  <h3 className="font-semibold text-neutral-900 mb-1">No Active Bookings</h3>
                   <p className="text-neutral-500 text-sm text-center max-w-sm">
-                    When you accept a quote, your booking will appear here.
+                    Your confirmed trips will appear here once you accept an operator's quote.
                   </p>
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-4">
                 {activeBookings.map((booking) => (
-                  <Card key={booking.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-4">
-                          <div className="h-12 w-12 rounded-lg bg-neutral-100 flex items-center justify-center">
-                            {getServiceIcon(booking.request.service_type)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-mono text-sm font-semibold text-neutral-900">
-                                {booking.confirmation_code}
-                              </span>
-                              {getStatusBadge(booking.status)}
-                              {getPaymentBadge(booking.payment_status)}
+                  <Card key={booking.id} className="shadow-sm border-neutral-200 hover:border-neutral-300 transition-colors rounded-lg bg-white overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            <div className={cn(
+                              "h-12 w-12 rounded flex items-center justify-center shrink-0",
+                              booking.request.service_type === 'school' && "bg-amber-100",
+                              booking.request.service_type === 'medical' && "bg-sky-100",
+                              booking.request.service_type === 'wedding' && "bg-violet-100"
+                            )}>
+                              {getServiceIcon(booking.request.service_type)}
                             </div>
-                            <p className="text-sm text-neutral-600 mb-2">
-                              {booking.operator.company_name || booking.operator.full_name}
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-neutral-500">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {new Date(booking.request.start_date).toLocaleDateString()}
-                              </span>
-                              {booking.request.start_time && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {booking.request.start_time}
+                            <div>
+                              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                                <span className="font-mono text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                                  ID: {booking.confirmation_code}
                                 </span>
-                              )}
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {booking.quote.vehicle_type}
-                              </span>
+                                {getStatusBadge(booking.status)}
+                                {getPaymentBadge(booking.payment_status)}
+                              </div>
+                              <h3 className="text-base font-semibold text-neutral-900">
+                                {booking.operator.company_name || booking.operator.full_name}
+                              </h3>
+                              <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500 font-medium">
+                                <span className="flex items-center gap-1.5">
+                                  <Calendar className="h-3.5 w-3.5 text-neutral-400" />
+                                  {new Date(booking.request.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                                {booking.request.start_time && (
+                                  <span className="flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                                    {booking.request.start_time.slice(0, 5)}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1.5">
+                                  <Bus className="h-3.5 w-3.5 text-neutral-400" />
+                                  {booking.quote.vehicle_type}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-neutral-900">
-                            ${booking.amount.toFixed(2)}
-                          </p>
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedBooking(booking);
-                                setShowChat(true);
-                              }}
-                            >
-                              <MessageSquare className="h-4 w-4 mr-1" />
-                              Chat
-                            </Button>
-                            {booking.payment_status === "pending" && (
+                          <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-4">
+                            <p className="text-2xl font-semibold text-neutral-900">
+                              ${booking.amount.toFixed(2)}
+                            </p>
+                            <div className="flex gap-2">
                               <Button
+                                variant="outline"
                                 size="sm"
-                                className="bg-indigo-600 hover:bg-indigo-700"
+                                className="h-8 text-xs font-semibold rounded-md border-neutral-200"
                                 onClick={() => {
                                   setSelectedBooking(booking);
-                                  setShowPayment(true);
+                                  setShowChat(true);
                                 }}
                               >
-                                <CreditCard className="h-4 w-4 mr-1" />
-                                Pay
+                                <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                                Chat
                               </Button>
-                            )}
+                              {booking.payment_status === "pending" && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 text-xs font-bold rounded-md bg-neutral-900 hover:bg-black text-white px-4"
+                                  onClick={() => {
+                                    setSelectedBooking(booking);
+                                    setShowPayment(true);
+                                  }}
+                                >
+                                  <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+                                  PAY FEE
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-4 border-t border-neutral-100">
-                        <div className="flex items-center gap-2 text-sm text-neutral-600">
-                          <MapPin className="h-4 w-4 text-green-500" />
-                          <span>{booking.request.pickup_address}</span>
-                          <ChevronRight className="h-4 w-4 text-neutral-300" />
-                          <MapPin className="h-4 w-4 text-red-500" />
-                          <span>{booking.request.dropoff_address}</span>
+                      <div className="px-6 py-4 bg-neutral-50/50 border-t border-neutral-100">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-neutral-600">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2 h-2 rounded-full bg-neutral-300" />
+                            <span className="truncate font-medium">{booking.request.pickup_address}</span>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-neutral-300 hidden sm:block shrink-0" />
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-2 h-2 rounded-full bg-neutral-900" />
+                            <span className="truncate font-medium">{booking.request.dropoff_address}</span>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -257,10 +271,12 @@ export default function BookingsPage() {
 
           <TabsContent value="past">
             {pastBookings.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <CheckCircle className="h-12 w-12 text-neutral-300 mb-4" />
-                  <h3 className="font-semibold text-neutral-900 mb-2">No Past Bookings</h3>
+              <Card className="border-dashed border-2 bg-white shadow-none rounded-lg">
+                <CardContent className="flex flex-col items-center justify-center py-20">
+                  <div className="w-12 h-12 rounded bg-neutral-100 flex items-center justify-center mb-4">
+                    <CheckCircle className="h-6 w-6 text-neutral-400" />
+                  </div>
+                  <h3 className="font-semibold text-neutral-900 mb-1">No Past Bookings</h3>
                   <p className="text-neutral-500 text-sm">Your completed trips will appear here.</p>
                 </CardContent>
               </Card>
@@ -268,36 +284,37 @@ export default function BookingsPage() {
               <div className="space-y-4">
                 {pastBookings.map((booking) => (
                   <Card key={booking.id} className={cn(
+                    "shadow-sm border-neutral-200 bg-white rounded-lg overflow-hidden",
                     booking.status === "cancelled" && "opacity-60"
                   )}>
                     <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4">
-                          <div className="h-12 w-12 rounded-lg bg-neutral-100 flex items-center justify-center">
+                          <div className="h-10 w-10 rounded bg-neutral-100 flex items-center justify-center shrink-0">
                             {getServiceIcon(booking.request.service_type)}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-mono text-sm font-semibold text-neutral-900">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-mono text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
                                 {booking.confirmation_code}
                               </span>
                               {getStatusBadge(booking.status)}
                             </div>
-                            <p className="text-sm text-neutral-600">
+                            <h3 className="text-sm font-semibold text-neutral-900">
                               {booking.operator.company_name || booking.operator.full_name}
-                            </p>
-                            <p className="text-xs text-neutral-400 mt-1">
-                              {new Date(booking.request.start_date).toLocaleDateString()}
+                            </h3>
+                            <p className="text-[11px] text-neutral-400 font-medium mt-1 uppercase tracking-tight">
+                              {new Date(booking.request.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-neutral-900">
+                          <p className="text-lg font-semibold text-neutral-900">
                             ${booking.amount.toFixed(2)}
                           </p>
                           {booking.status === "completed" && (
-                            <Button variant="outline" size="sm" className="mt-2">
-                              Leave Review
+                            <Button variant="outline" size="sm" className="h-8 text-xs font-semibold rounded-md mt-2 border-neutral-200">
+                              Review
                             </Button>
                           )}
                         </div>

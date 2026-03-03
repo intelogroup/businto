@@ -142,75 +142,74 @@ export function MessageThread({
   }, {} as Record<string, Message[]>);
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg border border-neutral-300">
+    <div className="flex flex-col h-full bg-white rounded-md border border-neutral-200">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-neutral-200">
-        <Avatar className="h-10 w-10">
+      <div className="flex items-center gap-3 p-4 border-b border-neutral-100 bg-neutral-50/30">
+        <Avatar className="h-9 w-9 border border-neutral-200">
           <AvatarImage src={recipientAvatar} />
-          <AvatarFallback className="bg-neutral-200">
-            <User className="h-5 w-5 text-neutral-600" />
+          <AvatarFallback className="bg-neutral-100">
+            <User className="h-4 w-4 text-neutral-400" />
           </AvatarFallback>
         </Avatar>
         <div>
-          <h3 className="font-semibold text-neutral-900">{recipientName}</h3>
-          <p className="text-xs text-neutral-600">
-            {requestId ? "Request Chat" : "Booking Chat"}
+          <h3 className="text-sm font-semibold text-neutral-900">{recipientName}</h3>
+          <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
+            {requestId ? "Request Channel" : "Booking Confirmed"}
           </p>
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4 bg-neutral-50/30">
         {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin h-5 w-5 border-2 border-neutral-900 border-t-transparent rounded-full" />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-center">
-            <p className="text-neutral-600 text-sm">No messages yet</p>
-            <p className="text-neutral-500 text-xs mt-1">Send a message to start the conversation</p>
+            <p className="text-neutral-400 text-sm font-medium">No messages yet</p>
           </div>
         ) : (
           <div className="space-y-6">
             {Object.entries(groupedMessages).map(([date, dateMessages]) => (
               <div key={date}>
-                <div className="flex justify-center mb-4">
-                  <span className="text-xs text-neutral-600 bg-neutral-100 px-3 py-1 rounded-full">
+                <div className="flex justify-center mb-6">
+                  <span className="text-[10px] font-bold text-neutral-400 bg-white border border-neutral-200 px-3 py-1 rounded-full uppercase tracking-wider">
                     {date}
                   </span>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {dateMessages.map((message) => {
                     const isOwn = message.sender_id === user?.id;
                     return (
                       <div
                         key={message.id}
                         className={cn(
-                          "flex gap-2",
-                          isOwn ? "flex-row-reverse" : ""
+                          "flex gap-3",
+                          isOwn ? "flex-row-reverse" : "flex-row"
                         )}
                       >
                         {!isOwn && (
-                          <Avatar className="h-8 w-8 shrink-0">
+                          <Avatar className="h-7 w-7 shrink-0 border border-neutral-100">
                             <AvatarImage src={message.sender?.avatar_url} />
-                            <AvatarFallback className="bg-neutral-200 text-xs">
+                            <AvatarFallback className="bg-neutral-100 text-[10px] font-bold">
                               {message.sender?.full_name?.charAt(0) || "?"}
                             </AvatarFallback>
                           </Avatar>
                         )}
                         <div
                           className={cn(
-                            "max-w-[70%] rounded-lg px-3 py-2",
+                            "max-w-[80%] rounded-md px-3.5 py-2 shadow-sm transition-colors duration-150",
                             isOwn
-                              ? "bg-indigo-600 text-white rounded-tr-none"
-                              : "bg-neutral-150 text-neutral-900 rounded-tl-none"
+                              ? "bg-neutral-900 text-white rounded-tr-none"
+                              : "bg-white border border-neutral-200 text-neutral-900 rounded-tl-none"
                           )}
                         >
-                          <p className="text-sm">{message.content}</p>
+                          <p className="text-sm leading-relaxed">{message.content}</p>
                           <p
                             className={cn(
-                              "text-[10px] mt-1",
-                              isOwn ? "text-indigo-200" : "text-neutral-500"
+                              "text-[9px] mt-1.5 font-medium uppercase tracking-tight",
+                              isOwn ? "text-neutral-400" : "text-neutral-400"
                             )}
                           >
                             {formatTime(message.created_at)}
@@ -229,17 +228,17 @@ export function MessageThread({
 
       {/* Suggestions */}
       {suggestions.length > 0 && (
-        <div className="px-4 py-2 bg-neutral-50 border-t border-neutral-200 flex flex-wrap gap-2">
+        <div className="px-4 py-3 bg-white border-t border-neutral-100 flex flex-wrap gap-2">
           <div className="w-full flex items-center gap-1.5 mb-1">
-            <Sparkles className="h-3 w-3 text-indigo-500" />
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">AI Suggestions</span>
+            <Sparkles className="h-3 w-3 text-neutral-400" />
+            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">AI Suggested Reply</span>
           </div>
           {suggestions.map((suggestion, i) => (
             <button
               key={i}
               onClick={() => handleSend(suggestion)}
               disabled={sending}
-              className="text-xs bg-white border border-neutral-200 hover:border-indigo-300 hover:bg-indigo-50 text-neutral-700 px-3 py-1.5 rounded-full transition-all text-left max-w-full"
+              className="text-[11px] font-medium bg-neutral-50 border border-neutral-200 hover:border-neutral-900 hover:bg-white text-neutral-600 hover:text-neutral-900 px-3 py-1.5 rounded-md transition-colors duration-150 text-left max-w-full"
             >
               {suggestion}
             </button>
@@ -248,7 +247,7 @@ export function MessageThread({
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-neutral-200">
+      <div className="p-4 bg-white border-t border-neutral-100">
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -257,17 +256,17 @@ export function MessageThread({
           }}
         >
           <Input
-            placeholder="Type a message..."
+            placeholder="Type your message..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="flex-1 h-10"
+            className="flex-1 h-10 rounded-md border-neutral-200 text-sm focus-visible:ring-neutral-900"
             disabled={sending}
           />
           <Button
             type="submit"
             size="icon"
             disabled={!inputValue.trim() || sending}
-            className="h-10 w-10 bg-indigo-600 hover:bg-indigo-700"
+            className="h-10 w-10 bg-neutral-900 hover:bg-black text-white shrink-0 rounded-md transition-colors"
           >
             <Send className="h-4 w-4" />
           </Button>

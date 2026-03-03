@@ -75,18 +75,18 @@ export function PaymentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Platform Routing Fee</DialogTitle>
-          <DialogDescription>
-            This ${routingFee.toFixed(2)} fee connects you with the operator. You will pay the operator ${amount.toFixed(2)} separately for the trip.
+          <DialogTitle className="text-xl font-semibold">Platform Routing Fee</DialogTitle>
+          <DialogDescription className="text-sm text-neutral-500">
+            This ${routingFee.toFixed(2)} fee connects you with the operator. The trip total is paid directly to the operator.
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-neutral-900" />
           </div>
         ) : error ? (
-          <div className="bg-red-50 text-red-600 text-sm p-4 rounded-lg">
+          <div className="bg-red-50 text-red-600 text-sm p-4 rounded-md border border-red-100 font-medium">
             {error}
           </div>
         ) : clientSecret ? (
@@ -97,7 +97,8 @@ export function PaymentModal({
               appearance: {
                 theme: "stripe",
                 variables: {
-                  colorPrimary: "#4f46e5"
+                  colorPrimary: "#000000",
+                  borderRadius: "6px"
                 }
               }
             }}

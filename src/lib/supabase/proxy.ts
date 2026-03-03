@@ -31,10 +31,16 @@ export async function updateSession(request: NextRequest) {
   const { data, error } = await supabase.auth.getUser();
   const user = data?.user;
 
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+  const hasToken = searchParams.has('token');
+  
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
 
-  if (!user && isProtected) {
+  // EXCEPTION: Allow /quotes/submit and /trips/[id] if a token is present
+  // These pages have their own internal logic to validate the token
+  const isTokenizedPath = (pathname.startsWith('/quotes/submit') || pathname.startsWith('/trips/')) && hasToken;
+
+  if (!user && isProtected && !isTokenizedPath) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);

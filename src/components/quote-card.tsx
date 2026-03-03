@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Star, CheckCircle2, Shield, User, MessageSquare, TrendingDown, Award, Phone, Mail } from "lucide-react";
+import { Star, CheckCircle2, Shield, User, MessageSquare, TrendingDown, Award, Phone, Mail, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -41,10 +41,7 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
   };
 
   return (
-    <motion.div
-      initial={isNew ? { scale: 0.95, opacity: 0 } : false}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: "spring", duration: 0.5 }}
+    <div
       className={cn(
         "relative",
         isAccepted && "pointer-events-none opacity-60",
@@ -53,74 +50,73 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
       onClick={(e) => e.stopPropagation()}
     >
       <Card className={cn(
-        "p-6 space-y-4 transition-all hover:shadow-lg relative overflow-hidden",
-        quote.isLowestPrice && "border-2 border-green-500 shadow-green-100",
-        quote.isHighestRated && "border-2 border-amber-500 shadow-amber-100",
-        isNew && "animate-pulse-border"
+        "p-6 space-y-5 transition-colors duration-150 border-neutral-200 shadow-sm relative overflow-hidden",
+        quote.isLowestPrice && "border-green-500 bg-green-50/10",
+        quote.isHighestRated && "border-amber-500 bg-amber-50/10"
       )}>
         {/* Status Badges */}
         <div className="absolute top-4 right-4 flex gap-2">
           {isNew && (
-            <Badge className="bg-indigo-600 text-white animate-pulse">NEW</Badge>
+            <Badge className="bg-sky-600 text-white font-bold text-[10px] h-5 px-1.5">NEW</Badge>
           )}
           {quote.isLowestPrice && (
-            <Badge className="bg-green-600 text-white flex items-center gap-1">
+            <Badge className="bg-green-600 text-white flex items-center gap-1 font-bold text-[10px] h-5 px-1.5">
               <TrendingDown className="w-3 h-3" />
-              Best Price
+              BEST PRICE
             </Badge>
           )}
           {quote.isHighestRated && (
-            <Badge className="bg-amber-600 text-white flex items-center gap-1">
+            <Badge className="bg-amber-600 text-white flex items-center gap-1 font-bold text-[10px] h-5 px-1.5">
               <Award className="w-3 h-3" />
-              Top Rated
+              TOP RATED
             </Badge>
           )}
           {isAccepted && (
-            <Badge className="bg-green-600 text-white flex items-center gap-1">
+            <Badge className="bg-green-600 text-white flex items-center gap-1 font-bold text-[10px] h-5 px-1.5">
               <CheckCircle2 className="w-3 h-3" />
-              Accepted
+              ACCEPTED
             </Badge>
           )}
         </div>
 
         {/* Operator Profile */}
         <div className="flex items-start gap-4 pr-24">
-          <Avatar className="h-14 w-14 border-2 border-neutral-200">
+          <Avatar className="h-12 w-12 border border-neutral-200">
             <AvatarImage src={quote.operatorAvatar} />
-            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">
+            <AvatarFallback className="bg-neutral-900 text-white font-semibold text-sm">
               {quote.operatorName.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="font-bold text-lg text-neutral-900">{quote.operatorName}</h3>
+            <h3 className="font-semibold text-lg text-neutral-900">{quote.operatorName}</h3>
             <div className="flex items-center gap-3 mt-1">
               <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-sm">{quote.operatorRating.toFixed(1)}</span>
-                <span className="text-xs text-neutral-500">({quote.operatorReviewCount})</span>
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-sm text-neutral-700">{quote.operatorRating.toFixed(1)}</span>
+                <span className="text-xs text-neutral-400">({quote.operatorReviewCount} reviews)</span>
               </div>
               <span className="text-xs text-neutral-300">•</span>
-              <span className="text-xs text-neutral-500">
-                Responded in {quote.responseTime} min{quote.responseTime !== 1 ? 's' : ''}
+              <span className="text-xs text-neutral-500 font-medium">
+                {quote.responseTime}m response
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-3">
               {quote.coriCertified && (
-                <Badge variant="outline" className="text-[10px] flex items-center gap-1 border-green-200 text-green-700">
-                  <CheckCircle2 className="w-3 h-3" />
+                <Badge variant="outline" className="text-[10px] font-bold h-5 px-1.5 flex items-center gap-1 border-neutral-200 text-neutral-600 uppercase">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
                   CORI
                 </Badge>
               )}
               {quote.insuranceVerified && (
-                <Badge variant="outline" className="text-[10px] flex items-center gap-1 border-blue-200 text-blue-700">
-                  <Shield className="w-3 h-3" />
+                <Badge variant="outline" className="text-[10px] font-bold h-5 px-1.5 flex items-center gap-1 border-neutral-200 text-neutral-600 uppercase">
+                  <Shield className="w-2.5 h-2.5" />
                   Insured
                 </Badge>
               )}
               {quote.wheelchairAccessible && (
-                <Badge variant="outline" className="text-[10px] flex items-center gap-1 border-purple-200 text-purple-700">
-                  <User className="w-3 h-3" />
-                  Accessible
+                <Badge variant="outline" className="text-[10px] font-bold h-5 px-1.5 flex items-center gap-1 border-neutral-200 text-neutral-600 uppercase">
+                  <User className="w-2.5 h-2.5" />
+                  ADA
                 </Badge>
               )}
             </div>
@@ -128,151 +124,139 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
         </div>
 
         {/* Price Breakdown */}
-        <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-            <p className="text-xs text-amber-900">
-              <strong>⚠️ Note:</strong> After accepting, you'll pay a <strong>$1.99 platform routing fee</strong> to connect with this operator. The trip cost shown below will be paid directly to the operator.
-            </p>
-          </div>
-          <div className="flex items-baseline justify-between mb-3">
-            <div className="text-3xl font-black text-neutral-900">
+        <div className="bg-neutral-50 rounded-lg p-5 border border-neutral-100">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="text-3xl font-semibold text-neutral-900">
               {quote.totalPrice === 0 ? "TBD" : `$${quote.totalPrice}`}
             </div>
             {quote.totalPrice === 0 && (
-              <Badge className="bg-blue-600 text-white animate-pulse">
-                Needs Discussion
+              <Badge className="bg-sky-600 text-white font-bold text-[10px] h-5 px-1.5">
+                ESTIMATE
               </Badge>
             )}
             {quote.discount && quote.totalPrice > 0 && (
-              <Badge className="bg-red-600 text-white">
+              <Badge className="bg-red-600 text-white font-bold text-[10px] h-5 px-1.5">
                 {quote.discount.percentage}% OFF
               </Badge>
             )}
           </div>
+          
           {quote.totalPrice > 0 && (
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between text-neutral-600">
-                <span>Base fare</span>
-                <span className="font-semibold">${quote.baseFare}</span>
+            <div className="space-y-2 text-sm pt-4 border-t border-neutral-200/60">
+              <div className="flex justify-between text-neutral-500">
+                <span className="font-medium">Base fare</span>
+                <span className="font-semibold text-neutral-900">${quote.baseFare}</span>
               </div>
-              {quote.distanceCharge && (
-                <div className="flex justify-between text-neutral-600">
-                  <span>Distance charge</span>
-                  <span className="font-semibold">${quote.distanceCharge}</span>
+              {quote.distanceCharge > 0 && (
+                <div className="flex justify-between text-neutral-500">
+                  <span className="font-medium">Distance charge</span>
+                  <span className="font-semibold text-neutral-900">${quote.distanceCharge}</span>
                 </div>
               )}
               {quote.additionalFees?.map((fee, idx) => (
-                <div key={idx} className="flex justify-between text-neutral-600">
-                  <span>{fee.name}</span>
-                  <span className="font-semibold">${fee.amount}</span>
+                <div key={idx} className="flex justify-between text-neutral-500">
+                  <span className="font-medium">{fee.name}</span>
+                  <span className="font-semibold text-neutral-900">${fee.amount}</span>
                 </div>
               ))}
               {quote.discount && (
-                <div className="flex justify-between text-red-600 font-semibold pt-1 border-t border-neutral-200">
+                <div className="flex justify-between text-red-600 font-semibold pt-2 border-t border-neutral-200/60 mt-2">
                   <span>{quote.discount.reason}</span>
                   <span>-${(quote.totalPrice * quote.discount.percentage / 100).toFixed(2)}</span>
                 </div>
               )}
             </div>
           )}
+
+          <div className="mt-4 pt-4 border-t border-neutral-200/60 flex items-start gap-2">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-neutral-500 leading-normal">
+              <strong>Routing Fee:</strong> A one-time <strong>$1.99 fee</strong> applies after acceptance. Trip total is paid directly to the operator.
+            </p>
+          </div>
         </div>
 
-        {/* Vehicle Info */}
-        <div className="flex items-center gap-4 bg-white rounded-xl p-4 border border-neutral-100">
-          {quote.vehiclePhoto && (
-            <div className="w-20 h-20 rounded-lg overflow-hidden bg-neutral-100">
-              <img src={quote.vehiclePhoto} alt={quote.vehicleType} className="w-full h-full object-cover" />
+        {/* Vehicle & Note */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-neutral-100">
+            {quote.vehiclePhoto && (
+              <div className="w-12 h-12 rounded bg-neutral-100 shrink-0 overflow-hidden">
+                <img src={quote.vehiclePhoto} alt={quote.vehicleType} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="font-semibold text-sm text-neutral-900 truncate">{quote.vehicleYear} {quote.vehicleType}</div>
+              <div className="text-[11px] text-neutral-400 font-medium">Capacity: {quote.vehicleCapacity} pax</div>
+            </div>
+          </div>
+
+          {quote.operatorNote && (
+            <div className="bg-sky-50/50 rounded-lg p-3 border border-sky-100 flex items-start gap-2">
+              <MessageSquare className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-sky-900 leading-relaxed line-clamp-2">"{quote.operatorNote}"</p>
             </div>
           )}
-          <div className="flex-1">
-            <div className="font-bold text-neutral-900">{quote.vehicleYear} {quote.vehicleType}</div>
-            <div className="text-sm text-neutral-500 mt-1">
-              Capacity: {quote.vehicleCapacity} passengers
-            </div>
-          </div>
         </div>
 
-        {/* Operator Note */}
-        {quote.operatorNote && (
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-4">
-            <div className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
-              Operator Note
-            </div>
-            <p className="text-sm text-neutral-700 italic">"{quote.operatorNote}"</p>
-          </div>
-        )}
-
-        {/* Contact Info - Visible After Accepting or for Estimates */}
+        {/* Contact Info - Visible After Accepting */}
         {(isAccepted || (quote.totalPrice === 0 && (quote.operatorPhone || quote.operatorEmail))) && (
           <div className={cn(
-            "rounded-xl p-4 border mb-4",
-            isAccepted ? "bg-indigo-50 border-indigo-200" : "bg-green-50 border-green-200"
+            "rounded-lg p-4 border",
+            isAccepted ? "bg-green-50 border-green-200" : "bg-sky-50 border-sky-200"
           )}>
             <h4 className={cn(
-              "text-sm font-bold mb-2",
-              isAccepted ? "text-indigo-900" : "text-green-900"
+              "text-sm font-semibold mb-3 flex items-center gap-2",
+              isAccepted ? "text-green-900" : "text-sky-900"
             )}>
-              {isAccepted ? "📞 Contact Operator" : "Discuss Details with Operator"}
+              {isAccepted ? <CheckCircle2 className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+              {isAccepted ? "Booking Confirmed" : "Contact Operator to Finalize"}
             </h4>
-            <p className={cn(
-              "text-xs mb-3",
-              isAccepted ? "text-indigo-800" : "text-green-800"
-            )}>
-              {isAccepted 
-                ? "Your booking is confirmed! You can now contact the operator directly to finalize details." 
-                : "This operator is interested but needs to discuss details before providing a fixed price. Reach out to them directly:"}
-            </p>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {quote.operatorPhone && (
-                <div className={cn(
-                  "flex items-center gap-2 text-sm font-medium",
-                  isAccepted ? "text-indigo-900" : "text-green-900"
-                )}>
-                  <Phone className={cn("w-4 h-4", isAccepted ? "text-indigo-600" : "text-green-600")} />
-                  <a href={`tel:${quote.operatorPhone}`} className="hover:underline">{quote.operatorPhone}</a>
-                </div>
+                <a href={`tel:${quote.operatorPhone}`} className="flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-black bg-white p-2 rounded border border-neutral-100">
+                  <Phone className="w-3.5 h-3.5 text-neutral-400" />
+                  {quote.operatorPhone}
+                </a>
               )}
               {quote.operatorEmail && (
-                <div className={cn(
-                  "flex items-center gap-2 text-sm font-medium",
-                  isAccepted ? "text-indigo-900" : "text-green-900"
-                )}>
-                  <Mail className={cn("w-4 h-4", isAccepted ? "text-indigo-600" : "text-green-600")} />
-                  <a href={`mailto:${quote.operatorEmail}`} className="hover:underline">{quote.operatorEmail}</a>
-                </div>
+                <a href={`mailto:${quote.operatorEmail}`} className="flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-black bg-white p-2 rounded border border-neutral-100">
+                  <Mail className="w-3.5 h-3.5 text-neutral-400" />
+                  {quote.operatorEmail}
+                </a>
               )}
             </div>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
-          <Button
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold h-12 rounded-xl shadow-lg shadow-indigo-500/20"
-            onClick={handleAcceptClick}
-            disabled={isAccepted || isDeclined || isExpired}
-            title={isAccepted ? 'Already accepted' : 'Accept this operator - FINAL decision'}
-          >
-            {isAccepted ? 'Accepted & Locked' : (quote.totalPrice === 0 ? 'Lock Job with Operator' : 'Accept Quote & Lock Job')}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 h-12 rounded-xl border-2"
-            onClick={() => onMessage(quote.id)}
-          >
-            <MessageSquare className="w-4 h-4" />
-            Message
-          </Button>
-          <Button
-            variant="ghost"
-            className="text-neutral-500 hover:text-red-600 h-12"
-            onClick={() => onDecline(quote.id)}
-            disabled={isAccepted || isDeclined}
-          >
-            Decline
-          </Button>
-        </div>
+        {!isAccepted && (
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button
+              className="flex-1 bg-neutral-900 hover:bg-black text-white font-semibold h-10 rounded-md shadow-sm"
+              onClick={handleAcceptClick}
+              disabled={isAccepted || isDeclined || isExpired}
+            >
+              {quote.totalPrice === 0 ? 'Lock Job with Operator' : 'Accept Quote & Book'}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 h-10 rounded-md border-neutral-200 font-semibold"
+              onClick={() => onMessage(quote.id)}
+            >
+              <MessageSquare className="w-4 h-4" />
+              Message
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-neutral-400 hover:text-red-600 hover:bg-red-50 h-10 font-medium"
+              onClick={() => onDecline(quote.id)}
+              disabled={isAccepted || isDeclined}
+            >
+              Decline
+            </Button>
+          </div>
+        )}
       </Card>
-    </motion.div>
+    </div>
   );
 }

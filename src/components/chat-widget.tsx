@@ -49,7 +49,7 @@ export function ChatWidget() {
                         transition={{ duration: 0.2 }}
                         className="mb-4"
                     >
-                        <Card className="w-[380px] shadow-2xl border border-neutral-300 overflow-hidden rounded-2xl">
+                        <Card className="w-[380px] shadow-2xl border border-neutral-300 overflow-hidden rounded-lg">
                             <CardHeader className="bg-neutral-900 text-white p-4 flex flex-row items-center justify-between">
                                 <CardTitle className="text-sm font-bold flex items-center gap-2">
                                     <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
@@ -85,7 +85,7 @@ export function ChatWidget() {
                                                     </div>
                                                 )}
                                                 <div 
-                                                    className={`p-3 rounded-2xl text-sm max-w-[85%] ${
+                                                    className={`p-3 rounded-lg text-sm max-w-[85%] ${
                                                         m.role === 'user' 
                                                             ? 'bg-neutral-900 text-white rounded-tr-none' 
                                                             : 'bg-white text-neutral-800 rounded-tl-none border border-neutral-200'
@@ -100,7 +100,7 @@ export function ChatWidget() {
                                                 <div className="h-8 w-8 shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-bold border border-indigo-200 animate-pulse">
                                                     AI
                                                 </div>
-                                                <div className="bg-white p-3 rounded-2xl rounded-tl-none text-sm text-neutral-400 border border-neutral-200 flex items-center gap-2">
+                                                <div className="bg-white p-3 rounded-lg rounded-tl-none text-sm text-neutral-400 border border-neutral-200 flex items-center gap-2">
                                                     <Loader2 className="h-3 w-3 animate-spin" />
                                                     Typing...
                                                 </div>
@@ -111,19 +111,19 @@ export function ChatWidget() {
                                 </ScrollArea>
                                 <div className="p-3 border-t border-neutral-200 bg-white">
                                     <form className="flex gap-2" onSubmit={handleFormSubmit}>
-                                        <Button type="button" size="icon" variant="outline" className="shrink-0 bg-white border-neutral-200 hover:bg-neutral-50 hover:text-indigo-600 rounded-xl">
+                                        <Button type="button" size="icon" variant="outline" className="shrink-0 bg-white border-neutral-200 hover:bg-neutral-50 hover:text-indigo-600 rounded-lg">
                                             <Mic className="w-4 h-4" />
                                         </Button>
                                         <Input
                                             value={input}
                                             onChange={handleInputChange}
                                             placeholder="Ask dispatch anything..."
-                                            className="bg-white border-neutral-200 focus-visible:ring-0 focus-visible:border-neutral-900 rounded-xl h-10"
+                                            className="bg-white border-neutral-200 focus-visible:ring-0 focus-visible:border-neutral-900 rounded-lg h-10"
                                         />
                                         <Button 
                                             type="submit" 
                                             size="icon" 
-                                            className="bg-neutral-900 hover:bg-black rounded-xl shrink-0 h-10 w-10 shadow-sm"
+                                            className="bg-neutral-900 hover:bg-black rounded-lg shrink-0 h-10 w-10 shadow-sm"
                                             disabled={!(input || '').trim() || isLoading}
                                         >
                                             <Send className="w-4 h-4" />

@@ -22,12 +22,12 @@ export function Toaster() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
                         className={cn(
-                            "pointer-events-auto w-full bg-white rounded-2xl shadow-2xl border border-neutral-100 p-4 flex gap-3 items-start",
-                            "shadow-black/10 backdrop-blur-xl bg-white/95"
+                            "pointer-events-auto w-full bg-white rounded-lg shadow-2xl border border-neutral-100 p-4 flex gap-3 items-start",
+                            "shadow-black/10  bg-white"
                         )}
                     >
                         <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+                            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
                             notif.type === "success" ? "bg-emerald-50 text-emerald-500" :
                                 notif.type === "warning" ? "bg-amber-50 text-amber-500" :
                                     notif.type === "error" ? "bg-red-50 text-red-500" : "bg-indigo-50 text-indigo-500"

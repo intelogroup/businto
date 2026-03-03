@@ -15,6 +15,9 @@
     "test:production-claim": "node -r dotenv/config -r tsx/cjs test-production-claim.ts dotenv_config_path=.env.local",
     "test:payment": "vitest tests/payment-routing-fee.test.ts",
     "test:marketplace": "vitest tests/marketplace-integrity.test.ts",
+    "test:resend": "node scripts/test-resend-comprehensive.mjs",
+    "test:resend-simple": "node scripts/test-resend-email.mjs",
+    "test:compare-providers": "node scripts/test-compare-providers.mjs",
     "prepare": "husky"
   },
   "dependencies": {

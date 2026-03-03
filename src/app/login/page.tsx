@@ -61,42 +61,36 @@ function LoginContent() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] p-4 relative overflow-hidden">
-            {/* Background patterns */}
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-100/50 blur-[100px] rounded-full" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-neutral-200/50 blur-[100px] rounded-full" />
-            </div>
-
-            <div className="w-full max-w-[440px] z-10">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 p-4">
+            <div className="w-full max-w-[400px]">
                 <div className="mb-10 text-center">
                     <Link href="/" className="inline-flex items-center gap-3 group">
-                        <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-105 shadow-sm">
-                            <img src="/brand-mark.svg" alt="Businto" className="w-8 h-8" />
+                        <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center transition-colors duration-150">
+                            <img src="/brand-mark.svg" alt="Businto" className="w-7 h-7" />
                         </div>
-                        <h1 className="text-3xl font-semibold text-neutral-950 tracking-tight">Businto</h1>
+                        <h1 className="text-2xl font-semibold text-neutral-950 tracking-tight">Businto</h1>
                     </Link>
                 </div>
 
-                <Card className="border-none shadow-sm bg-white transition-colors duration-150">
-                    <CardHeader className="space-y-1 pb-8 text-center">
-                        <CardTitle className="text-2xl font-bold tracking-tight text-neutral-900">Welcome back</CardTitle>
-                        <CardDescription className="text-neutral-500 font-medium">
-                            Enter your credentials to access your operator dashboard
+                <Card className="border border-neutral-200 shadow-sm bg-white overflow-hidden">
+                    <CardHeader className="space-y-1.5 pb-6 text-center border-b border-neutral-100 bg-neutral-50/50">
+                        <CardTitle className="text-xl font-semibold tracking-tight text-neutral-900">Welcome back</CardTitle>
+                        <CardDescription className="text-neutral-500 text-sm">
+                            Access your private transport dashboard
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid gap-6">
+                    <CardContent className="grid gap-6 pt-8">
                         {errorMsg && (
-                            <div className="p-3 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm flex items-start gap-2">
+                            <div className="p-3 bg-red-50 text-red-600 border border-red-100 rounded-md text-sm flex items-start gap-2">
                                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                                 <span>{errorMsg}</span>
                             </div>
                         )}
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="space-y-2">
-                                <Label htmlFor="email" className="text-xs font-semibold text-neutral-600 ml-1">Email</Label>
-                                <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors duration-150" size={18} />
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email" className="text-xs font-medium text-neutral-500 ml-1">Email Address</Label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
                                     <Input
                                         id="email"
                                         type="email"
@@ -107,17 +101,17 @@ function LoginContent() {
                                             setEmail(e.target.value);
                                             setErrorMsg(null);
                                         }}
-                                        className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
+                                        className="h-10 pl-10 rounded-md"
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <div className="flex items-center justify-between ml-1">
-                                    <Label htmlFor="password" className="text-xs font-semibold text-neutral-600">Password</Label>
-                                    <Link href="/login/forgot-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Forgot?</Link>
+                                    <Label htmlFor="password" className="text-xs font-medium text-neutral-500">Password</Label>
+                                    <Link href="/login/forgot-password" university-none className="text-xs font-medium text-neutral-400 hover:text-neutral-900">Forgot password?</Link>
                                 </div>
-                                <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 group-focus-within:text-black transition-colors duration-150" size={18} />
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
                                     <Input
                                         id="password"
                                         type="password"
@@ -127,13 +121,13 @@ function LoginContent() {
                                             setPassword(e.target.value);
                                             setErrorMsg(null);
                                         }}
-                                        className="h-10 pl-12 bg-white border-neutral-200 focus:border-black focus:ring-0 transition-colors duration-150 rounded-md"
+                                        className="h-10 pl-10 rounded-md"
                                     />
                                 </div>
                             </div>
                             <Button
                                 type="submit"
-                                className="w-full h-10 bg-neutral-950 hover:bg-black text-white font-semibold rounded-md transition-colors duration-150 gap-2"
+                                className="w-full h-10 bg-neutral-900 hover:bg-black text-white font-semibold rounded-md shadow-sm transition-colors duration-150 gap-2 mt-2"
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting ? (
@@ -147,15 +141,15 @@ function LoginContent() {
                             </Button>
                         </form>
                     </CardContent>
-                    <CardFooter className="pt-4 pb-8 justify-center">
-                        <p className="text-sm text-neutral-500 font-medium">
-                            Don&apos;t have an account? <Link href="/signup" className="text-black font-bold hover:underline">Sign Up</Link>
+                    <CardFooter className="pt-2 pb-8 flex justify-center border-t border-neutral-50 mt-4 bg-neutral-50/30">
+                        <p className="text-sm text-neutral-500">
+                            Don&apos;t have an account? <Link href="/signup" className="text-neutral-900 font-semibold hover:underline">Create Account</Link>
                         </p>
                     </CardFooter>
                 </Card>
 
-                <div className="mt-8 text-center text-xs text-neutral-400 font-semibold">
-                    Secure Infrastructure Provided by Businto
+                <div className="mt-12 text-center text-[10px] text-neutral-400 font-medium uppercase tracking-widest">
+                    Enterprise Grade Infrastructure
                 </div>
             </div>
         </div>

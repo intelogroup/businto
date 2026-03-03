@@ -8,7 +8,7 @@ interface FirstQuoteEmailProps {
 
 export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white rounded-xl overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
+    <div className="w-full max-w-2xl mx-auto bg-white rounded-lg overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
       {/* Subject Line Preview */}
       <div className="bg-neutral-100 p-3 text-xs text-neutral-500 border-b border-neutral-200">
         <span className="font-bold text-neutral-700">Subject:</span> 🎉 Your first quote is here! ({tripRequest.service_type === 'school' ? 'School Run' : 'Trip'} - {tripRequest.pickup_date})
@@ -18,7 +18,7 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-8">
         <div className="text-center">
           <div className="text-5xl mb-4">🚌</div>
-          <h1 className="text-3xl font-black tracking-tight mb-2">You've got quotes!</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">You've got quotes!</h1>
           <p className="text-indigo-100">An operator is ready to serve you</p>
         </div>
       </div>
@@ -49,8 +49,8 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
         </div>
 
         {/* Quote Badge */}
-        <div className="mt-6 bg-white rounded-2xl p-6 shadow-sm border border-indigo-100 text-center">
-          <div className="text-6xl font-black text-indigo-600 mb-2">1</div>
+        <div className="mt-6 bg-white rounded-lg p-6 shadow-sm border border-indigo-100 text-center">
+          <div className="text-6xl font-bold text-indigo-600 mb-2">1</div>
           <div className="text-lg font-bold text-neutral-900">quote received</div>
           <div className="text-sm text-neutral-500 mt-1">More coming in...</div>
         </div>
@@ -58,9 +58,9 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
 
       {/* Quote Preview */}
       <div className="p-6 space-y-4">
-        <h2 className="text-xl font-black text-neutral-900 mb-4">Quote Preview</h2>
+        <h2 className="text-xl font-bold text-neutral-900 mb-4">Quote Preview</h2>
 
-        <div className="bg-neutral-50 rounded-2xl p-6 border border-neutral-200">
+        <div className="bg-neutral-50 rounded-lg p-6 border border-neutral-200">
           {/* Operator Info */}
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -75,7 +75,7 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-black text-indigo-600">${quote.totalPrice}</div>
+              <div className="text-3xl font-bold text-indigo-600">${quote.totalPrice}</div>
               <div className="text-xs text-neutral-500">per trip</div>
             </div>
           </div>
@@ -106,7 +106,7 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
 
       {/* CTA */}
       <div className="p-6 pt-2">
-        <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-indigo-600/30 transition-all active:scale-[0.98]">
+        <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg shadow-indigo-600/30 transition-colors duration-150 active:scale-[0.98]">
           View Quote Details →
         </button>
         <div className="text-center mt-4">

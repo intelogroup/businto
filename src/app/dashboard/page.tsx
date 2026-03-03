@@ -48,37 +48,37 @@ function DashboardContent() {
             {/* Recent Trips Section */}
             {recentTrips.length > 0 && (
                 <div className="container mx-auto max-w-[1600px] px-4 sm:px-8 md:px-12 lg:px-16 pb-20 font-sans">
-                    <h2 className="text-2xl font-bold text-neutral-900 mb-4">Your Recent Trips</h2>
+                    <h2 className="text-2xl font-semibold text-neutral-900 mb-6">Your Recent Trips</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {recentTrips.map((trip) => (
                             <Link href={`/trips/${trip.id}`} key={trip.id}>
-                                <Card className="p-5 hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+                                <Card className="p-5 shadow-sm hover:border-neutral-300 transition-colors duration-150 cursor-pointer">
                                     {/* Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${trip.service_type === 'school' ? 'bg-amber-100 text-amber-600' :
-                                                trip.service_type === 'medical' ? 'bg-green-100 text-green-600' :
-                                                    'bg-indigo-100 text-indigo-600'
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-9 h-9 rounded flex items-center justify-center ${trip.service_type === 'school' ? 'bg-amber-100 text-amber-600' :
+                                                trip.service_type === 'medical' ? 'bg-sky-100 text-sky-600' :
+                                                    'bg-violet-100 text-violet-600'
                                                 }`}>
                                                 {trip.service_type === 'school' ? <Bus className="h-4 w-4" /> :
                                                     trip.service_type === 'medical' ? <Heart className="h-4 w-4" /> :
                                                         <Plane className="h-4 w-4" />}
                                             </div>
                                             <div>
-                                                <div className="font-mono text-xs text-neutral-500">#{trip.id.slice(0, 8)}</div>
-                                                <Badge variant="outline" className={`text-xs ${trip.service_type === 'school' ? 'bg-amber-50 text-amber-700' :
-                                                    trip.service_type === 'medical' ? 'bg-green-50 text-green-700' :
-                                                        'bg-indigo-50 text-indigo-700'
+                                                <div className="font-mono text-[10px] text-neutral-400 uppercase">ID: {trip.id.slice(0, 8)}</div>
+                                                <Badge variant="outline" className={`text-[10px] h-5 px-1.5 font-semibold ${trip.service_type === 'school' ? 'border-amber-200 text-amber-700' :
+                                                    trip.service_type === 'medical' ? 'border-sky-200 text-sky-700' :
+                                                        'border-violet-200 text-violet-700'
                                                     }`}>
                                                     {trip.service_type === 'school' ? 'School Run' :
                                                         trip.service_type === 'medical' ? 'Care Ride' : 'Event Shuttle'}
                                                 </Badge>
                                             </div>
                                         </div>
-                                        <Badge className={`text-xs ${trip.status === 'pending' ? 'bg-yellow-500' :
-                                            trip.status === 'quoted' ? 'bg-purple-500' :
-                                                trip.status === 'booked' ? 'bg-green-500' :
-                                                    'bg-neutral-500'
+                                        <Badge className={`text-[10px] h-5 px-1.5 font-semibold ${trip.status === 'pending' ? 'bg-amber-500 hover:bg-amber-500' :
+                                            trip.status === 'quoted' ? 'bg-violet-500 hover:bg-violet-500' :
+                                                trip.status === 'booked' ? 'bg-green-600 hover:bg-green-600' :
+                                                    'bg-neutral-500 hover:bg-neutral-500'
                                             }`}>
                                             {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
                                         </Badge>

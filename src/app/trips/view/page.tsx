@@ -234,11 +234,11 @@ function TripViewContent() {
                     <span>Back to Trips</span>
                 </Link>
 
-                <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-neutral-100 mb-8">
+                <div className="bg-white rounded-lg p-6 md:p-8 shadow-sm border border-neutral-100 mb-8">
                     <div className="flex flex-col md:flex-row justify-between gap-6">
                         <div className="flex items-start gap-4">
                             <div className={cn(
-                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                "w-12 h-12 rounded-lg flex items-center justify-center",
                                 trip.service_type === 'school' && "bg-amber-100 text-amber-600",
                                 trip.service_type === 'medical' && "bg-green-100 text-green-600",
                                 trip.service_type === 'wedding' && "bg-indigo-100 text-indigo-600"

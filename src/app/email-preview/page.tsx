@@ -119,15 +119,15 @@ export default function EmailPreviewPage() {
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-2xl p-8 shadow-lg border border-neutral-200">
-          <h1 className="text-4xl font-black text-neutral-900 mb-2">Email Template Preview</h1>
+        <div className="bg-white rounded-lg p-8 shadow-lg border border-neutral-200">
+          <h1 className="text-4xl font-bold text-neutral-900 mb-2">Email Template Preview</h1>
           <p className="text-neutral-600">
             Preview the email templates sent to users when they receive quotes
           </p>
         </div>
 
         {/* Template Selector */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-200">
+        <div className="bg-white rounded-lg p-6 shadow-lg border border-neutral-200">
           <Tabs value={selectedTemplate} onValueChange={(v) => setSelectedTemplate(v as 'first' | 'multiple')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="first">First Quote Email</TabsTrigger>
@@ -137,7 +137,7 @@ export default function EmailPreviewPage() {
             <div className="mt-6">
               <TabsContent value="first">
                 <div className="space-y-4">
-                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                     <h3 className="font-bold text-indigo-900 mb-2">When is this sent?</h3>
                     <p className="text-sm text-indigo-800">
                       This email is sent immediately when the user receives their first quote from an operator.
@@ -150,7 +150,7 @@ export default function EmailPreviewPage() {
 
               <TabsContent value="multiple">
                 <div className="space-y-4">
-                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
                     <h3 className="font-bold text-indigo-900 mb-2">When is this sent?</h3>
                     <p className="text-sm text-indigo-800">
                       This email is sent after the user has received 5 or more quotes. It provides a comparison
@@ -165,8 +165,8 @@ export default function EmailPreviewPage() {
         </div>
 
         {/* Implementation Notes */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-200">
-          <h2 className="text-2xl font-black text-neutral-900 mb-4">Implementation Guide</h2>
+        <div className="bg-white rounded-lg p-6 shadow-lg border border-neutral-200">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-4">Implementation Guide</h2>
           <div className="space-y-4 text-sm text-neutral-700">
             <div>
               <h3 className="font-bold text-neutral-900 mb-2">1. Email Service Setup</h3>

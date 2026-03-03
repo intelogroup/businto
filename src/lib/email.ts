@@ -1023,18 +1023,11 @@ export const emailTemplates = {
 
               <!--
                 IMPORTANT: The button href may be wrapped by Brevo's click tracker (sendibt2.com).
-                The plain-text URL below is always the unmodified original link.
-                Operators can copy-paste it if the button redirect fails.
               -->
               <div style="text-align: center;">
                 <a href="${effectiveClaimLink}" class="button" style="display:inline-block;background-color:${config.accentColor};color:#ffffff!important;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:20px;">
                   Claim Job
                 </a>
-              </div>
-
-              <div style="margin-top:16px;padding:14px 18px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;text-align:center;">
-                <p style="margin:0 0 6px 0;font-size:12px;color:#6b7280;">If the button above doesn't work, <a href="${effectiveClaimLink}" style="color:#0369a1;text-decoration:underline;font-weight:600;">click here</a> or copy and paste this link into your browser:</p>
-                <a href="${effectiveClaimLink}" style="display:inline-block;margin:0;font-size:13px;font-weight:600;color:#0369a1;word-break:break-all;font-family:monospace;text-decoration:none;">${effectiveClaimLink}</a>
               </div>
 
               <p style="font-size: 14px; color: #6b7280;">

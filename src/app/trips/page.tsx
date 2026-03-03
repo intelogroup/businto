@@ -147,7 +147,7 @@ export default function TripsPage() {
   const TripGrid = ({ items, emptyMessage }: { items: TransportRequest[], emptyMessage: string }) => {
     if (items.length === 0) {
       return (
-        <div className="py-8 text-center border-2 border-dashed border-neutral-100 rounded-2xl bg-white/50">
+        <div className="py-8 text-center border-2 border-dashed border-neutral-100 rounded-lg bg-white/50">
           <p className="text-sm font-medium text-neutral-400">{emptyMessage}</p>
         </div>
       );
@@ -157,12 +157,12 @@ export default function TripsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {items.map((trip) => (
           <Link key={trip.id} href={`/trips/${trip.id}`} className="group outline-none">
-            <Card className="p-6 h-full transition-all duration-300 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 hover:border-black/10 flex flex-col focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2">
+            <Card className="p-6 h-full transition-colors duration-150 duration-300  hover:shadow-black/5  hover:border-black/10 flex flex-col focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2">
               {/* Header */}
               <div className="flex items-start justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-sm",
+                    "w-12 h-12 rounded-lg flex items-center justify-center transition-colors shadow-sm",
                     trip.service_type === 'school' && "bg-amber-100/80 text-amber-600 group-hover:bg-amber-100",
                     trip.service_type === 'medical' && "bg-green-100/80 text-green-600 group-hover:bg-green-100",
                     trip.service_type === 'wedding' && "bg-indigo-100/80 text-indigo-600 group-hover:bg-indigo-100"
@@ -253,12 +253,12 @@ export default function TripsPage() {
 
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-neutral-950 mb-2">My Trips</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-950 mb-2">My Trips</h1>
             <p className="text-sm font-medium text-neutral-500">Manage your transportation requests and view incoming quotes.</p>
           </div>
           {/* Filters */}
           <Tabs defaultValue="all" onValueChange={(value) => setFilter(value as any)}>
-            <TabsList className="grid w-full sm:w-auto grid-cols-4 p-1 bg-white border border-neutral-200 shadow-sm rounded-xl">
+            <TabsList className="grid w-full sm:w-auto grid-cols-4 p-1 bg-white border border-neutral-200 shadow-sm rounded-lg">
               <TabsTrigger value="all" className="rounded-lg text-[13px] font-bold">All</TabsTrigger>
               <TabsTrigger value="school" className="rounded-lg text-[13px] font-bold">School</TabsTrigger>
               <TabsTrigger value="medical" className="rounded-lg text-[13px] font-bold">Medical</TabsTrigger>
@@ -277,19 +277,19 @@ export default function TripsPage() {
 
         {/* Empty State (Total Empty) */}
         {!loading && trips.length === 0 && (
-          <Card className="p-16 text-center border-0 shadow-lg shadow-black/5 bg-white rounded-3xl">
+          <Card className="p-16 text-center border-0 shadow-lg shadow-black/5 bg-white rounded-lg">
             <div className="flex flex-col items-center gap-5 max-w-md mx-auto">
-              <div className="w-20 h-20 rounded-2xl bg-neutral-50 border-2 border-dashed border-neutral-200 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-lg bg-neutral-50 border-2 border-dashed border-neutral-200 flex items-center justify-center">
                 <Bus className="h-8 w-8 text-neutral-300" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-black text-neutral-900 tracking-tight">No trips found</h3>
+                <h3 className="text-xl font-bold text-neutral-900 tracking-tight">No trips found</h3>
                 <p className="text-[15px] font-medium text-neutral-500 leading-relaxed">
                   You haven't submitted any transportation requests yet. Book your first trip to get started.
                 </p>
               </div>
               <Link href="/" className="w-full sm:w-auto mt-4">
-                <Button size="lg" className="w-full rounded-xl bg-black text-white hover:bg-neutral-800 font-bold tracking-wide shadow-lg shadow-black/20">
+                <Button size="lg" className="w-full rounded-lg bg-black text-white hover:bg-neutral-800 font-bold tracking-wide shadow-lg shadow-black/20">
                   Book Your First Trip
                 </Button>
               </Link>
@@ -303,9 +303,9 @@ export default function TripsPage() {
             {/* Active Trips Section */}
             <section className="space-y-6">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-black tracking-tight text-neutral-950">Active Trips</h2>
+                <h2 className="text-xl font-bold tracking-tight text-neutral-950">Active Trips</h2>
                 {filteredActiveTrips.length > 0 && (
-                  <div className="bg-neutral-950 text-white text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                  <div className="bg-neutral-950 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
                     {filteredActiveTrips.length}
                   </div>
                 )}
@@ -320,8 +320,8 @@ export default function TripsPage() {
             {filteredPastTrips.length > 0 && (
               <section className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-black tracking-tight text-neutral-950">Past Trips</h2>
-                  <div className="bg-neutral-100 text-neutral-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                  <h2 className="text-xl font-bold tracking-tight text-neutral-950">Past Trips</h2>
+                  <div className="bg-neutral-100 text-neutral-500 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
                     {filteredPastTrips.length}
                   </div>
                 </div>

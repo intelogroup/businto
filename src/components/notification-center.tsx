@@ -37,11 +37,11 @@ export function NotificationCenter() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="relative h-10 w-10 rounded-xl hover:bg-neutral-100/50 transition-all"
+                    className="relative h-10 w-10 rounded-lg hover:bg-neutral-100/50 transition-colors duration-150"
                 >
                     <Bell size={20} className="text-neutral-500" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-2 right-2 flex h-4 w-4 shrink-0 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white ring-2 ring-white animate-in zoom-in duration-300">
+                        <span className="absolute top-2 right-2 flex h-4 w-4 shrink-0 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white animate-in zoom-in duration-300">
                             {unreadCount}
                         </span>
                     )}
@@ -49,10 +49,10 @@ export function NotificationCenter() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="end"
-                className="w-[380px] mt-2 p-0 rounded-[24px] border-neutral-100 shadow-2xl shadow-black/10 bg-white/95 backdrop-blur-xl overflow-hidden"
+                className="w-[380px] mt-2 p-0 rounded-lg border-neutral-100 shadow-2xl shadow-black/10 bg-white  overflow-hidden"
             >
                 <div className="p-5 border-b border-neutral-50 flex items-center justify-between bg-neutral-50/30">
-                    <DropdownMenuLabel className="p-0 text-base font-black text-neutral-950 tracking-tight">
+                    <DropdownMenuLabel className="p-0 text-base font-bold text-neutral-950 tracking-tight">
                         Notifications
                         {unreadCount > 0 && (
                             <span className="ml-2 text-xs font-bold text-neutral-400 uppercase tracking-widest">
@@ -65,7 +65,7 @@ export function NotificationCenter() {
                             variant="ghost"
                             size="sm"
                             onClick={() => markAllAsRead()}
-                            className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black hover:bg-white rounded-lg transition-all"
+                            className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-neutral-500 hover:text-black hover:bg-white rounded-lg transition-colors duration-150"
                         >
                             <Check className="mr-1.5" size={12} />
                             Read all
@@ -74,7 +74,7 @@ export function NotificationCenter() {
                             variant="ghost"
                             size="sm"
                             onClick={() => clearAll()}
-                            className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                         >
                             <Trash2 className="mr-1.5" size={12} />
                             Clear
@@ -106,12 +106,12 @@ export function NotificationCenter() {
                                         }
                                     }}
                                     className={cn(
-                                        "p-5 transition-all cursor-pointer group flex gap-4",
+                                        "p-5 transition-colors duration-150 cursor-pointer group flex gap-4",
                                         !notif.read ? "bg-indigo-50/30" : "hover:bg-neutral-50"
                                     )}
                                 >
                                     <div className={cn(
-                                        "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm",
+                                        "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
                                         notif.type === "success" ? "bg-emerald-50" :
                                             notif.type === "warning" ? "bg-amber-50" :
                                                 notif.type === "error" ? "bg-red-50" : "bg-indigo-50"
@@ -134,7 +134,7 @@ export function NotificationCenter() {
                                         </p>
                                         {!notif.read && (
                                             <div className="pt-1">
-                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
+                                                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600">
                                                     <Check size={10} />
                                                     New Alert
                                                 </span>
@@ -148,7 +148,7 @@ export function NotificationCenter() {
                 </ScrollArea>
 
                 <div className="p-4 border-t border-neutral-50 bg-neutral-50/10 text-center">
-                    <Button variant="ghost" className="w-full h-10 text-[11px] font-black uppercase tracking-[0.2em] text-neutral-400 hover:text-black rounded-xl">
+                    <Button variant="ghost" className="w-full h-10 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400 hover:text-black rounded-lg">
                         View Full History
                     </Button>
                 </div>

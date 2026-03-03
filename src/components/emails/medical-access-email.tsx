@@ -16,7 +16,7 @@ interface MedicalEmailProps {
 
 export function MedicalAccessEmail({ data }: MedicalEmailProps) {
     return (
-        <div className="w-full max-w-2xl mx-auto bg-white rounded-xl overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
+        <div className="w-full max-w-2xl mx-auto bg-white rounded-lg overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
             {/* Subject Line Preview - Not part of body but helpful context */}
             <div className="bg-neutral-100 p-3 text-xs text-neutral-500 border-b border-neutral-200">
                 <span className="font-bold text-neutral-700">Subject:</span> 🚑 TRIP REQUEST: {data.mobility} • {data.distance}mi • {data.date}
@@ -96,7 +96,7 @@ export function MedicalAccessEmail({ data }: MedicalEmailProps) {
                 </div>
 
                 {/* Requirements Grid */}
-                <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+                <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-100">
                     <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Vehicle Requirements</h3>
                     <div className="grid grid-cols-2 gap-y-2 text-sm">
                         <div className="text-neutral-500">Mobility:</div>
@@ -112,7 +112,7 @@ export function MedicalAccessEmail({ data }: MedicalEmailProps) {
 
                 {/* Action Buttons */}
                 <div className="pt-2">
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
+                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition-colors duration-150 active:scale-[0.98]">
                         Claim Job <ArrowRight className="w-5 h-5 opacity-80" />
                     </button>
                     <div className="mt-3 text-center">
