@@ -56,7 +56,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section className="bg-neutral-50 p-6 rounded-lg border border-neutral-100">
+        <section className="bg-white p-6 rounded-lg border border-neutral-100">
           <h3 className="text-lg font-semibold text-neutral-900 mb-2">Contact Us About Privacy</h3>
           <p className="text-sm">
             If you have questions about this policy or our data practices, please contact us at privacy@businto.com.

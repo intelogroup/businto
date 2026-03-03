@@ -344,7 +344,7 @@ export default function AdminDashboard() {
                                             </thead>
                                             <tbody className="divide-y divide-neutral-50">
                                                 {MOCK_LIVE_REQUESTS.map((req) => (
-                                                    <tr key={req.id} className="group hover:bg-neutral-50/50 transition-colors duration-150">
+                                                    <tr key={req.id} className="group hover:bg-white/50 transition-colors duration-150">
                                                         <td className="py-4">
                                                             <span className="text-sm font-semibold text-indigo-600">{req.id}</span>
                                                         </td>
@@ -413,7 +413,7 @@ export default function AdminDashboard() {
                                     <div className="px-8 pb-8">
                                         {criticalRequests.length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-20 text-center">
-                                                <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
+                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4">
                                                     <Shield className="text-neutral-300" size={32} />
                                                 </div>
                                                 <h3 className="text-lg font-semibold text-neutral-900">All Clear</h3>
@@ -442,7 +442,7 @@ export default function AdminDashboard() {
                                                             <td className="py-6">
                                                                 <div className="flex flex-wrap gap-1">
                                                                     {req.metadata_safe?.mobility_level && (
-                                                                        <Badge variant="outline" className="text-[10px] uppercase font-bold bg-neutral-50 border-neutral-200">
+                                                                        <Badge variant="outline" className="text-[10px] uppercase font-bold bg-white border-neutral-200">
                                                                             {req.metadata_safe.mobility_level}
                                                                         </Badge>
                                                                     )}
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
                                                                 <div className="flex items-center justify-end gap-2">
                                                                     <Button
                                                                         variant="outline"
-                                                                        className="h-8 text-xs font-bold border-neutral-200 hover:bg-neutral-50"
+                                                                        className="h-8 text-xs font-bold border-neutral-200 hover:bg-white"
                                                                         onClick={() => handleForceLeak(req.id)}
                                                                     >
                                                                         Invite Standard
@@ -516,14 +516,14 @@ export default function AdminDashboard() {
                                             </thead>
                                             <tbody className="divide-y divide-neutral-50">
                                                 {MOCK_OPERATORS.map((op) => (
-                                                    <tr key={op.id} className="group hover:bg-neutral-50/50 transition-colors">
+                                                    <tr key={op.id} className="group hover:bg-white/50 transition-colors">
                                                         <td className="py-6 text-sm font-bold text-neutral-900">{op.name}</td>
                                                         <td className="py-6 text-sm font-semibold text-neutral-500">{op.fleet} Vehicles</td>
                                                         <td className="py-6">
                                                             <Badge className={cn(
                                                                 "border-none font-bold uppercase text-[10px] px-2 py-0.5 tracking-wider",
                                                                 op.status === "Active" ? "bg-emerald-100 text-emerald-600" :
-                                                                    op.status === "Idle" ? "bg-neutral-100 text-neutral-600" :
+                                                                    op.status === "Idle" ? "bg-white text-neutral-600" :
                                                                         "bg-red-100 text-red-600"
                                                             )}>
                                                                 {op.status}
@@ -531,7 +531,7 @@ export default function AdminDashboard() {
                                                         </td>
                                                         <td className="py-6">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-16 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                                                                <div className="w-16 h-1.5 bg-white rounded-full overflow-hidden">
                                                                     <div
                                                                         className="h-full bg-emerald-500"
                                                                         style={{ width: op.reliability }}
@@ -580,7 +580,7 @@ export default function AdminDashboard() {
                                             </thead>
                                             <tbody className="divide-y divide-neutral-50">
                                                 {MOCK_MANAGERS.map((mgr) => (
-                                                    <tr key={mgr.id} className="group hover:bg-neutral-50/50 transition-colors">
+                                                    <tr key={mgr.id} className="group hover:bg-white/50 transition-colors">
                                                         <td className="py-6">
                                                             <span className="text-sm font-bold text-neutral-900">{mgr.name}</span>
                                                             <p className="text-[11px] text-neutral-400 font-medium">{mgr.email}</p>
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
                                                         </td>
                                                         <td className="py-6">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-16 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                                                                <div className="w-16 h-1.5 bg-white rounded-full overflow-hidden">
                                                                     <div
                                                                         className="h-full bg-indigo-500"
                                                                         style={{ width: mgr.performance }}

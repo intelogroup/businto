@@ -480,7 +480,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
   return (
     <section
-      className="relative pt-24 pb-32 px-4 overflow-hidden bg-white selection:bg-orange-100 selection:text-orange-900"
+      className="relative pt-24 pb-32 px-4 overflow-hidden bg-background selection:bg-orange-100 selection:text-orange-900"
     >
 
       <div className="container mx-auto max-w-7xl relative z-10">
@@ -504,7 +504,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
 
             <div className="animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both h-full">
-              <div className="bg-white rounded-lg p-7 md:p-10 shadow-none border border-neutral-200 relative transition-colors duration-150 h-full flex flex-col">
+              <div className="bg-white rounded-xl p-7 md:p-10 border border-neutral-200 relative h-full flex flex-col">
 
                 <ServiceSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -620,7 +620,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             disabled={isImmediate}
                             className={cn(
                               "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                              isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                             )}
                           />
                         </div>
@@ -647,7 +647,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               disabled={isImmediate}
                               className={cn(
                                 "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                                isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                               )}
                             />
                           </div>
@@ -662,7 +662,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               disabled={isImmediate}
                               className={cn(
                                 "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                                isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                               )}
                             />
                           </div>
@@ -744,7 +744,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Checkboxes Row */}
-                      <div className="flex flex-wrap gap-6 pt-2">
+                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
@@ -765,7 +765,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </label>
                         <label className={cn(
                           "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-md border transition-colors duration-150",
-                          isImmediate ? "bg-amber-50 border-amber-200" : "border-neutral-200 hover:bg-neutral-50"
+                          isImmediate ? "bg-amber-50 border-amber-200" : "border-neutral-200 hover:bg-white"
                         )}>
                           <input
                             type="checkbox"
@@ -823,7 +823,8 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </div>
                       </div>
                       {/* Row 2: Mobility & Service Details */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Access Type</label>
                           <Select value={mobilityLevel} onValueChange={setMobilityLevel}>
@@ -860,6 +861,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                           />
                         </div>
+                      </div>
                       </div>
 
                       {/* Row 2b: Trip details */}
@@ -953,7 +955,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Toggles Row */}
-                      <div className="flex flex-wrap gap-6 pt-2">
+                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
@@ -983,7 +985,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </label>
                         <label className={cn(
                           "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-md border transition-colors duration-150",
-                          isImmediate ? "bg-sky-50 border-sky-200" : "border-neutral-200 hover:bg-neutral-50"
+                          isImmediate ? "bg-sky-50 border-sky-200" : "border-neutral-200 hover:bg-white"
                         )}>
                           <input
                             type="checkbox"
@@ -1009,7 +1011,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             disabled={isImmediate}
                             className={cn(
                               "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                              isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                             )}
                           />
                         </div>
@@ -1024,7 +1026,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                                 disabled={isImmediate}
                                 className={cn(
                                   "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                                  isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                                  isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                                 )}
                               />
                             </div>
@@ -1052,7 +1054,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               disabled={isImmediate}
                               className={cn(
                                 "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                                isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                                isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                               )}
                             />
                           </div>
@@ -1064,7 +1066,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-neutral-50"
+                                  className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-white"
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {medicalCustomDates.length > 0 ? `${medicalCustomDates.length} dates` : "Select"}
@@ -1084,7 +1086,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Row 4: Requester Info */}
-                      <div className="grid grid-cols-2 gap-4 pb-2 pt-4 border-t">
+                      <div className="grid grid-cols-2 gap-4 pb-2 pt-4 bg-neutral-50 border border-neutral-200 rounded-lg p-4">
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">
                             Requester Name
@@ -1246,7 +1248,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             disabled={isImmediate}
                             className={cn(
                               "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                              isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                             )}
                           />
                         </div>
@@ -1263,7 +1265,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             disabled={isImmediate}
                             className={cn(
                               "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                              isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                             )}
                           />
                         </div>
@@ -1276,7 +1278,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             disabled={isImmediate}
                             className={cn(
                               "h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium",
-                              isImmediate && "opacity-50 cursor-not-allowed bg-neutral-50 shadow-none border-neutral-100"
+                              isImmediate && "opacity-50 cursor-not-allowed bg-white shadow-none border-neutral-100"
                             )}
                           />
                         </div>
@@ -1338,7 +1340,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </label>
                         <label className={cn(
                           "flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-md border transition-colors duration-150",
-                          isImmediate ? "bg-violet-50 border-violet-200" : "border-neutral-200 hover:bg-neutral-50"
+                          isImmediate ? "bg-violet-50 border-violet-200" : "border-neutral-200 hover:bg-white"
                         )}>
                           <input
                             type="checkbox"
@@ -1501,7 +1503,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         )}
                         <Button
                           variant="outline"
-                          className="flex-1 h-10 rounded-md font-semibold border-neutral-200 hover:bg-neutral-50"
+                          className="flex-1 h-10 rounded-md font-semibold border-neutral-200 hover:bg-white"
                           onClick={() => setIsSubmitted(false)}
                         >
                           Submit Another
@@ -1565,7 +1567,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       "text-[10px] h-5 px-1.5 font-bold uppercase",
                       trip.status === 'pending' && "border-amber-200 text-amber-600 bg-amber-50",
                       trip.status === 'booked' && "border-green-200 text-green-600 bg-green-50",
-                      trip.status === 'completed' && "border-neutral-200 text-neutral-500 bg-neutral-50"
+                      trip.status === 'completed' && "border-neutral-200 text-neutral-500 bg-white"
                     )}>
                       {trip.status}
                     </Badge>

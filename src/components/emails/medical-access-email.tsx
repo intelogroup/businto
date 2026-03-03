@@ -18,7 +18,7 @@ export function MedicalAccessEmail({ data }: MedicalEmailProps) {
     return (
         <div className="w-full max-w-2xl mx-auto bg-white rounded-lg overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
             {/* Subject Line Preview - Not part of body but helpful context */}
-            <div className="bg-neutral-100 p-3 text-xs text-neutral-500 border-b border-neutral-200">
+            <div className="bg-white p-3 text-xs text-neutral-500 border-b border-neutral-200">
                 <span className="font-bold text-neutral-700">Subject:</span> 🚑 TRIP REQUEST: {data.mobility} • {data.distance}mi • {data.date}
             </div>
 
@@ -70,7 +70,7 @@ export function MedicalAccessEmail({ data }: MedicalEmailProps) {
                 <div className="flex items-stretch gap-4">
                     <div className="flex flex-col items-center pt-1">
                         <div className="w-3 h-3 rounded-full bg-neutral-300 ring-4 ring-neutral-100" />
-                        <div className="w-0.5 flex-1 bg-neutral-100 my-1" />
+                        <div className="w-0.5 flex-1 bg-white my-1" />
                         <div className="w-3 h-3 rounded-full bg-blue-600 ring-4 ring-blue-100" />
                     </div>
                     <div className="flex-1 space-y-6">
@@ -96,7 +96,7 @@ export function MedicalAccessEmail({ data }: MedicalEmailProps) {
                 </div>
 
                 {/* Requirements Grid */}
-                <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-100">
+                <div className="bg-white rounded-lg p-4 border border-neutral-100">
                     <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Vehicle Requirements</h3>
                     <div className="grid grid-cols-2 gap-y-2 text-sm">
                         <div className="text-neutral-500">Mobility:</div>

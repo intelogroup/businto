@@ -124,7 +124,7 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
         </div>
 
         {/* Price Breakdown */}
-        <div className="bg-neutral-50 rounded-lg p-5 border border-neutral-100">
+        <div className="bg-white rounded-lg p-5 border border-neutral-100">
           <div className="flex items-baseline justify-between mb-4">
             <div className="text-3xl font-semibold text-neutral-900">
               {quote.totalPrice === 0 ? "TBD" : `$${quote.totalPrice}`}
@@ -180,7 +180,7 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-3 bg-white rounded-lg p-3 border border-neutral-100">
             {quote.vehiclePhoto && (
-              <div className="w-12 h-12 rounded bg-neutral-100 shrink-0 overflow-hidden">
+              <div className="w-12 h-12 rounded bg-white shrink-0 overflow-hidden">
                 <img src={quote.vehiclePhoto} alt={quote.vehicleType} className="w-full h-full object-cover" />
               </div>
             )}

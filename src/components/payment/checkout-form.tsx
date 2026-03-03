@@ -78,7 +78,7 @@ export function CheckoutForm({
         </p>
       </div>
 
-      <div className="bg-neutral-50 rounded-lg p-4">
+      <div className="bg-white rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm text-neutral-600">Booking</span>
           <span className="font-mono text-sm font-semibold">{confirmationCode}</span>

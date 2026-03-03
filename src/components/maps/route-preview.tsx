@@ -62,7 +62,7 @@ export function RoutePreview({ origin, destination, className }: RoutePreviewPro
   }
 
   return (
-    <div className={cn("bg-neutral-50 rounded-lg p-4", className)}>
+    <div className={cn("bg-white rounded-lg p-4", className)}>
       {/* Route Visual */}
       <div className="flex items-start gap-3 mb-4">
         <div className="flex flex-col items-center">

@@ -52,7 +52,7 @@ export default function TermsPage() {
           </p>
         </section>
 
-        <section className="bg-neutral-50 p-6 rounded-lg border border-neutral-100">
+        <section className="bg-white p-6 rounded-lg border border-neutral-100">
           <h3 className="text-lg font-semibold text-neutral-900 mb-2">Legal Inquiries</h3>
           <p className="text-sm">
             For legal notices or formal inquiries, please contact legal@businto.com.

@@ -71,7 +71,7 @@ export function ChatWidget() {
                                     <X className="w-4 h-4" />
                                 </Button>
                             </CardHeader>
-                            <CardContent className="p-0 h-[450px] flex flex-col bg-neutral-50">
+                            <CardContent className="p-0 h-[450px] flex flex-col bg-white">
                                 <ScrollArea className="flex-1 p-4">
                                     <div className="space-y-4">
                                         {messages.map((m: any) => (
@@ -111,7 +111,7 @@ export function ChatWidget() {
                                 </ScrollArea>
                                 <div className="p-3 border-t border-neutral-200 bg-white">
                                     <form className="flex gap-2" onSubmit={handleFormSubmit}>
-                                        <Button type="button" size="icon" variant="outline" className="shrink-0 bg-white border-neutral-200 hover:bg-neutral-50 hover:text-indigo-600 rounded-lg">
+                                        <Button type="button" size="icon" variant="outline" className="shrink-0 bg-white border-neutral-200 hover:bg-white hover:text-indigo-600 rounded-lg">
                                             <Mic className="w-4 h-4" />
                                         </Button>
                                         <Input

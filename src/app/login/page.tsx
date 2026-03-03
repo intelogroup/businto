@@ -61,7 +61,7 @@ function LoginContent() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
             <div className="w-full max-w-[400px]">
                 <div className="mb-10 text-center">
                     <Link href="/" className="inline-flex items-center gap-3 group">
@@ -73,7 +73,7 @@ function LoginContent() {
                 </div>
 
                 <Card className="border border-neutral-200 shadow-sm bg-white overflow-hidden">
-                    <CardHeader className="space-y-1.5 pb-6 text-center border-b border-neutral-100 bg-neutral-50/50">
+                    <CardHeader className="space-y-1.5 pb-6 text-center border-b border-neutral-100 bg-white/50">
                         <CardTitle className="text-xl font-semibold tracking-tight text-neutral-900">Welcome back</CardTitle>
                         <CardDescription className="text-neutral-500 text-sm">
                             Access your private transport dashboard
@@ -141,7 +141,7 @@ function LoginContent() {
                             </Button>
                         </form>
                     </CardContent>
-                    <CardFooter className="pt-2 pb-8 flex justify-center border-t border-neutral-50 mt-4 bg-neutral-50/30">
+                    <CardFooter className="pt-2 pb-8 flex justify-center border-t border-neutral-50 mt-4 bg-white/30">
                         <p className="text-sm text-neutral-500">
                             Don&apos;t have an account? <Link href="/signup" className="text-neutral-900 font-semibold hover:underline">Create Account</Link>
                         </p>

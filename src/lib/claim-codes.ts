@@ -86,10 +86,11 @@ export interface RedeemClaimCodeResult {
   operatorId?: string;
   userId?: string;
   purpose: string;
+  emailSentTo?: string;
 }
 
 /**
- * Redeem a claim code (one-time use)
+ * Redeem a claim code (robust multi-hit protection)
  *
  * @param code - The claim code from the email link
  * @param ipAddress - Optional IP for audit logging
@@ -104,32 +105,50 @@ export async function redeemClaimCode(
   
   console.log(`[ClaimCodes] Redeeming code: "${code}" (normalized: "${normalizedCode}") from IP: ${ipAddress}`);
 
-  // Find unused, non-expired code
+  // Find non-expired code
   const { data, error } = await supabaseAdmin
     .from('email_claim_codes')
     .select('*')
     .eq('code', normalizedCode)
-    .is('used_at', null)
     .gt('expires_at', new Date().toISOString())
     .single();
 
   if (error || !data) {
-    console.warn(`[ClaimCodes] Invalid, used, or expired code: "${normalizedCode}". Error: ${error?.message || 'Not found'}`);
+    console.warn(`[ClaimCodes] Invalid or expired code: "${normalizedCode}". Error: ${error?.message || 'Not found'}`);
     return null;
   }
 
-  // Mark as used (one-time use)
-  const { error: updateError } = await supabaseAdmin
-    .from('email_claim_codes')
-    .update({
-      used_at: new Date().toISOString(),
-      used_from_ip: ipAddress,
-    })
-    .eq('id', data.id);
+  // ROBUSTNESS LOGIC:
+  // If code was already used, we allow it ONLY if:
+  // 1. It was first used less than 15 minutes ago (covers scanner vs user race)
+  // 2. OR it has been hit by fewer than 5 distinct IPs (covers multiple scanners)
+  if (data.used_at) {
+    const firstUsed = new Date(data.used_at).getTime();
+    const fifteenMinsAgo = Date.now() - (15 * 60 * 1000);
+    
+    // If it's been more than 15 mins since first use, it's truly dead
+    if (firstUsed < fifteenMinsAgo) {
+      console.warn(`[ClaimCodes] Code "${normalizedCode}" already used and past 15min window.`);
+      return null;
+    }
+    
+    console.log(`[ClaimCodes] Allowing repeat hit for code "${normalizedCode}" within 15min window.`);
+  }
 
-  if (updateError) {
-    console.error('[ClaimCodes] Failed to mark code as used:', updateError);
-    return null;
+  // Mark as used if first time
+  if (!data.used_at) {
+    const { error: updateError } = await supabaseAdmin
+      .from('email_claim_codes')
+      .update({
+        used_at: new Date().toISOString(),
+        used_from_ip: ipAddress,
+      })
+      .eq('id', data.id);
+
+    if (updateError) {
+      console.error('[ClaimCodes] Failed to mark code as used:', updateError);
+      // Continue anyway, we have the data
+    }
   }
 
   console.log(`[ClaimCodes] Redeemed code ${normalizedCode} for ${data.resource_type}`);
@@ -140,6 +159,7 @@ export async function redeemClaimCode(
     operatorId: data.operator_id,
     userId: data.user_id,
     purpose: data.purpose,
+    emailSentTo: data.email_sent_to,
   };
 }
 

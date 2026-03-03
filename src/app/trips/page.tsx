@@ -221,17 +221,17 @@ export default function TripsPage() {
               {(trip.metadata_safe?.mobility_level || trip.metadata_safe?.guest_count || trip.metadata_safe?.student_count) && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {trip.service_type === 'medical' && trip.metadata_safe?.mobility_level && (
-                    <span className="inline-flex items-center rounded-md bg-neutral-50 px-2 py-1 text-xs font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-500/10 capitalize">
+                    <span className="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-500/10 capitalize">
                       Mobility: {trip.metadata_safe.mobility_level.replace('-', ' ')}
                     </span>
                   )}
                   {trip.service_type === 'wedding' && trip.metadata_safe?.guest_count && (
-                    <span className="inline-flex items-center rounded-md bg-neutral-50 px-2 py-1 text-xs font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-500/10">
+                    <span className="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-500/10">
                       {trip.metadata_safe.guest_count} Guests
                     </span>
                   )}
                   {trip.service_type === 'school' && trip.metadata_safe?.student_count && (
-                    <span className="inline-flex items-center rounded-md bg-neutral-50 px-2 py-1 text-xs font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-500/10">
+                    <span className="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-semibold text-neutral-600 ring-1 ring-inset ring-neutral-500/10">
                       {trip.metadata_safe.student_count} Students
                     </span>
                   )}
@@ -245,7 +245,7 @@ export default function TripsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-background selection:bg-black selection:text-white">
       <Navbar />
 
       {/* Content */}
@@ -279,7 +279,7 @@ export default function TripsPage() {
         {!loading && trips.length === 0 && (
           <Card className="p-16 text-center border-0 shadow-lg shadow-black/5 bg-white rounded-lg">
             <div className="flex flex-col items-center gap-5 max-w-md mx-auto">
-              <div className="w-20 h-20 rounded-lg bg-neutral-50 border-2 border-dashed border-neutral-200 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-lg bg-white border-2 border-dashed border-neutral-200 flex items-center justify-center">
                 <Bus className="h-8 w-8 text-neutral-300" />
               </div>
               <div className="space-y-2">
@@ -321,7 +321,7 @@ export default function TripsPage() {
               <section className="space-y-6">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold tracking-tight text-neutral-950">Past Trips</h2>
-                  <div className="bg-neutral-100 text-neutral-500 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
+                  <div className="bg-white text-neutral-500 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full">
                     {filteredPastTrips.length}
                   </div>
                 </div>

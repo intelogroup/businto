@@ -10,7 +10,7 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
   return (
     <div className="w-full max-w-2xl mx-auto bg-white rounded-lg overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
       {/* Subject Line Preview */}
-      <div className="bg-neutral-100 p-3 text-xs text-neutral-500 border-b border-neutral-200">
+      <div className="bg-white p-3 text-xs text-neutral-500 border-b border-neutral-200">
         <span className="font-bold text-neutral-700">Subject:</span> 🎉 Your first quote is here! ({tripRequest.service_type === 'school' ? 'School Run' : 'Trip'} - {tripRequest.pickup_date})
       </div>
 
@@ -60,7 +60,7 @@ export function FirstQuoteEmail({ tripRequest, quote }: FirstQuoteEmailProps) {
       <div className="p-6 space-y-4">
         <h2 className="text-xl font-bold text-neutral-900 mb-4">Quote Preview</h2>
 
-        <div className="bg-neutral-50 rounded-lg p-6 border border-neutral-200">
+        <div className="bg-white rounded-lg p-6 border border-neutral-200">
           {/* Operator Info */}
           <div className="flex items-center justify-between mb-4">
             <div>

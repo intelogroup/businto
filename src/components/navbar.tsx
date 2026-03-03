@@ -39,8 +39,8 @@ export function Navbar() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-colors duration-150",
         scrolled
-          ? "py-4 bg-white border-b border-black/[0.03]"
-          : "py-6 bg-transparent"
+          ? "py-4 bg-white border-b border-neutral-200"
+          : "py-6 bg-white border-b border-neutral-200"
       )}
     >
       <div className="container mx-auto max-w-7xl flex items-center justify-between px-6">
@@ -109,7 +109,7 @@ export function Navbar() {
                   <SheetClose asChild>
                     <Link
                       href="/operators"
-                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-white hover:text-neutral-900 transition-colors"
                     >
                       Operators
                     </Link>
@@ -117,7 +117,7 @@ export function Navbar() {
                   <SheetClose asChild>
                     <Link
                       href="/pricing"
-                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-white hover:text-neutral-900 transition-colors"
                     >
                       Pricing
                     </Link>
@@ -127,7 +127,7 @@ export function Navbar() {
                       <SheetClose asChild>
                         <Link
                           href="/trips"
-                          className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                          className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-white hover:text-neutral-900 transition-colors"
                         >
                           My Trips
                         </Link>
@@ -135,7 +135,7 @@ export function Navbar() {
                       <SheetClose asChild>
                         <Link
                           href="/dashboard/bookings"
-                          className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+                          className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-white hover:text-neutral-900 transition-colors"
                         >
                           Bookings
                         </Link>
@@ -187,7 +187,7 @@ export function Navbar() {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 flex items-center gap-2 px-2 hover:bg-neutral-100 rounded-md transition-colors duration-150">
+                    <Button variant="ghost" className="relative h-10 flex items-center gap-2 px-2 hover:bg-white rounded-md transition-colors duration-150">
                       <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-200">
                         <img
                           src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`}
@@ -210,8 +210,8 @@ export function Navbar() {
                         <span className="text-xs text-neutral-500 font-normal">{user?.email}</span>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator className="bg-neutral-100 mx-1" />
-                    <DropdownMenuItem asChild className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
+                    <DropdownMenuSeparator className="bg-white mx-1" />
+                    <DropdownMenuItem asChild className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
                       <Link href="/users" className="flex items-center w-full">
                         <User size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
                         <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Users & Team</span>
@@ -219,22 +219,22 @@ export function Navbar() {
                     </DropdownMenuItem>
 
                     {(user?.role === "admin" || user?.role === "manager") && (
-                      <DropdownMenuItem asChild className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
+                      <DropdownMenuItem asChild className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
                         <Link href="/admin" className="flex items-center w-full">
                           <LayoutDashboard size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Admin Panel</span>
                         </Link>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
+                    <DropdownMenuItem className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
                       <Settings size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
                       <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Settings</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="focus:bg-neutral-50 rounded-md px-3 py-2 cursor-pointer group">
+                    <DropdownMenuItem className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
                       <Shield size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
                       <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Security</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-neutral-100 mx-1" />
+                    <DropdownMenuSeparator className="bg-white mx-1" />
                     <DropdownMenuItem
                       onClick={async () => {
                         await logout();
@@ -250,7 +250,7 @@ export function Navbar() {
               ) : (
                 <>
                   <Link href="/login">
-                    <Button variant="ghost" size="sm" className="text-sm font-medium text-neutral-600 hover:text-black hover:bg-neutral-100 rounded-md h-9 transition-colors duration-150">
+                    <Button variant="ghost" size="sm" className="text-sm font-medium text-neutral-600 hover:text-black hover:bg-white rounded-md h-9 transition-colors duration-150">
                       Sign In
                     </Button>
                   </Link>

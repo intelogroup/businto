@@ -35,7 +35,7 @@ export default function AboutPage() {
           </p>
         </section>
 
-        <section className="bg-neutral-50 p-8 rounded-lg border border-neutral-100">
+        <section className="bg-white p-8 rounded-lg border border-neutral-100">
           <h3 className="text-xl font-semibold text-neutral-900 mb-2">Based in Boston</h3>
           <p className="text-sm">
             Businto is headquartered in the heart of Boston, MA, serving as a hub for transportation innovation 

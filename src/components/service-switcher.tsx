@@ -23,7 +23,7 @@ interface ServiceSwitcherProps {
 
 export function ServiceSwitcher({ activeTab, onTabChange }: ServiceSwitcherProps) {
     return (
-        <div className="bg-neutral-100 p-1 rounded-md flex w-full gap-1">
+        <div className="bg-neutral-100 border border-neutral-200 p-1 rounded-lg flex w-full gap-1">
             {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -33,10 +33,10 @@ export function ServiceSwitcher({ activeTab, onTabChange }: ServiceSwitcherProps
                         key={tab.id}
                         onClick={() => onTabChange(tab.id)}
                         className={cn(
-                            "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded transition-colors duration-150",
-                            isActive 
-                                ? "bg-white text-neutral-900 shadow-sm" 
-                                : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50/50"
+                            "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors duration-150",
+                            isActive
+                                ? "bg-white border border-neutral-200 text-neutral-900"
+                                : "text-neutral-400 border border-transparent"
                         )}
                     >
                         <Icon
@@ -44,7 +44,7 @@ export function ServiceSwitcher({ activeTab, onTabChange }: ServiceSwitcherProps
                         />
                         <span className={cn(
                             "text-sm font-semibold whitespace-nowrap",
-                            isActive ? "text-neutral-900" : "text-neutral-500"
+                            isActive ? "text-neutral-900" : "text-neutral-400"
                         )}>
                             {tab.label}
                         </span>

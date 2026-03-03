@@ -144,10 +144,10 @@ export function MessageThread({
   return (
     <div className="flex flex-col h-full bg-white rounded-md border border-neutral-200">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-neutral-100 bg-neutral-50/30">
+      <div className="flex items-center gap-3 p-4 border-b border-neutral-100 bg-white/30">
         <Avatar className="h-9 w-9 border border-neutral-200">
           <AvatarImage src={recipientAvatar} />
-          <AvatarFallback className="bg-neutral-100">
+          <AvatarFallback className="bg-white">
             <User className="h-4 w-4 text-neutral-400" />
           </AvatarFallback>
         </Avatar>
@@ -160,7 +160,7 @@ export function MessageThread({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4 bg-neutral-50/30">
+      <ScrollArea className="flex-1 p-4 bg-white/30">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin h-5 w-5 border-2 border-neutral-900 border-t-transparent rounded-full" />
@@ -192,7 +192,7 @@ export function MessageThread({
                         {!isOwn && (
                           <Avatar className="h-7 w-7 shrink-0 border border-neutral-100">
                             <AvatarImage src={message.sender?.avatar_url} />
-                            <AvatarFallback className="bg-neutral-100 text-[10px] font-bold">
+                            <AvatarFallback className="bg-white text-[10px] font-bold">
                               {message.sender?.full_name?.charAt(0) || "?"}
                             </AvatarFallback>
                           </Avatar>
@@ -238,7 +238,7 @@ export function MessageThread({
               key={i}
               onClick={() => handleSend(suggestion)}
               disabled={sending}
-              className="text-[11px] font-medium bg-neutral-50 border border-neutral-200 hover:border-neutral-900 hover:bg-white text-neutral-600 hover:text-neutral-900 px-3 py-1.5 rounded-md transition-colors duration-150 text-left max-w-full"
+              className="text-[11px] font-medium bg-white border border-neutral-200 hover:border-neutral-900 hover:bg-white text-neutral-600 hover:text-neutral-900 px-3 py-1.5 rounded-md transition-colors duration-150 text-left max-w-full"
             >
               {suggestion}
             </button>

@@ -192,7 +192,7 @@ function TripViewContent() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-neutral-50">
+            <div className="min-h-screen bg-background">
                 <Navbar />
                 <div className="flex items-center justify-center py-24">
                     <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
@@ -203,7 +203,7 @@ function TripViewContent() {
 
     if (!trip) {
         return (
-            <div className="min-h-screen bg-neutral-50">
+            <div className="min-h-screen bg-background">
                 <Navbar />
                 <div className="container mx-auto max-w-7xl px-6 py-24 text-center">
                     <h2 className="text-2xl font-bold">Trip not found</h2>
@@ -226,7 +226,7 @@ function TripViewContent() {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-50 pb-20">
+        <div className="min-h-screen bg-background pb-20">
             <Navbar />
             <div className="container mx-auto max-w-4xl px-4 sm:px-6 pt-24">
                 <Link href="/trips" className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 mb-6">
@@ -315,7 +315,7 @@ function TripViewContent() {
 
 export default function TripViewPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
             <TripViewContent />
         </Suspense>
     );

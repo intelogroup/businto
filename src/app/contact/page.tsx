@@ -21,7 +21,7 @@ export default function ContactPage() {
 
           <div className="space-y-6">
             <div className="flex items-start gap-4">
-              <div className="p-2 bg-neutral-50 rounded-md">
+              <div className="p-2 bg-white rounded-md">
                 <Mail className="w-5 h-5 text-neutral-600" />
               </div>
               <div>
@@ -31,7 +31,7 @@ export default function ContactPage() {
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="p-2 bg-neutral-50 rounded-md">
+              <div className="p-2 bg-white rounded-md">
                 <Phone className="w-5 h-5 text-neutral-600" />
               </div>
               <div>
@@ -41,7 +41,7 @@ export default function ContactPage() {
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="p-2 bg-neutral-50 rounded-md">
+              <div className="p-2 bg-white rounded-md">
                 <MapPin className="w-5 h-5 text-neutral-600" />
               </div>
               <div>
@@ -52,7 +52,7 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <div className="bg-neutral-50 p-8 rounded-lg border border-neutral-100 space-y-6">
+        <div className="bg-white p-8 rounded-lg border border-neutral-100 space-y-6">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-neutral-900">Send a Message</h3>
             <p className="text-xs text-neutral-500 font-medium uppercase tracking-widest">Expected response: &lt; 24 hours</p>

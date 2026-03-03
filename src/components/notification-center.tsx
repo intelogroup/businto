@@ -37,7 +37,7 @@ export function NotificationCenter() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="relative h-10 w-10 rounded-lg hover:bg-neutral-100/50 transition-colors duration-150"
+                    className="relative h-10 w-10 rounded-lg hover:bg-white/50 transition-colors duration-150"
                 >
                     <Bell size={20} className="text-neutral-500" />
                     {unreadCount > 0 && (
@@ -51,7 +51,7 @@ export function NotificationCenter() {
                 align="end"
                 className="w-[380px] mt-2 p-0 rounded-lg border-neutral-100 shadow-2xl shadow-black/10 bg-white  overflow-hidden"
             >
-                <div className="p-5 border-b border-neutral-50 flex items-center justify-between bg-neutral-50/30">
+                <div className="p-5 border-b border-neutral-50 flex items-center justify-between bg-white/30">
                     <DropdownMenuLabel className="p-0 text-base font-bold text-neutral-950 tracking-tight">
                         Notifications
                         {unreadCount > 0 && (
@@ -85,7 +85,7 @@ export function NotificationCenter() {
                 <ScrollArea className="h-[400px]">
                     {notifications.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full py-20 px-10 text-center">
-                            <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center mb-4">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4">
                                 <Bell size={24} className="text-neutral-200" />
                             </div>
                             <p className="text-sm font-bold text-neutral-900 mb-1">No notifications yet</p>
@@ -107,7 +107,7 @@ export function NotificationCenter() {
                                     }}
                                     className={cn(
                                         "p-5 transition-colors duration-150 cursor-pointer group flex gap-4",
-                                        !notif.read ? "bg-indigo-50/30" : "hover:bg-neutral-50"
+                                        !notif.read ? "bg-indigo-50/30" : "hover:bg-white"
                                     )}
                                 >
                                     <div className={cn(
@@ -147,7 +147,7 @@ export function NotificationCenter() {
                     )}
                 </ScrollArea>
 
-                <div className="p-4 border-t border-neutral-50 bg-neutral-50/10 text-center">
+                <div className="p-4 border-t border-neutral-50 bg-white/10 text-center">
                     <Button variant="ghost" className="w-full h-10 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400 hover:text-black rounded-lg">
                         View Full History
                     </Button>

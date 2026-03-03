@@ -8,6 +8,7 @@
 import { createClaimCode } from './claim-codes';
 import { getAppBaseUrl } from './email';
 import { logClaimLinkGeneration } from './email-logger';
+import { supabaseAdmin } from './supabase-server';
 
 /**
  * Validates that a claim link is properly formed and doesn't contain corruption
@@ -66,10 +67,24 @@ export async function generateOperatorQuoteLink(
   operatorId: string,
   operatorEmail: string
 ): Promise<string> {
+  // Fetch operator's profile_id to enable magic link auto-auth
+  let userId: string | undefined;
+  try {
+    const { data } = await supabaseAdmin
+      .from('operators')
+      .select('profile_id')
+      .eq('id', operatorId)
+      .single();
+    if (data?.profile_id) userId = data.profile_id;
+  } catch (e) {
+    console.warn(`[EmailHelpers] Could not fetch profile_id for operator ${operatorId}`);
+  }
+
   const code = await createClaimCode({
     resourceType: 'operator_quote',
     resourceId: requestId,
     operatorId,
+    userId,
     purpose: 'quote',
     expiresInMinutes: 10080, // 7 days
     emailSentTo: operatorEmail,

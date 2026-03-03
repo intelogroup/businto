@@ -16,7 +16,7 @@ import { useChat } from "@ai-sdk/react";
 type Message = any;
 
 const MOCK_WIDGET = (
-    <div className="bg-neutral-50 rounded-lg p-4 border border-neutral-200 mt-3 space-y-4">
+    <div className="bg-white rounded-lg p-4 border border-neutral-200 mt-3 space-y-4">
         <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded bg-neutral-900 flex items-center justify-center text-white shrink-0">
                 <Bus className="h-5 w-5" />
@@ -94,11 +94,11 @@ export function AIChatPanel() {
     };
 
     return (
-        <Card className="h-full flex flex-col border border-neutral-200 shadow-sm bg-white rounded-lg overflow-hidden relative">
+        <Card className="h-full flex flex-col border border-neutral-200 bg-white rounded-xl overflow-hidden relative">
 
             <div className="flex-1 relative overflow-hidden flex flex-col h-full">
                 {/* Header */}
-                <CardHeader className="absolute top-0 w-full bg-white px-5 py-3 flex flex-row items-center justify-between z-30 border-b border-neutral-100">
+                <CardHeader className="absolute top-0 w-full bg-white px-5 py-3 flex flex-row items-center justify-between z-30 border-b border-neutral-200">
                     <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded bg-neutral-900 flex items-center justify-center shrink-0">
                             <img src="/brand-mark.svg" alt="Businto AI" className="w-5 h-5" />
@@ -110,7 +110,7 @@ export function AIChatPanel() {
                 </CardHeader>
 
                 {/* Chat Area */}
-                <div className="flex-1 overflow-hidden relative z-10 bg-neutral-50/50">
+                <div className="flex-1 overflow-hidden relative z-10 bg-neutral-50">
                     <ScrollArea className="h-full w-full">
                         <div className="h-[56px]" />
 
@@ -136,7 +136,7 @@ export function AIChatPanel() {
                                             <div className={cn(
                                                 "rounded-lg px-4 py-2.5 text-sm transition-colors duration-150",
                                                 msg.role === "assistant"
-                                                    ? "bg-white border border-neutral-200 text-neutral-800 font-normal"
+                                                    ? "bg-neutral-100 border border-neutral-200 text-neutral-800 font-normal"
                                                     : "bg-neutral-900 text-white font-normal"
                                             )}>
                                                 {msg.content}
@@ -196,7 +196,7 @@ export function AIChatPanel() {
                     </AnimatePresence>
                 </div>
 
-                <CardFooter className="px-5 py-3 bg-white border-t border-neutral-100 relative z-30">
+                <CardFooter className="px-5 py-3 bg-white border-t border-neutral-200 relative z-30">
                     <form className="flex w-full items-center gap-2" onSubmit={handleSubmit}>
                         <div className="flex-1 relative flex items-center">
                             <Button

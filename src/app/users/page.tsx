@@ -141,7 +141,7 @@ export default function UsersPage() {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="bg-neutral-50/50">
+                                    <tr className="bg-white/50">
                                         <th className="px-6 py-4 text-xs font-semibold text-neutral-500">Member</th>
                                         <th className="px-6 py-4 text-xs font-semibold text-neutral-500">Role</th>
                                         <th className="px-6 py-4 text-xs font-semibold text-neutral-500">Status</th>
@@ -151,7 +151,7 @@ export default function UsersPage() {
                                 </thead>
                                 <tbody className="divide-y divide-neutral-50">
                                     {TEAM_MEMBERS.map((member) => (
-                                        <tr key={member.id} className="group hover:bg-neutral-50/50 transition-colors duration-150">
+                                        <tr key={member.id} className="group hover:bg-white/50 transition-colors duration-150">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-md overflow-hidden border-2 border-white shadow-sm">
@@ -178,7 +178,7 @@ export default function UsersPage() {
                                                 <Badge className={
                                                     member.status === "Active"
                                                         ? "bg-emerald-50 text-emerald-600 border-none font-semibold text-xs px-3 py-1 rounded-full"
-                                                        : "bg-neutral-100 text-neutral-500 border-none font-semibold text-xs px-3 py-1 rounded-full"
+                                                        : "bg-white text-neutral-500 border-none font-semibold text-xs px-3 py-1 rounded-full"
                                                 }>
                                                     {member.status}
                                                 </Badge>
@@ -197,7 +197,7 @@ export default function UsersPage() {
                             </table>
                         </div>
                     </CardContent>
-                    <div className="p-6 border-t border-neutral-50 bg-neutral-50/30 flex items-center justify-between">
+                    <div className="p-6 border-t border-neutral-50 bg-white/30 flex items-center justify-between">
                         <p className="text-sm text-neutral-500 font-medium">Showing 4 of 248 members</p>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" className="h-10 font-semibold text-xs rounded-md transition-colors duration-150">Previous</Button>

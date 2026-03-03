@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
       { count: bookingsCount },
       { data: revenueData }
     ] = await Promise.all([
-      supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
-      supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'operator'),
+      supabaseAdmin.from('unified_profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
+      supabaseAdmin.from('unified_profiles').select('*', { count: 'exact', head: true }).eq('role', 'operator'),
       supabaseAdmin.from('transport_requests').select('*', { count: 'exact', head: true }).in('status', ['pending', 'quoted']),
       supabaseAdmin.from('bookings').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('bookings').select('amount').eq('payment_status', 'paid')

@@ -10,7 +10,7 @@ interface InfoLayoutProps {
 
 export function InfoLayout({ children, title, subtitle }: InfoLayoutProps) {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       <main className="flex-grow pt-32 pb-20">
         <div className="container mx-auto max-w-4xl px-6">

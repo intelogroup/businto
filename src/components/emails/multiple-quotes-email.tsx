@@ -18,7 +18,7 @@ export function MultipleQuotesEmail({ tripRequest, quotes }: MultipleQuotesEmail
   return (
     <div className="w-full max-w-2xl mx-auto bg-white rounded-lg overflow-hidden font-sans border border-neutral-200 text-neutral-900 shadow-sm">
       {/* Subject Line Preview */}
-      <div className="bg-neutral-100 p-3 text-xs text-neutral-500 border-b border-neutral-200">
+      <div className="bg-white p-3 text-xs text-neutral-500 border-b border-neutral-200">
         <span className="font-bold text-neutral-700">Subject:</span> {quotes.length} operators want your route! Compare quotes now
       </div>
 
@@ -56,7 +56,7 @@ export function MultipleQuotesEmail({ tripRequest, quotes }: MultipleQuotesEmail
         {topQuotes.map((quote, idx) => (
           <div
             key={quote.id}
-            className={`bg-neutral-50 rounded-lg p-5 border-2 ${
+            className={`bg-white rounded-lg p-5 border-2 ${
               quote.isLowestPrice ? 'border-green-500 bg-green-50' :
               quote.isHighestRated ? 'border-amber-500 bg-amber-50' :
               'border-neutral-200'

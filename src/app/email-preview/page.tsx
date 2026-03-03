@@ -171,7 +171,7 @@ export default function EmailPreviewPage() {
             <div>
               <h3 className="font-bold text-neutral-900 mb-2">1. Email Service Setup</h3>
               <p className="mb-2">Install an email service provider (Resend recommended):</p>
-              <code className="block bg-neutral-100 p-3 rounded-lg font-mono text-xs">
+              <code className="block bg-white p-3 rounded-lg font-mono text-xs">
                 npm install resend
               </code>
             </div>
@@ -179,7 +179,7 @@ export default function EmailPreviewPage() {
             <div>
               <h3 className="font-bold text-neutral-900 mb-2">2. Environment Variables</h3>
               <p className="mb-2">Add to your .env.local:</p>
-              <code className="block bg-neutral-100 p-3 rounded-lg font-mono text-xs">
+              <code className="block bg-white p-3 rounded-lg font-mono text-xs">
                 RESEND_API_KEY=your_api_key_here
               </code>
             </div>
@@ -187,7 +187,7 @@ export default function EmailPreviewPage() {
             <div>
               <h3 className="font-bold text-neutral-900 mb-2">3. Trigger Notifications</h3>
               <p className="mb-2">Call the notification API when new quotes arrive:</p>
-              <code className="block bg-neutral-100 p-3 rounded-lg font-mono text-xs overflow-x-auto">
+              <code className="block bg-white p-3 rounded-lg font-mono text-xs overflow-x-auto">
                 {`await fetch('/api/quotes/notify', {
   method: 'POST',
   body: JSON.stringify({
@@ -203,7 +203,7 @@ export default function EmailPreviewPage() {
             <div>
               <h3 className="font-bold text-neutral-900 mb-2">4. Real-time Subscriptions</h3>
               <p className="mb-2">Use the useNotifications hook in your app:</p>
-              <code className="block bg-neutral-100 p-3 rounded-lg font-mono text-xs overflow-x-auto">
+              <code className="block bg-white p-3 rounded-lg font-mono text-xs overflow-x-auto">
                 {`import { useNotifications } from '@/hooks/use-notifications';
 
 function MyComponent() {

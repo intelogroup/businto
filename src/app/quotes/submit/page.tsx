@@ -308,7 +308,7 @@ function SubmitQuoteContent() {
     SERVICE_ICONS[request.service_type as keyof typeof SERVICE_ICONS] || "🚐";
   const serviceColor =
     SERVICE_COLORS[request.service_type as keyof typeof SERVICE_COLORS] ||
-    "bg-neutral-100 text-neutral-800";
+    "bg-white text-neutral-800";
 
   if (submitted) {
     return (
@@ -336,7 +336,7 @@ function SubmitQuoteContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
       <div className="border-b border-neutral-100 px-4 py-3">
         <div className="max-w-xl mx-auto flex items-center justify-between">
@@ -357,7 +357,7 @@ function SubmitQuoteContent() {
         {/* Request details */}
         <Card className="p-6 mb-5 shadow-none border border-neutral-200">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-md bg-neutral-100 flex items-center justify-center text-lg shrink-0">
+            <div className="w-9 h-9 rounded-md bg-white flex items-center justify-center text-lg shrink-0">
               {serviceIcon}
             </div>
             <div className="flex-1 min-w-0">
@@ -467,7 +467,7 @@ function SubmitQuoteContent() {
                     <Badge className="bg-amber-50 text-amber-700 border-amber-100 shadow-none hover:bg-amber-50">SERVICE ANIMAL</Badge>
                   )}
                   {request.metadata_safe.additional_passengers > 0 && (
-                    <Badge className="bg-neutral-50 text-neutral-700 border-neutral-100 shadow-none hover:bg-neutral-50">
+                    <Badge className="bg-white text-neutral-700 border-neutral-100 shadow-none hover:bg-white">
                       +{request.metadata_safe.additional_passengers} ESCORT(S)
                     </Badge>
                   )}
@@ -631,7 +631,7 @@ function SubmitQuoteContent() {
 
 export default function SubmitQuotePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-50" />}>
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
       <SubmitQuoteContent />
     </Suspense>
   );

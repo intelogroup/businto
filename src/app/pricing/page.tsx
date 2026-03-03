@@ -74,7 +74,7 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <section className="bg-neutral-50 border border-neutral-100 p-8 rounded-lg text-center space-y-4">
+        <section className="bg-white border border-neutral-100 p-8 rounded-lg text-center space-y-4">
           <h2 className="text-xl font-semibold text-neutral-900">Need a custom enterprise solution?</h2>
           <p className="text-neutral-500 text-sm max-w-xl mx-auto">
             We offer tailored pricing and API integrations for hospitals, school districts, and 

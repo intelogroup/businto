@@ -21,7 +21,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className="font-sans antialiased bg-white"
+        className="font-sans antialiased bg-background"
       >
         <AuthProvider>
           <NotificationProvider>

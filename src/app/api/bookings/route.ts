@@ -21,13 +21,16 @@ export async function GET(request: NextRequest) {
           phone,
           avatar_url
         ),
-        operator:profiles!bookings_operator_id_fkey (
+        operator:operators!bookings_operator_id_fkey (
           id,
-          full_name,
           company_name,
-          email,
-          phone,
-          avatar_url
+          company_email,
+          company_phone,
+          profile:operator_profiles!profile_id (
+            id,
+            full_name,
+            avatar_url
+          )
         )
       `)
       .order('created_at', { ascending: false });

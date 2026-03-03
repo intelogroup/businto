@@ -55,7 +55,7 @@ export function ReviewCard({ review, showUser = true }: ReviewCardProps) {
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={review.user?.avatar_url} />
-              <AvatarFallback className="bg-neutral-100">
+              <AvatarFallback className="bg-white">
                 <User className="h-5 w-5 text-neutral-500" />
               </AvatarFallback>
             </Avatar>
@@ -93,7 +93,7 @@ export function ReviewCard({ review, showUser = true }: ReviewCardProps) {
 
       {/* Operator Response */}
       {review.operator_response && (
-        <div className="bg-neutral-50 rounded-lg p-3 mt-3">
+        <div className="bg-white rounded-lg p-3 mt-3">
           <p className="text-xs font-semibold text-neutral-500 mb-1">
             Operator Response
           </p>

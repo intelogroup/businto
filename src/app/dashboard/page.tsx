@@ -78,7 +78,7 @@ function DashboardContent() {
                                         <Badge className={`text-[10px] h-5 px-1.5 font-semibold ${trip.status === 'pending' ? 'bg-amber-500 hover:bg-amber-500' :
                                             trip.status === 'quoted' ? 'bg-violet-500 hover:bg-violet-500' :
                                                 trip.status === 'booked' ? 'bg-green-600 hover:bg-green-600' :
-                                                    'bg-neutral-500 hover:bg-neutral-500'
+                                                    'bg-white0 hover:bg-white0'
                                             }`}>
                                             {trip.status.charAt(0).toUpperCase() + trip.status.slice(1)}
                                         </Badge>

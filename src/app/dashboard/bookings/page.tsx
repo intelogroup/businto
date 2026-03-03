@@ -43,9 +43,12 @@ interface Booking {
   };
   operator: {
     id: string;
-    full_name: string;
-    company_name?: string;
-    avatar_url?: string;
+    company_name: string;
+    profile?: {
+      id: string;
+      full_name: string;
+      avatar_url?: string;
+    };
   };
   quote: {
     vehicle_type: string;
@@ -130,7 +133,7 @@ export default function BookingsPage() {
   const pastBookings = bookings.filter(b => ["completed", "cancelled"].includes(b.status));
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="pt-24 pb-20 container mx-auto max-w-[1200px] px-4 sm:px-8">
@@ -159,7 +162,7 @@ export default function BookingsPage() {
             ) : activeBookings.length === 0 ? (
               <Card className="border-dashed border-2 bg-white shadow-none rounded-lg">
                 <CardContent className="flex flex-col items-center justify-center py-20">
-                  <div className="w-12 h-12 rounded bg-neutral-100 flex items-center justify-center mb-4">
+                  <div className="w-12 h-12 rounded bg-white flex items-center justify-center mb-4">
                     <Calendar className="h-6 w-6 text-neutral-400" />
                   </div>
                   <h3 className="font-semibold text-neutral-900 mb-1">No Active Bookings</h3>
@@ -193,7 +196,7 @@ export default function BookingsPage() {
                                 {getPaymentBadge(booking.payment_status)}
                               </div>
                               <h3 className="text-base font-semibold text-neutral-900">
-                                {booking.operator.company_name || booking.operator.full_name}
+                                {booking.operator.company_name}
                               </h3>
                               <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500 font-medium">
                                 <span className="flex items-center gap-1.5">
@@ -249,7 +252,7 @@ export default function BookingsPage() {
                         </div>
                       </div>
 
-                      <div className="px-6 py-4 bg-neutral-50/50 border-t border-neutral-100">
+                      <div className="px-6 py-4 bg-white/50 border-t border-neutral-100">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-neutral-600">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="w-2 h-2 rounded-full bg-neutral-300" />
@@ -273,7 +276,7 @@ export default function BookingsPage() {
             {pastBookings.length === 0 ? (
               <Card className="border-dashed border-2 bg-white shadow-none rounded-lg">
                 <CardContent className="flex flex-col items-center justify-center py-20">
-                  <div className="w-12 h-12 rounded bg-neutral-100 flex items-center justify-center mb-4">
+                  <div className="w-12 h-12 rounded bg-white flex items-center justify-center mb-4">
                     <CheckCircle className="h-6 w-6 text-neutral-400" />
                   </div>
                   <h3 className="font-semibold text-neutral-900 mb-1">No Past Bookings</h3>
@@ -290,7 +293,7 @@ export default function BookingsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4">
-                          <div className="h-10 w-10 rounded bg-neutral-100 flex items-center justify-center shrink-0">
+                          <div className="h-10 w-10 rounded bg-white flex items-center justify-center shrink-0">
                             {getServiceIcon(booking.request.service_type)}
                           </div>
                           <div>
@@ -301,7 +304,7 @@ export default function BookingsPage() {
                               {getStatusBadge(booking.status)}
                             </div>
                             <h3 className="text-sm font-semibold text-neutral-900">
-                              {booking.operator.company_name || booking.operator.full_name}
+                              {booking.operator.company_name}
                             </h3>
                             <p className="text-[11px] text-neutral-400 font-medium mt-1 uppercase tracking-tight">
                               {new Date(booking.request.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -364,9 +367,9 @@ export default function BookingsPage() {
               <div className="flex-1">
                 <MessageThread
                   bookingId={selectedBooking.id}
-                  recipientId={selectedBooking.operator.id}
-                  recipientName={selectedBooking.operator.company_name || selectedBooking.operator.full_name}
-                  recipientAvatar={selectedBooking.operator.avatar_url}
+                  recipientId={selectedBooking.operator.profile?.id || selectedBooking.operator.id}
+                  recipientName={selectedBooking.operator.company_name}
+                  recipientAvatar={selectedBooking.operator.profile?.avatar_url}
                 />
               </div>
             </div>

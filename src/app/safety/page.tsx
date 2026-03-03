@@ -42,7 +42,7 @@ export default function SafetyPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {standards.map((standard, index) => (
             <div key={index} className="p-6 border border-neutral-100 rounded-lg bg-white shadow-sm space-y-4">
-              <div className="p-2 bg-neutral-50 w-fit rounded-md">
+              <div className="p-2 bg-white w-fit rounded-md">
                 {standard.icon}
               </div>
               <h3 className="text-lg font-semibold text-neutral-900">{standard.title}</h3>

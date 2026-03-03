@@ -43,7 +43,7 @@ export default function OperatorsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {benefits.map((benefit, index) => (
             <div key={index} className="p-8 border border-neutral-100 rounded-lg bg-white shadow-sm space-y-4">
-              <div className="p-2 bg-neutral-50 w-fit rounded-md">
+              <div className="p-2 bg-white w-fit rounded-md">
                 {benefit.icon}
               </div>
               <h3 className="text-lg font-semibold text-neutral-900">{benefit.title}</h3>
@@ -60,7 +60,7 @@ export default function OperatorsPage() {
               Our vetting process takes approximately 3-5 business days.
             </p>
           </div>
-          <Button className="bg-white text-black hover:bg-neutral-100 h-12 px-8 rounded-md font-bold shrink-0">
+          <Button className="bg-white text-black hover:bg-white h-12 px-8 rounded-md font-bold shrink-0">
             Apply to Join
           </Button>
         </section>
