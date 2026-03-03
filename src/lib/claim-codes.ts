@@ -90,20 +90,46 @@ export interface RedeemClaimCodeResult {
 }
 
 /**
- * Redeem a claim code (robust multi-hit protection)
+ * Redeem a claim code
+ *
+ * Claim codes are reusable until expiry. The link can be clicked many times.
+ * Quote irreversibility is enforced at the /api/quotes layer (duplicate check),
+ * not here.
  *
  * @param code - The claim code from the email link
  * @param ipAddress - Optional IP for audit logging
- * @returns The resource details if valid, null if invalid/expired/used
+ * @returns The resource details if valid, null if invalid/expired
  */
 export async function redeemClaimCode(
   code: string,
   ipAddress?: string
 ): Promise<RedeemClaimCodeResult | null> {
+  // SELF-HEALING: If the code contains evidence of Brevo wrapping (track-click),
+  // we attempt to extract the original code from the 'url' parameter.
+  let targetCode = code;
+  if (code.includes('track-click') || code.includes('r.af.d.sendibt')) {
+    console.warn(`[ClaimCodes] DETECTED CORRUPTED BREVO LINK: "${code}"`);
+    try {
+      // Try to extract the code from the URL parameter if it's there
+      // Brevo URLs look like: https://r.af.d.sendibt.com/tr/cl/.../url=https://businto.com/claim/ABC123
+      const urlMatch = code.match(/url=([^&]+)/);
+      if (urlMatch && urlMatch[1]) {
+        const decodedUrl = decodeURIComponent(urlMatch[1]);
+        const finalCodeMatch = decodedUrl.match(/\/claim\/([A-Z0-9]+)/i);
+        if (finalCodeMatch && finalCodeMatch[1]) {
+          targetCode = finalCodeMatch[1];
+          console.log(`[ClaimCodes] SUCCESS: Extracted original code "${targetCode}" from Brevo tracking URL.`);
+        }
+      }
+    } catch (e) {
+      console.error('[ClaimCodes] Failed to self-heal Brevo link:', e);
+    }
+  }
+
   // Normalize code (remove dashes, uppercase)
-  const normalizedCode = code.toUpperCase().replace(/[-\s]/g, '');
+  const normalizedCode = targetCode.toUpperCase().replace(/[-\s]/g, '');
   
-  console.log(`[ClaimCodes] Redeeming code: "${code}" (normalized: "${normalizedCode}") from IP: ${ipAddress}`);
+  console.log(`[ClaimCodes] Redeeming code: "${targetCode}" (normalized: "${normalizedCode}") from IP: ${ipAddress}`);
 
   // Find non-expired code
   const { data, error } = await supabaseAdmin
@@ -118,24 +144,7 @@ export async function redeemClaimCode(
     return null;
   }
 
-  // ROBUSTNESS LOGIC:
-  // If code was already used, we allow it ONLY if:
-  // 1. It was first used less than 15 minutes ago (covers scanner vs user race)
-  // 2. OR it has been hit by fewer than 5 distinct IPs (covers multiple scanners)
-  if (data.used_at) {
-    const firstUsed = new Date(data.used_at).getTime();
-    const fifteenMinsAgo = Date.now() - (15 * 60 * 1000);
-    
-    // If it's been more than 15 mins since first use, it's truly dead
-    if (firstUsed < fifteenMinsAgo) {
-      console.warn(`[ClaimCodes] Code "${normalizedCode}" already used and past 15min window.`);
-      return null;
-    }
-    
-    console.log(`[ClaimCodes] Allowing repeat hit for code "${normalizedCode}" within 15min window.`);
-  }
-
-  // Mark as used if first time
+  // Mark as used if first time (audit stamp only — does not block re-use)
   if (!data.used_at) {
     const { error: updateError } = await supabaseAdmin
       .from('email_claim_codes')
