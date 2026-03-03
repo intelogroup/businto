@@ -271,8 +271,6 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
     dayOfContactName, dayOfContactPhone,
     note, isImmediate, isSubmitted]);
 
-  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-
   const handleSubmit = async () => {
     // Reset errors
     setValidationErrors({});
@@ -454,7 +452,6 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
       }
 
       setSubmittedData(data.request);
-      setPaymentUrl(data.paymentUrl || null);
       setIsSubmitted(true);
     } catch (err: any) {
       setSubmitError(err.message || 'Failed to submit request. Please try again.');
@@ -466,13 +463,13 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
   const getCTA = () => {
     switch (activeTab) {
       case "school":
-        return { text: "Find School Bus", color: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20" };
+        return { text: "Find School Bus ($1.99)", color: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20" };
       case "medical":
-        return { text: "Find Care Ride", color: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" };
+        return { text: "Find Care Ride ($1.99)", color: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20" };
       case "wedding":
-        return { text: "Check Shuttle Prices", color: "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20" };
+        return { text: "Check Shuttle Prices ($1.99)", color: "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20" };
       default:
-        return { text: "Check Availability", color: "bg-neutral-950 hover:bg-black shadow-black/20" };
+        return { text: "Check Availability ($1.99)", color: "bg-neutral-950 hover:bg-black shadow-black/20" };
     }
   };
 
@@ -520,7 +517,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="Your home address..."
                             value={pickupZip}
                             onSelect={(addr) => setPickupZip(addr)}
-                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
+                            className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                         <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
@@ -529,7 +526,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="e.g. Malden Catholic, Main Entrance..."
                             value={schoolName}
                             onSelect={(addr) => setSchoolName(addr)}
-                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
+                            className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                       </div>
@@ -539,7 +536,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Grade Level</label>
                           <Select value={gradeLevel} onValueChange={setGradeLevel}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -576,7 +573,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Car Seat Needed</label>
                           <Select value={boosterSeat} onValueChange={setBoosterSeat}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -602,7 +599,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               }
                             }}
                           >
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -627,7 +624,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">AM/PM</label>
                           <Select value={scheduleType} onValueChange={setScheduleType}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -744,13 +741,13 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Checkboxes Row */}
-                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
+                      <div className="bg-white border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={specialNeeds}
                             onChange={(e) => setSpecialNeeds(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0"
                           />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Special Needs / IEP</span>
                         </label>
@@ -759,7 +756,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             type="checkbox"
                             checked={noAdultRelease}
                             onChange={(e) => setNoAdultRelease(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0"
                           />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">No-Adult Release OK</span>
                         </label>
@@ -809,7 +806,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="Home, hospice, etc..."
                             value={pickupLocation}
                             onSelect={(addr) => setPickupLocation(addr)}
-                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
+                            className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                         <div className="col-span-3 space-y-1.5">
@@ -818,17 +815,17 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="Hospital or clinic..."
                             value={dropoffLocation}
                             onSelect={(addr) => setDropoffLocation(addr)}
-                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
+                            className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                       </div>
                       {/* Row 2: Mobility & Service Details */}
-                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 space-y-4">
+                      <div className="bg-white border border-neutral-200 rounded-lg p-4 space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Access Type</label>
                           <Select value={mobilityLevel} onValueChange={setMobilityLevel}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -842,7 +839,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Service Level</label>
                           <Select value={serviceLevel} onValueChange={setServiceLevel}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -869,7 +866,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Trip Type</label>
                           <Select value={tripType} onValueChange={setTripType}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -883,7 +880,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             <div className="col-span-1 space-y-1.5">
                               <label className="text-xs font-medium text-neutral-500 ml-1">Return Status</label>
                               <Select value={returnStatus} onValueChange={setReturnStatus}>
-                                <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                                <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                                   <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -908,7 +905,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Stairs</label>
                           <Select value={stairFactor} onValueChange={setStairFactor}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -932,7 +929,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               }
                             }}
                           >
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -955,13 +952,13 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Toggles Row */}
-                      <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
+                      <div className="bg-white border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
                             type="checkbox"
                             checked={oxygenUse}
                             onChange={(e) => setOxygenUse(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0"
                           />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Oxygen Use</span>
                         </label>
@@ -970,7 +967,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             type="checkbox"
                             checked={isBariatric}
                             onChange={(e) => setIsBariatric(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0"
                           />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Bariatric</span>
                         </label>
@@ -979,7 +976,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             type="checkbox"
                             checked={serviceAnimal}
                             onChange={(e) => setServiceAnimal(e.target.checked)}
-                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                            className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0"
                           />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Service Animal</span>
                         </label>
@@ -1066,7 +1063,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
-                                  className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-white"
+                                  className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium justify-start transition-colors duration-150 hover:bg-white"
                                 >
                                   <CalendarIcon className="mr-2 h-4 w-4" />
                                   {medicalCustomDates.length > 0 ? `${medicalCustomDates.length} dates` : "Select"}
@@ -1086,7 +1083,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Row 4: Requester Info */}
-                      <div className="grid grid-cols-2 gap-4 pb-2 pt-4 bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+                      <div className="grid grid-cols-2 gap-4 pb-2 pt-4 bg-white border border-neutral-200 rounded-lg p-4">
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">
                             Requester Name
@@ -1137,7 +1134,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Event Category</label>
                           <Select value={eventCategory} onValueChange={setEventCategory}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -1162,7 +1159,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-1 sm:col-span-1 md:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Vehicle Preference</label>
                           <Select value={vehicleStyle} onValueChange={setVehicleStyle}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -1185,7 +1182,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="Hotel or starting point..."
                             value={hotelZip}
                             onSelect={(addr) => setHotelZip(addr)}
-                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
+                            className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                         <div className="col-span-3 space-y-1.5">
@@ -1194,7 +1191,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             placeholder="Event venue..."
                             value={venueZip}
                             onSelect={(addr) => setVenueZip(addr)}
-                            className="h-10 rounded-md bg-white border border-neutral-200 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
+                            className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
                       </div>
@@ -1204,7 +1201,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Shuttle Mode</label>
                           <Select value={shuttleMode} onValueChange={setShuttleMode}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -1217,7 +1214,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Itinerary Type</label>
                           <Select value={itineraryType} onValueChange={setItineraryType}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -1307,7 +1304,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         <div className="col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Duration/Type</label>
                           <Select value={eventDurationType} onValueChange={setEventDurationType}>
-                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200 focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
+                            <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
                               <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent className="rounded-md border-neutral-200 shadow-lg">
@@ -1323,19 +1320,19 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       {/* Row 5: Amenities Toggles */}
                       <div className="flex flex-wrap gap-6 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={alcoholAllowed} onChange={(e) => setAlcoholAllowed(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <input type="checkbox" checked={alcoholAllowed} onChange={(e) => setAlcoholAllowed(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0" />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Alcohol OK</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={refreshmentsProvided} onChange={(e) => setRefreshmentsProvided(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <input type="checkbox" checked={refreshmentsProvided} onChange={(e) => setRefreshmentsProvided(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0" />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Refreshments</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={avNeeds} onChange={(e) => setAvNeeds(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <input type="checkbox" checked={avNeeds} onChange={(e) => setAvNeeds(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0" />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Bluetooth/AUX</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input type="checkbox" checked={specialDecor} onChange={(e) => setSpecialDecor(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
+                          <input type="checkbox" checked={specialDecor} onChange={(e) => setSpecialDecor(e.target.checked)} className="w-4 h-4 rounded border-neutral-300 text-neutral-900 focus:ring-0" />
                           <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">Decorations</span>
                         </label>
                         <label className={cn(
@@ -1451,7 +1448,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             {submittedData?.matched_operators_count === 0 ? (
                               <>
                                 We couldn't find operators matching your strict requirements (e.g., Immediate or Stretcher).{" "}
-                                <span className="text-white block mt-2 font-medium">Our team has been notified to manually handle this specialized request. You won't be charged priority fees yet.</span>
+                                <span className="text-white block mt-2 font-medium">Our team has been notified to manually handle this specialized request.</span>
                               </>
                             ) : (
                               "Broadcasting to our network of local operators. You'll receive quotes in your dashboard and via email shortly."
@@ -1492,15 +1489,6 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </div>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3">
-                        {paymentUrl && submittedData?.matched_operators_count > 0 && (
-                          <Button
-                            className="flex-1 h-10 rounded-md font-semibold bg-violet-600 text-white hover:bg-violet-700 shadow-sm"
-                            onClick={() => window.location.href = paymentUrl}
-                          >
-                            <Gem className="h-4 w-4 mr-2" />
-                            Submit $1.99 Priority Fee
-                          </Button>
-                        )}
                         <Button
                           variant="outline"
                           className="flex-1 h-10 rounded-md font-semibold border-neutral-200 hover:bg-white"

@@ -3,6 +3,7 @@ import { redeemClaimCode } from '@/lib/claim-codes';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { getAppBaseUrl } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * Email Claim Code Redemption Endpoint
@@ -25,8 +26,8 @@ export async function GET(
 
   // Get client IP for audit logging
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
+    request.headers.get('x-real-ip') ||
+    'unknown';
 
   console.log(`[Claim] Attempting to redeem code: ${code} from IP: ${ip}`);
 
@@ -54,7 +55,19 @@ export async function GET(
       );
 
       let destination = `/quotes/submit?request_id=${redemption.resourceId}&token=${token}`;
-      
+
+      // RETURNING USER: Check for existing active session first (no magic link needed)
+      try {
+        const supabase = await createClient();
+        const { data: { user: existingUser } } = await supabase.auth.getUser();
+        if (existingUser) {
+          console.log(`[Claim] Existing session for operator ${existingUser.id}, redirecting directly`);
+          return NextResponse.redirect(`${baseUrl}${destination}`);
+        }
+      } catch (e) {
+        console.warn('[Claim] Could not check existing session:', e);
+      }
+
       // AUTO-AUTH: If we have a userId (operator profile), generate a magic link
       if (redemption.userId) {
         try {
@@ -71,7 +84,7 @@ export async function GET(
               email: email,
               options: { redirectTo: `${baseUrl}${destination}` }
             });
-            
+
             if (!linkError && linkData?.properties?.action_link) {
               console.log(`[Claim] Generated magic link for operator ${redemption.userId}`);
               return NextResponse.redirect(linkData.properties.action_link);
@@ -95,10 +108,22 @@ export async function GET(
       );
 
       let destination = `/trips/${redemption.resourceId}?token=${token}`;
-      
+
       // If we have an operatorId, we want to highlight that specific quote
       if (redemption.operatorId) {
         destination += `&highlight_operator=${redemption.operatorId}`;
+      }
+
+      // RETURNING USER: Check for existing active session first (no magic link needed)
+      try {
+        const supabase = await createClient();
+        const { data: { user: existingUser } } = await supabase.auth.getUser();
+        if (existingUser) {
+          console.log(`[Claim] Existing session for user ${existingUser.id}, redirecting directly`);
+          return NextResponse.redirect(`${baseUrl}${destination}`);
+        }
+      } catch (e) {
+        console.warn('[Claim] Could not check existing session:', e);
       }
 
       // AUTO-AUTH: If we have a userId, generate a magic link for seamless login
@@ -117,7 +142,7 @@ export async function GET(
               email: email,
               options: { redirectTo: `${baseUrl}${destination}` }
             });
-            
+
             if (!linkError && linkData?.properties?.action_link) {
               console.log(`[Claim] Generated magic link for user ${redemption.userId}`);
               // This link will hit /api/auth/callback (Supabase default) then redirect to our destination
@@ -129,7 +154,7 @@ export async function GET(
           console.error('[Claim] Failed to generate user magic link:', e);
         }
       }
-      
+
       console.log(`[Claim] Redirecting to trip view (no auto-auth): ${baseUrl}${destination}`);
       return NextResponse.redirect(`${baseUrl}${destination}`);
     }

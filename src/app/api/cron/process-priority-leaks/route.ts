@@ -162,7 +162,7 @@ export async function GET(req: Request) {
             console.log(`⚠️ Safety Valve Triggered for Care Ride ${request.id}`);
             try {
                 await sendEmail({
-                    to: process.env.ADMIN_EMAIL || 'admin@businto.com',
+                    to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
                     subject: `URGENT: Care Ride Unassigned > 30 Mins (#${request.id.substring(0, 8)})`,
                     html: `
             <div style="font-family: sans-serif; padding: 20px;">
@@ -175,7 +175,7 @@ export async function GET(req: Request) {
                 <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
               </div>
               <p>Please log in immediately to review available operators and assign manually to protect the Businto brand.</p>
-              <a href="${getAppBaseUrl()}/admin" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Admin Dashboard</a>
+              <a href="${getAppBaseUrl()}/master/admin" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Admin Dashboard</a>
             </div>
           `
                 });

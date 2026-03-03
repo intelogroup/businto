@@ -110,7 +110,7 @@ export function AIChatPanel() {
                 </CardHeader>
 
                 {/* Chat Area */}
-                <div className="flex-1 overflow-hidden relative z-10 bg-neutral-50">
+                <div className="flex-1 overflow-hidden relative z-10 bg-white">
                     <ScrollArea className="h-full w-full">
                         <div className="h-[56px]" />
 
@@ -136,7 +136,7 @@ export function AIChatPanel() {
                                             <div className={cn(
                                                 "rounded-lg px-4 py-2.5 text-sm transition-colors duration-150",
                                                 msg.role === "assistant"
-                                                    ? "bg-neutral-100 border border-neutral-200 text-neutral-800 font-normal"
+                                                    ? "bg-white border border-neutral-200 text-neutral-800 font-normal"
                                                     : "bg-neutral-900 text-white font-normal"
                                             )}>
                                                 {msg.content}
@@ -215,7 +215,7 @@ export function AIChatPanel() {
                                 placeholder="How can I help you?"
                                 value={input}
                                 onChange={handleInputChange}
-                                className="pl-10 pr-4 h-10 rounded-md bg-white border-neutral-200 text-sm placeholder:text-neutral-400 shadow-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-0"
+                                className="pl-10 pr-4 h-10 rounded-md bg-white border-neutral-200 text-sm placeholder:text-neutral-400 shadow-none focus-visible:ring-0 focus-visible:outline-none"
                             />
                         </div>
                         <Button

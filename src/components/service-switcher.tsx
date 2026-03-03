@@ -23,7 +23,7 @@ interface ServiceSwitcherProps {
 
 export function ServiceSwitcher({ activeTab, onTabChange }: ServiceSwitcherProps) {
     return (
-        <div className="bg-neutral-100 border border-neutral-200 p-1 rounded-lg flex w-full gap-1">
+        <div className="bg-white border border-neutral-200 p-1 rounded-lg flex w-full gap-1">
             {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;

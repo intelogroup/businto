@@ -109,17 +109,20 @@ export async function generateOperatorQuoteLink(
  * @param tripId - The trip/request ID
  * @param userId - The user ID (optional, for guests)
  * @param userEmail - The user's email
+ * @param operatorId - Optional operator ID to highlight
  * @returns Short claim URL
  */
 export async function generateTripViewLink(
   tripId: string,
   userId: string | null,
-  userEmail: string
+  userEmail: string,
+  operatorId?: string
 ): Promise<string> {
   const code = await createClaimCode({
     resourceType: 'trip_view',
     resourceId: tripId,
     userId: userId || undefined,
+    operatorId,
     purpose: 'view',
     expiresInMinutes: 43200, // 30 days
     emailSentTo: userEmail,

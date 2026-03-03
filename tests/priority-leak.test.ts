@@ -35,6 +35,7 @@ describe("Priority Leak Cron Logic", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.VERCEL_CRON_SECRET = "cron_secret";
+    process.env.ADMIN_EMAIL = "admin@businto.com";
   });
 
   it("should leak requests to standard network after priority window expires", async () => {
@@ -120,7 +121,8 @@ describe("Priority Leak Cron Logic", () => {
     expect(response.status).toBe(200);
     expect(data.safetyAlerts).toBe(1);
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({
-      to: "admin@businto.com"
+      to: "admin@businto.com",
+      html: expect.stringContaining("/master/admin")
     }));
   });
 });

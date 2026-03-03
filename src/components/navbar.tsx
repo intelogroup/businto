@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Shield, ChevronDown, LayoutDashboard, Menu, X, Bus } from "lucide-react";
+import { LogOut, User, Settings, ChevronDown, LayoutDashboard, Menu } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
@@ -212,27 +212,16 @@ export function Navbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-white mx-1" />
                     <DropdownMenuItem asChild className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
-                      <Link href="/users" className="flex items-center w-full">
+                      <Link href="/profile" className="flex items-center w-full">
                         <User size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
-                        <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Users & Team</span>
+                        <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Profile</span>
                       </Link>
                     </DropdownMenuItem>
-
-                    {(user?.role === "admin" || user?.role === "manager") && (
-                      <DropdownMenuItem asChild className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
-                        <Link href="/admin" className="flex items-center w-full">
-                          <LayoutDashboard size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
-                          <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Admin Panel</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
-                      <Settings size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
-                      <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Settings</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
-                      <Shield size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
-                      <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Security</span>
+                    <DropdownMenuItem asChild className="focus:bg-white rounded-md px-3 py-2 cursor-pointer group">
+                      <Link href="/settings" className="flex items-center w-full">
+                        <Settings size={16} className="mr-3 text-neutral-400 group-hover:text-neutral-900 transition-colors duration-150" />
+                        <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors duration-150">Settings</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-white mx-1" />
                     <DropdownMenuItem

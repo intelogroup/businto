@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PROTECTED_PATHS = ['/dashboard', '/admin', '/trips', '/quotes'];
+const PROTECTED_PATHS = ['/dashboard', '/master/admin', '/trips', '/quotes'];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -35,15 +35,19 @@ export async function updateSession(request: NextRequest) {
   const hasToken = searchParams.has('token');
   
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
+  const isAdminLoginPath = pathname.startsWith('/master/admin/login');
 
   // EXCEPTION: Allow /quotes/submit and /trips/[id] if a token is present
   // These pages have their own internal logic to validate the token
   const isTokenizedPath = (pathname.startsWith('/quotes/submit') || pathname.startsWith('/trips/')) && hasToken;
 
-  if (!user && isProtected && !isTokenizedPath) {
+  if (!user && isProtected && !isTokenizedPath && !isAdminLoginPath) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('redirect', pathname);
+    // Only set redirect if it's not the secret admin path to avoid discovery
+    if (!pathname.startsWith('/master/admin')) {
+      url.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(url);
   }
 

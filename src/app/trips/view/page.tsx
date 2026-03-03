@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications } from "@/hooks/use-notifications";
 
 interface Quote {
     id: string;
@@ -59,6 +60,7 @@ function TripViewContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
     const { user, isLoading: authLoading } = useAuth();
+    const { addNotification } = useNotifications();
     const [trip, setTrip] = useState<TransportRequest | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
@@ -177,14 +179,14 @@ function TripViewContent() {
             if (!response.ok) {
                 const error = await response.json();
                 logClientError("Quote Acceptance Failed", { quoteId, error: error.error });
-                alert(error.error || 'Failed to accept quote');
+                addNotification({ title: 'Error', message: error.error || 'Failed to accept quote', type: 'error' });
             } else {
                 await fetchData();
-                alert('Quote accepted successfully!');
+                addNotification({ title: 'Quote Accepted', message: 'Your booking is confirmed. Check your email for details.', type: 'success' });
             }
         } catch (error: any) {
             console.error('Error accepting quote:', error);
-            alert('Error accepting quote. Please try again.');
+            addNotification({ title: 'Error', message: 'Error accepting quote. Please try again.', type: 'error' });
         } finally {
             setAcceptingQuoteId(null);
         }

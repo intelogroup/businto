@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
-import { PaymentModal } from "@/components/payment/payment-modal";
 import { MessageThread } from "@/components/chat/message-thread";
 import {
   Calendar,
@@ -62,7 +61,6 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showPayment, setShowPayment] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
@@ -234,19 +232,6 @@ export default function BookingsPage() {
                                 <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
                                 Chat
                               </Button>
-                              {booking.payment_status === "pending" && (
-                                <Button
-                                  size="sm"
-                                  className="h-8 text-xs font-bold rounded-md bg-neutral-900 hover:bg-black text-white px-4"
-                                  onClick={() => {
-                                    setSelectedBooking(booking);
-                                    setShowPayment(true);
-                                  }}
-                                >
-                                  <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-                                  PAY FEE
-                                </Button>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -330,25 +315,6 @@ export default function BookingsPage() {
           </TabsContent>
         </Tabs>
       </main>
-
-      {/* Payment Modal */}
-      {selectedBooking && (
-        <PaymentModal
-          open={showPayment}
-          onOpenChange={setShowPayment}
-          bookingId={selectedBooking.id}
-          amount={selectedBooking.amount}
-          confirmationCode={selectedBooking.confirmation_code}
-          onSuccess={() => {
-            fetchBookings();
-            addNotification({
-              title: "Payment Complete",
-              message: "Your booking is now confirmed!",
-              type: "success"
-            });
-          }}
-        />
-      )}
 
       {/* Chat Drawer */}
       {selectedBooking && showChat && (

@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
             .eq('id', data.id);
 
           await sendEmail({
-            to: process.env.ADMIN_EMAIL || 'admin@businto.com',
+            to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
             subject: `URGENT: Manual Allocation Required for Request #${data.id.substring(0, 8)}`,
             html: `
               <h2>Action Required: No Automated Matches Found</h2>
@@ -459,7 +459,7 @@ export async function POST(request: NextRequest) {
     // Generate checkout URL if payment is pending AND we matched at least one operator
     if (payment_status === 'pending' && matchedOperatorsCount > 0) {
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const appUrl = getAppBaseUrl();
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ['card'],
           line_items: [

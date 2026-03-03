@@ -259,7 +259,7 @@ export function MessageThread({
             placeholder="Type your message..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            className="flex-1 h-10 rounded-md border-neutral-200 text-sm focus-visible:ring-neutral-900"
+            className="flex-1 h-10 rounded-md border-neutral-200 text-sm focus-visible:ring-0 focus-visible:outline-none"
             disabled={sending}
           />
           <Button

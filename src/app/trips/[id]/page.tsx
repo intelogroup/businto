@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications } from "@/hooks/use-notifications";
 
 interface Quote {
     id: string;
@@ -52,6 +53,7 @@ function TripDetailContent() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
     const { user, isLoading: authLoading } = useAuth();
+    const { addNotification } = useNotifications();
     const [trip, setTrip] = useState<TransportRequest | null>(null);
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
@@ -232,11 +234,11 @@ function TripDetailContent() {
 
             // Success! Refresh data
             await fetchData();
-            alert('Quote accepted successfully!');
+            addNotification({ title: 'Quote Accepted', message: 'Your booking is confirmed. Check your email for details.', type: 'success' });
         } catch (error: any) {
             console.error('Error accepting quote:', error);
             logClientError("Quote Acceptance Exception", { quoteId, message: error.message });
-            alert(error.message || 'Error accepting quote. Please try again.');
+            addNotification({ title: 'Error', message: error.message || 'Error accepting quote. Please try again.', type: 'error' });
         } finally {
             setAcceptingQuoteId(null);
         }

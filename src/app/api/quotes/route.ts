@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
           // NEW: Create a Magic Link for Auto Sign-in if we have a userEmail
           let autoSignInLink = null;
           // Generate tracking-resistant claim link for user dashboard access
-          const claimLink = await generateTripViewLink(request_id, transportRequest.user_id || null, userEmail);
+          const claimLink = await generateTripViewLink(request_id, transportRequest.user_id || null, userEmail, data.operator_id);
 
           try {
             const result = await sendEmail({

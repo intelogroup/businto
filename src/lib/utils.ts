@@ -14,7 +14,7 @@ export function getStatusBadgeColor(status: string): string {
     matched: "bg-purple-500 hover:bg-purple-600",
     quoted: "bg-blue-500 hover:bg-blue-600",
     booked: "bg-green-500 hover:bg-green-600",
-    completed: "bg-neutral-500 hover:bg-neutral-600",
+    completed: "bg-white0 hover:bg-neutral-600",
     cancelled: "bg-red-500 hover:bg-red-600",
   };
   

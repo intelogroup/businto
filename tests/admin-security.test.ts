@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET } from "@/app/api/admin/requests/route";
+import { GET } from "@/app/api/master/admin/requests/route";
 import { NextRequest } from "next/server";
 import { supabaseAdmin as supabase } from "@/lib/supabase-server";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +27,7 @@ describe("Admin API Security", () => {
     const { requireAdmin } = await import("@/lib/supabase-server");
     (requireAdmin as any).mockResolvedValue(null);
 
-    const req = new NextRequest("http://localhost:3000/api/admin/requests", {
+    const req = new NextRequest("http://localhost:3000/api/master/admin/requests", {
       method: "GET",
     });
 
@@ -53,7 +53,7 @@ describe("Admin API Security", () => {
       range: rangeMock,
     });
 
-    const req = new NextRequest("http://localhost:3000/api/admin/requests", {
+    const req = new NextRequest("http://localhost:3000/api/master/admin/requests", {
       method: "GET",
     });
 

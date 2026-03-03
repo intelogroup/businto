@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { getAppBaseUrl } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
     try {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Transport request not found' }, { status: 404 });
         }
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const appUrl = getAppBaseUrl();
 
         // Create Stripe Checkout Session
         const session = await stripe.checkout.sessions.create({

@@ -204,7 +204,7 @@ bg-gradient-to-\S+ from-.*?to-\S+/\d+  →  (remove decorative gradients)
 | File | Key Changes |
 |------|-------------|
 | `dashboard/page.tsx` | rounded-lg cards, h-10 inputs, remove shimmer |
-| `admin/page.tsx` | rounded-lg, shadow-sm, p-6 padding |
+| `master/admin/page.tsx` | rounded-lg, shadow-sm, p-6 padding |
 | `users/page.tsx` | Standardize to match admin |
 
 #### Forms
@@ -312,7 +312,7 @@ tracking-[0.15em]+ tracking-widest uppercase (reduce 80%)
 | 4 | `src/components/ui/card.tsx` | All cards inherit |
 | 5 | `src/components/navbar.tsx` | Always visible |
 | 6 | `src/app/dashboard/page.tsx` | Primary workspace |
-| 7 | `src/app/admin/page.tsx` | Business critical |
+| 7 | `src/app/master/admin/page.tsx` | Business critical |
 | 8 | `src/components/hero.tsx` | Most demo-like |
 | 9 | `src/components/how-it-works.tsx` | Heavy animations |
 | 10 | `src/app/login/page.tsx` | First impression |
