@@ -310,6 +310,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
+    if (['booked', 'completed', 'canceled', 'cancelled'].includes(request.status)) {
+      return NextResponse.json({ error: `Cannot create quote. Request is already ${request.status}.` }, { status: 400 });
+    }
+
     const { data: operator, error: opError } = await supabaseAdmin
       .from('operators')
       .select('id, company_name, company_email')
@@ -408,6 +412,10 @@ export async function POST(req: NextRequest) {
 
     if (reqError || !request) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    if (['booked', 'completed', 'canceled', 'cancelled'].includes(request.status)) {
+      return NextResponse.json({ error: `Cannot create quotes. Request is already ${request.status}.` }, { status: 400 });
     }
 
     // Fetch all referenced operators in one query

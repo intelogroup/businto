@@ -18,12 +18,16 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       console.error('🔴 Quote Validation Failed:', validation.error.format());
       // PERF: Fire-and-forget — don't await logEvent, return 400 immediately
-      logEvent({
-        event_type: 'quote.submission.validation_failed',
-        status: 'error',
-        message: 'Invalid quote data',
-        metadata: { errors: validation.error.format(), body_keys: Object.keys(body) }
-      }).catch(() => { });
+      // Skip logging for benchmark/test probes (x-benchmark-test header) to keep event_logs clean
+      const isBenchmarkProbe = request.headers.get('x-benchmark-test') === '1';
+      if (!isBenchmarkProbe) {
+        logEvent({
+          event_type: 'quote.submission.validation_failed',
+          status: 'error',
+          message: 'Invalid quote data',
+          metadata: { errors: validation.error.format(), body_keys: Object.keys(body) }
+        }).catch(() => { });
+      }
       return NextResponse.json(
         {
           error: 'Invalid quote data',

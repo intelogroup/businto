@@ -29,6 +29,18 @@ try {
 } catch { /* file might not exist */ }
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
+// ⚠️  Safety guard: never run destructive/noisy benchmarks against production
+const PRODUCTION_HOSTS = ['businto.com', 'www.businto.com'];
+const parsedBase = new URL(BASE_URL);
+if (PRODUCTION_HOSTS.includes(parsedBase.hostname)) {
+    console.error(
+        `\n🚫  BLOCKED: Benchmark script refuses to run against production host "${parsedBase.hostname}".\n` +
+        `    Use a local dev server: BASE_URL=http://localhost:3000 node scripts/benchmark.mjs\n`
+    );
+    process.exit(1);
+}
+
 const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ITERATIONS = parseInt(process.env.ITERATIONS || '10', 10);
@@ -212,7 +224,7 @@ async function benchApiEndpoints(td) {
         'POST /api/requests (400 fast-fail validation)',
         () => fetch(BASE_URL + '/api/requests', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-benchmark-test': '1' },
             body: JSON.stringify({ service_type: 'school' }) // missing required fields
         }),
         5
@@ -223,7 +235,7 @@ async function benchApiEndpoints(td) {
         'POST /api/quotes (400 fast-fail validation)',
         () => fetch(BASE_URL + '/api/quotes', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-benchmark-test': '1' },
             body: JSON.stringify({ total_price: 100 })
         }),
         5
