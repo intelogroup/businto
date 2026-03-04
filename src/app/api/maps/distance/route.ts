@@ -1,59 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { calculateRoute, geocodeToCoords } from '@/lib/routing';
 
 export async function POST(request: NextRequest) {
   try {
-    const { origin, destination } = await request.json();
+    const body = await request.json();
+    const { origin, destination, originLat, originLng, destLat, destLng } = body;
 
-    if (!origin || !destination) {
+    if ((!origin && !destination) && (!originLat || !originLng || !destLat || !destLng)) {
       return NextResponse.json(
-        { error: 'Missing origin or destination' },
+        { error: 'Provide either origin/destination addresses or coordinate pairs' },
         { status: 400 }
       );
     }
 
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    let oLat = originLat, oLng = originLng, dLat = destLat, dLng = destLng;
 
-    if (!apiKey) {
-      // Return mock data if no API key
-      const mockDistance = 5 + Math.random() * 20;
-      const mockDuration = mockDistance * 3;
-
-      return NextResponse.json({
-        distance: {
-          text: `${mockDistance.toFixed(1)} mi`,
-          value: Math.round(mockDistance * 1609.34)
-        },
-        duration: {
-          text: `${Math.round(mockDuration)} mins`,
-          value: Math.round(mockDuration * 60)
-        }
-      });
+    // Geocode address strings if coordinates were not provided
+    if (!oLat || !oLng) {
+      if (!origin) return NextResponse.json({ error: 'Missing origin' }, { status: 400 });
+      const coords = await geocodeToCoords(origin);
+      if (!coords) return NextResponse.json({ error: 'Could not geocode origin address' }, { status: 400 });
+      oLat = coords.lat;
+      oLng = coords.lng;
     }
 
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&units=imperial&key=${apiKey}`
-    );
-
-    const data = await response.json();
-
-    if (data.status !== 'OK' || data.rows[0]?.elements[0]?.status !== 'OK') {
-      return NextResponse.json(
-        { error: 'Could not calculate distance' },
-        { status: 400 }
-      );
+    if (!dLat || !dLng) {
+      if (!destination) return NextResponse.json({ error: 'Missing destination' }, { status: 400 });
+      const coords = await geocodeToCoords(destination);
+      if (!coords) return NextResponse.json({ error: 'Could not geocode destination address' }, { status: 400 });
+      dLat = coords.lat;
+      dLng = coords.lng;
     }
+
+    const result = await calculateRoute(oLat, oLng, dLat, dLng);
+
+    if (!result) {
+      return NextResponse.json({ error: 'Could not calculate route' }, { status: 502 });
+    }
+
+    const distanceMeters = Math.round(result.distance_miles * 1609.34);
+    const durationSeconds = result.duration_mins * 60;
 
     return NextResponse.json({
-      distance: data.rows[0].elements[0].distance,
-      duration: data.rows[0].elements[0].duration,
-      origin_address: data.origin_addresses[0],
-      destination_address: data.destination_addresses[0]
+      distance: {
+        text: `${result.distance_miles.toFixed(1)} mi`,
+        value: distanceMeters,
+      },
+      duration: {
+        text: result.duration_mins < 60
+          ? `${result.duration_mins} mins`
+          : `${Math.floor(result.duration_mins / 60)}h ${result.duration_mins % 60}m`,
+        value: durationSeconds,
+      },
     });
   } catch (error) {
-    console.error('Error calculating distance:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[api/maps/distance] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

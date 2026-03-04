@@ -83,7 +83,11 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
   // School fields
   const [pickupZip, setPickupZip] = useState("");
+  const [pickupZipLat, setPickupZipLat] = useState<number | null>(null);
+  const [pickupZipLng, setPickupZipLng] = useState<number | null>(null);
   const [schoolName, setSchoolName] = useState("");
+  const [schoolNameLat, setSchoolNameLat] = useState<number | null>(null);
+  const [schoolNameLng, setSchoolNameLng] = useState<number | null>(null);
   const [gradeLevel, setGradeLevel] = useState("");
   const [scheduleType, setScheduleType] = useState("");
   const [amTime, setAmTime] = useState("");
@@ -113,7 +117,11 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
   const [medicalContactName, setMedicalContactName] = useState("");
   const [medicalContactPhone, setMedicalContactPhone] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupLocationLat, setPickupLocationLat] = useState<number | null>(null);
+  const [pickupLocationLng, setPickupLocationLng] = useState<number | null>(null);
   const [dropoffLocation, setDropoffLocation] = useState("");
+  const [dropoffLocationLat, setDropoffLocationLat] = useState<number | null>(null);
+  const [dropoffLocationLng, setDropoffLocationLng] = useState<number | null>(null);
   const [mobilityLevel, setMobilityLevel] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
@@ -138,7 +146,11 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
   const [guestCount, setGuestCount] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [hotelZip, setHotelZip] = useState("");
+  const [hotelZipLat, setHotelZipLat] = useState<number | null>(null);
+  const [hotelZipLng, setHotelZipLng] = useState<number | null>(null);
   const [venueZip, setVenueZip] = useState("");
+  const [venueZipLat, setVenueZipLat] = useState<number | null>(null);
+  const [venueZipLng, setVenueZipLng] = useState<number | null>(null);
   const [vehicleStyle, setVehicleStyle] = useState("");
   const [itineraryType, setItineraryType] = useState("");
   const [pickupTime, setPickupTime] = useState("");
@@ -323,6 +335,10 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
         dropoff_address: schoolName,
         pickup_fuzzy: pickupZip,
         dropoff_fuzzy: schoolName,
+        pickup_lat: pickupZipLat ?? undefined,
+        pickup_lng: pickupZipLng ?? undefined,
+        dropoff_lat: schoolNameLat ?? undefined,
+        dropoff_lng: schoolNameLng ?? undefined,
         start_date: isImmediate ? new Date().toISOString().split('T')[0] : startDate,
         start_time: isImmediate ? new Date().toLocaleTimeString('en-GB').slice(0, 5) : ((scheduleType === 'round-trip' || scheduleType === 'am-only') ? amTime : pmTime),
         is_recurring: schoolRecurring === 'recurring',
@@ -366,6 +382,10 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
         dropoff_address: dropoffLocation,
         pickup_fuzzy: pickupLocation,
         dropoff_fuzzy: dropoffLocation,
+        pickup_lat: pickupLocationLat ?? undefined,
+        pickup_lng: pickupLocationLng ?? undefined,
+        dropoff_lat: dropoffLocationLat ?? undefined,
+        dropoff_lng: dropoffLocationLng ?? undefined,
         start_date: isImmediate ? new Date().toISOString().split('T')[0] : (isRecurringMedical ? medicalStartDate : appointmentDate),
         end_date: isRecurringMedical ? medicalEndDate || undefined : undefined,
         start_time: isImmediate ? new Date().toLocaleTimeString('en-GB').slice(0, 5) : appointmentTime,
@@ -411,6 +431,10 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
         dropoff_address: venueZip,
         pickup_fuzzy: hotelZip,
         dropoff_fuzzy: venueZip,
+        pickup_lat: hotelZipLat ?? undefined,
+        pickup_lng: hotelZipLng ?? undefined,
+        dropoff_lat: venueZipLat ?? undefined,
+        dropoff_lng: venueZipLng ?? undefined,
         start_date: isImmediate ? new Date().toISOString().split('T')[0] : eventDate,
         start_time: isImmediate ? new Date().toLocaleTimeString('en-GB').slice(0, 5) : pickupTime,
         is_recurring: false,
@@ -516,7 +540,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           <LocationInput
                             placeholder="Your home address..."
                             value={pickupZip}
-                            onSelect={(addr) => setPickupZip(addr)}
+                            onSelect={(addr, lat, lng) => { setPickupZip(addr); setPickupZipLat(lat ?? null); setPickupZipLng(lng ?? null); }}
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
@@ -525,7 +549,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           <LocationInput
                             placeholder="e.g. Malden Catholic, Main Entrance..."
                             value={schoolName}
-                            onSelect={(addr) => setSchoolName(addr)}
+                            onSelect={(addr, lat, lng) => { setSchoolName(addr); setSchoolNameLat(lat ?? null); setSchoolNameLng(lng ?? null); }}
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
@@ -805,7 +829,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           <LocationInput
                             placeholder="Home, hospice, etc..."
                             value={pickupLocation}
-                            onSelect={(addr) => setPickupLocation(addr)}
+                            onSelect={(addr, lat, lng) => { setPickupLocation(addr); setPickupLocationLat(lat ?? null); setPickupLocationLng(lng ?? null); }}
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
@@ -814,7 +838,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           <LocationInput
                             placeholder="Hospital or clinic..."
                             value={dropoffLocation}
-                            onSelect={(addr) => setDropoffLocation(addr)}
+                            onSelect={(addr, lat, lng) => { setDropoffLocation(addr); setDropoffLocationLat(lat ?? null); setDropoffLocationLng(lng ?? null); }}
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
@@ -1181,7 +1205,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           <LocationInput
                             placeholder="Hotel or starting point..."
                             value={hotelZip}
-                            onSelect={(addr) => setHotelZip(addr)}
+                            onSelect={(addr, lat, lng) => { setHotelZip(addr); setHotelZipLat(lat ?? null); setHotelZipLng(lng ?? null); }}
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
@@ -1190,7 +1214,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           <LocationInput
                             placeholder="Event venue..."
                             value={venueZip}
-                            onSelect={(addr) => setVenueZip(addr)}
+                            onSelect={(addr, lat, lng) => { setVenueZip(addr); setVenueZipLat(lat ?? null); setVenueZipLng(lng ?? null); }}
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>

@@ -9,6 +9,7 @@ import { splitAndValidateMetadata, detectPrivateFieldsInSafe } from '@/lib/valid
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { generateOperatorQuoteLink, generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
+import { calculateRoute, geocodeToCoords } from '@/lib/routing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,10 @@ export async function POST(request: NextRequest) {
       dropoff_address,
       pickup_fuzzy,
       dropoff_fuzzy,
+      pickup_lat: bodyPickupLat,
+      pickup_lng: bodyPickupLng,
+      dropoff_lat: bodyDropoffLat,
+      dropoff_lng: bodyDropoffLng,
       start_date,
       start_time,
       end_date,
@@ -89,6 +94,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Calculate driving distance and duration using provided coordinates or geocoding fallback
+    let pickup_lat: number | null = bodyPickupLat ?? null;
+    let pickup_lng: number | null = bodyPickupLng ?? null;
+    let dropoff_lat: number | null = bodyDropoffLat ?? null;
+    let dropoff_lng: number | null = bodyDropoffLng ?? null;
+    let distance_miles: number | null = null;
+    let duration_mins: number | null = null;
+
+    try {
+      if (!pickup_lat || !pickup_lng) {
+        const coords = await geocodeToCoords(pickup_address);
+        if (coords) { pickup_lat = coords.lat; pickup_lng = coords.lng; }
+      }
+      if (!dropoff_lat || !dropoff_lng) {
+        const coords = await geocodeToCoords(dropoff_address);
+        if (coords) { dropoff_lat = coords.lat; dropoff_lng = coords.lng; }
+      }
+      if (pickup_lat && pickup_lng && dropoff_lat && dropoff_lng) {
+        const route = await calculateRoute(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng);
+        if (route) {
+          distance_miles = parseFloat(route.distance_miles.toFixed(2));
+          duration_mins = route.duration_mins;
+        }
+      }
+    } catch (routeErr) {
+      console.error('Route calculation failed (non-fatal):', routeErr);
+    }
+
     // Affiliate Priority Window Logic
     // Care (medical) rides get a 15 min head-start for affiliates.
     // School/Event/Corporate get a 60 min head-start.
@@ -110,6 +143,12 @@ export async function POST(request: NextRequest) {
         dropoff_address,
         pickup_fuzzy: pickup_fuzzy || pickup_address.split(',')[0],
         dropoff_fuzzy: dropoff_fuzzy || dropoff_address.split(',')[0],
+        pickup_lat,
+        pickup_lng,
+        dropoff_lat,
+        dropoff_lng,
+        distance_miles,
+        duration_mins,
         start_date,
         start_time,
         end_date,
@@ -239,6 +278,41 @@ export async function POST(request: NextRequest) {
     // Notify matching operators immediately (blocks for DB lookup, then fire-and-forget emails)
     let matchedOperatorsCount = 0;
     try {
+      // Check if manual dispatch mode is on — if so, notify admin instead of operators
+      const { data: dispatchSetting } = await supabaseAdmin
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'manual_dispatch_mode')
+        .maybeSingle();
+
+      if (dispatchSetting?.value === true) {
+        console.log(`[Manual Dispatch] Mode ON — skipping auto operator notifications for request ${data.id}`);
+
+        await sendEmail({
+          to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
+          subject: `[Businto] New ${service_type} Request #${data.id.slice(0, 8)} — Awaiting Manual Dispatch`,
+          html: `
+            <h2>New Request — Manual Dispatch Required</h2>
+            <p>A new transport request came in. Auto-matching is disabled. Please dispatch manually from the admin panel.</p>
+            <ul>
+              <li><strong>Request ID:</strong> ${data.id}</li>
+              <li><strong>Service:</strong> ${service_type}</li>
+              <li><strong>Pickup:</strong> ${pickup_fuzzy || pickup_address}</li>
+              <li><strong>Dropoff:</strong> ${dropoff_fuzzy || dropoff_address}</li>
+              <li><strong>Date:</strong> ${start_date}${start_time ? ' at ' + start_time : ''}</li>
+            </ul>
+            <p><a href="${appBaseUrl}/master/admin">Open Admin Panel</a></p>
+          `,
+        });
+
+        await logEvent({
+          event_type: 'request.manual_dispatch.pending',
+          actor_type: 'system',
+          request_id: data.id,
+          metadata: { service_type, pickup: pickup_fuzzy || pickup_address },
+        });
+      } else {
+
       const operators = await findMatchingOperators({
         service_type,
         pickup_address,
@@ -450,6 +524,7 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`Operator notification complete for request ${data.id}`);
+      } // end else (auto dispatch)
     } catch (matchErr) {
       console.error('Failed to match/notify operators:', matchErr);
     }
