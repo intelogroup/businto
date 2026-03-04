@@ -808,5 +808,103 @@ export const emailTemplates = {
       </html>
     `
     };
-  }
+  },
+
+  requestExpired: (data: {
+    userName: string;
+    serviceTypeDisplay: string;
+    appBaseUrl?: string;
+  }) => ({
+    subject: `Your ${data.serviceTypeDisplay} request has expired`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #6b7280, #9ca3af); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+            .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 12px 12px; }
+            .button { display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+            .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0; font-size: 24px;">Request Expired</h1>
+              <p style="margin: 8px 0 0; opacity: 0.9;">Your ${data.serviceTypeDisplay} request was not fulfilled</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.userName},</p>
+              <p>Your <strong>${data.serviceTypeDisplay}</strong> request has expired without a confirmed booking. This can happen if no operator was available, or if the trip date has already passed.</p>
+              <p>If you still need transportation, you're welcome to submit a new request and we'll do our best to find you a match.</p>
+              <div style="text-align: center;">
+                <a href="${getAppBaseUrl(data.appBaseUrl)}/request" class="button">Submit a New Request</a>
+              </div>
+              <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">If you have questions or need assistance, please contact us and we'll be happy to help.</p>
+              <div class="footer">
+                <p>&copy; 2026 Businto. All rights reserved.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Hi ${data.userName}, your ${data.serviceTypeDisplay} request has expired without a confirmed booking. If you still need transportation, submit a new request at ${getAppBaseUrl(data.appBaseUrl)}/request`,
+  }),
+
+  adminDispatchedNotification: (data: {
+    userName: string;
+    serviceTypeDisplay: string;
+    requestId: string;
+    appBaseUrl?: string;
+  }) => ({
+    subject: `We're working on your ${data.serviceTypeDisplay} request`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #0f766e, #14b8a6); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }
+            .content { background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: 0; border-radius: 0 0 12px 12px; }
+            .status-badge { display: inline-block; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; margin: 16px 0; }
+            .button { display: inline-block; background: #0f766e; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 20px; }
+            .footer { text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin: 0; font-size: 24px;">We found an operator</h1>
+              <p style="margin: 8px 0 0; opacity: 0.9;">Your ${data.serviceTypeDisplay} request is being handled</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.userName},</p>
+              <p>Great news — we've matched your <strong>${data.serviceTypeDisplay}</strong> request with a vetted operator and sent them your job details.</p>
+
+              <div style="text-align: center;">
+                <span class="status-badge">Operator Notified</span>
+              </div>
+
+              <p>The operator will review your request and submit a quote shortly. You'll receive an email the moment a quote is ready for you to review.</p>
+
+              <p style="color: #6b7280; font-size: 14px;">In the meantime, you can check the status of your request from your dashboard.</p>
+
+              <div style="text-align: center;">
+                <a href="${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}" class="button">View My Request</a>
+              </div>
+
+              <div class="footer">
+                <p>&copy; 2026 Businto. All rights reserved.</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `Hi ${data.userName}, we found an operator for your ${data.serviceTypeDisplay} request and sent them your job details. They'll submit a quote shortly. View your request: ${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}`,
+  }),
 };

@@ -46,6 +46,8 @@ function SubmitQuoteContent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [passed, setPassed] = useState(false);
+  const [passing, setPassing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [request, setRequest] = useState<TransportRequest | null>(null);
   const [operatorId, setOperatorId] = useState<string | null>(null);
@@ -257,6 +259,28 @@ function SubmitQuoteContent() {
     }
   };
 
+  const handlePass = async () => {
+    if (!requestId || !accessToken || passing) return;
+    setPassing(true);
+    try {
+      const res = await fetch('/api/quotes/pass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, token: accessToken }),
+      });
+      if (res.ok) {
+        setPassed(true);
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to submit. Please try again.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setPassing(false);
+    }
+  };
+
   const handleWithdraw = async () => {
     if (!request) return;
 
@@ -309,6 +333,24 @@ function SubmitQuoteContent() {
   const serviceColor =
     SERVICE_COLORS[request.service_type as keyof typeof SERVICE_COLORS] ||
     "bg-white text-neutral-800";
+
+  if (passed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <Card className="max-w-md w-full p-10 text-center shadow-none border border-neutral-200">
+          <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 className="w-6 h-6 text-neutral-500" />
+          </div>
+          <h1 className="text-xl font-bold text-neutral-900 mb-2">
+            Thanks for letting us know
+          </h1>
+          <p className="text-sm text-neutral-500">
+            We'll find another operator for this request. No action needed on your end.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -622,6 +664,17 @@ function SubmitQuoteContent() {
             <p className="text-xs text-neutral-400 text-center">
               Expires automatically in 72 hours
             </p>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={handlePass}
+                disabled={passing}
+                className="text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-4 disabled:opacity-50"
+              >
+                {passing ? 'Submitting...' : "I can't take this job"}
+              </button>
+            </div>
           </form>
         </Card>
       </div>

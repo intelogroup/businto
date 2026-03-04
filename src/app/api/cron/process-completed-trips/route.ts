@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
 
 export const dynamic = 'force-dynamic';
@@ -111,9 +111,74 @@ export async function GET(req: Request) {
             }
         }
 
+        // Process 2: Auto-cancel expired requests
+        // Requests are expired if: trip date already passed, OR request is 14 days old with no booking
+        const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+
+        const { data: expiredRequests, error: expiredErr } = await supabaseAdmin
+            .from('transport_requests')
+            .select('id, service_type, user_id, created_at, start_date, profiles!transport_requests_user_id_fkey(email, full_name)')
+            .in('status', ['pending', 'quoted'])
+            .or(`start_date.lte.${yesterday},created_at.lte.${fourteenDaysAgo}`);
+
+        if (expiredErr) {
+            console.error('Cron fetch error for expired requests:', expiredErr);
+        }
+
+        const serviceTypeMap: Record<string, string> = {
+            school: 'School Transportation',
+            medical: 'Medical Transportation',
+            wedding: 'Event Shuttle',
+            corporate: 'Corporate Travel',
+        };
+
+        let expiredCount = 0;
+        const appBaseUrl = getAppBaseUrl();
+
+        for (const req of expiredRequests || []) {
+            try {
+                await supabaseAdmin
+                    .from('transport_requests')
+                    .update({ status: 'cancelled' })
+                    .eq('id', req.id);
+
+                const profile = Array.isArray(req.profiles) ? req.profiles[0] : req.profiles;
+                if (profile?.email) {
+                    await sendEmail({
+                        to: profile.email,
+                        ...emailTemplates.requestExpired({
+                            userName: profile.full_name || 'there',
+                            serviceTypeDisplay: serviceTypeMap[req.service_type] || req.service_type,
+                            appBaseUrl,
+                        }),
+                    });
+                }
+
+                await logEvent({
+                    event_type: 'request.expired.auto_cancelled',
+                    actor_type: 'system',
+                    request_id: req.id,
+                    metadata: {
+                        start_date: req.start_date,
+                        created_at: req.created_at,
+                    },
+                });
+
+                expiredCount++;
+            } catch (err) {
+                console.error(`Failed to cancel expired request ${req.id}:`, err);
+            }
+        }
+
         return NextResponse.json({
             success: true,
             followUpsSent,
+            expiredCount,
             timestamp: now.toISOString()
         });
 
