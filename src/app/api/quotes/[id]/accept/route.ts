@@ -53,7 +53,7 @@ export async function GET(
     const request_data = quote.transport_requests;
 
     // 2. Defense in depth: check the request status as well
-    if (request_data.status === 'booked' || request_data.status === 'quote_accepted') {
+    if (request_data.status === 'booked') {
       return NextResponse.redirect(
         new URL('/dashboard?error=This request has already been booked. Acceptance is final.', request.url)
       );
@@ -79,7 +79,7 @@ export async function GET(
       // Update transport request status
       await supabaseAdmin
         .from('transport_requests')
-        .update({ status: 'quote_accepted' })
+        .update({ status: 'booked' })
         .eq('id', quote.request_id);
     }
 

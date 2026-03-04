@@ -31,6 +31,7 @@ vi.mock('../src/lib/supabase-server', () => {
 
 vi.mock('../src/lib/email', () => ({
   sendEmail: vi.fn().mockResolvedValue({ id: 'mock-email-id' }),
+  getAppBaseUrl: vi.fn().mockReturnValue('https://businto.com'),
   emailTemplates: {
     bookingConfirmation: vi.fn().mockReturnValue({ subject: 'User Sub', html: 'User HTML' }),
     operatorOrderDetails: vi.fn().mockReturnValue({ subject: 'Booking Confirmed', html: 'Parent Name' }),
@@ -52,6 +53,12 @@ vi.mock('../src/lib/event-logger', () => ({
   logEvent: vi.fn().mockResolvedValue({}),
 }));
 
+// Mock the app-settings cache so dispatch mode doesn't hit Supabase
+vi.mock('../src/lib/app-settings', () => ({
+  getDispatchMode: vi.fn().mockResolvedValue(false),
+  invalidateSettingsCache: vi.fn(),
+}));
+
 describe('Quote Acceptance - Operator Email Verification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,8 +75,10 @@ describe('Quote Acceptance - Operator Email Verification', () => {
     const mockSupabase = supabaseAdmin as any;
 
     mockSupabase.single
-      .mockResolvedValueOnce({ data: { id: mockRequestId, status: 'pending', user_id: mockUserId }, error: null }) // 1. request
-      .mockResolvedValueOnce({ // 3. quote details
+      // 1. transport_requests — status verification (requestVerification)
+      .mockResolvedValueOnce({ data: { id: mockRequestId, status: 'pending', user_id: mockUserId }, error: null })
+      // 2. quotes — quote details with operator join
+      .mockResolvedValueOnce({
         data: {
           id: mockQuoteId,
           operator_id: 'op-999',
@@ -79,24 +88,25 @@ describe('Quote Acceptance - Operator Email Verification', () => {
         },
         error: null
       })
-      .mockResolvedValueOnce({ // 4. full request
-        data: { id: mockRequestId, pickup_address: '123 Main St', start_date: '2026-03-01', metadata_private: { parent_name: 'Parent Name' } },
+      // 3. transport_requests — full request with userProfile JOIN (PERF: merged, no separate profiles call)
+      .mockResolvedValueOnce({
+        data: {
+          id: mockRequestId,
+          pickup_address: '123 Main St',
+          pickup_fuzzy: '123 Main',
+          dropoff_address: '456 School Ave',
+          start_date: '2026-03-01',
+          start_time: '08:00',
+          metadata_private: { parent_name: 'Parent Name' },
+          // Joined profile data (replaces the old separate profiles query)
+          userProfile: { email: 'parent@test.com', full_name: 'Parent Name', phone: '555-0000' }
+        },
         error: null
       })
-      .mockResolvedValueOnce({ // 8. booking
-        data: { id: 'booking-001', confirmation_code: 'BUS-123' },
-        error: null
-      })
-      .mockResolvedValueOnce({ // 10. parent profile
-        data: { email: 'parent@test.com', full_name: 'Parent Name', phone: '555-0000' },
-        error: null
-      })
-      .mockResolvedValueOnce({ // 11. user profile
-        data: { email: 'user@test.com', full_name: 'User Name' },
-        error: null
-      });
+      // 4. bookings — booking insert result
+      .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-123' }, error: null });
 
-    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null }); // 2. no existing accepted quote
+    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null }); // no existing accepted quote / no dispatch setting
 
     // 3. Execute the API Route handler
     const request = new NextRequest('https://businto.com/api/quotes/accept', {

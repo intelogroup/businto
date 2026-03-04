@@ -293,5 +293,291 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, sentTo: op.company_email, operatorId, isNewOperator });
   }
 
+  // ── Admin creates a quote on behalf of an operator ──────────────────────
+  if (body.action === 'create_quote') {
+    const { requestId, operatorId, price, vehicleType, note } = body;
+    if (!requestId || !operatorId || !price || !vehicleType) {
+      return NextResponse.json({ error: 'requestId, operatorId, price, and vehicleType are required' }, { status: 400 });
+    }
+
+    const { data: request, error: reqError } = await supabaseAdmin
+      .from('transport_requests')
+      .select('*, user_id')
+      .eq('id', requestId)
+      .single();
+
+    if (reqError || !request) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    const { data: operator, error: opError } = await supabaseAdmin
+      .from('operators')
+      .select('id, company_name, company_email')
+      .eq('id', operatorId)
+      .single();
+
+    if (opError || !operator) {
+      return NextResponse.json({ error: 'Operator not found' }, { status: 404 });
+    }
+
+    // Create quote on operator's behalf
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const { data: quote, error: quoteError } = await supabaseAdmin
+      .from('quotes')
+      .insert({
+        request_id: requestId,
+        operator_id: operatorId,
+        total_price: price,
+        vehicle_type: vehicleType,
+        note: note || null,
+        status: 'pending',
+        expires_at: expiresAt,
+      })
+      .select('id')
+      .single();
+
+    if (quoteError || !quote) {
+      return NextResponse.json({ error: `Failed to create quote: ${quoteError?.message}` }, { status: 500 });
+    }
+
+    // Move request to 'quoted'
+    await supabaseAdmin
+      .from('transport_requests')
+      .update({ status: 'quoted' })
+      .eq('id', requestId)
+      .eq('status', 'pending');
+
+    // Notify user
+    if (request.user_id) {
+      const { data: userProfile } = await supabaseAdmin
+        .from('unified_profiles')
+        .select('email, full_name')
+        .eq('id', request.user_id)
+        .maybeSingle();
+
+      if (userProfile?.email) {
+        const appBaseUrl = getAppBaseUrl();
+        await sendEmail({
+          to: userProfile.email,
+          ...emailTemplates.quoteReceived({
+            userName: userProfile.full_name || 'there',
+            operatorName: operator.company_name,
+            price: Number(price),
+            vehicleType,
+            requestId,
+            quoteId: quote.id,
+            appBaseUrl,
+          }),
+        });
+      }
+    }
+
+    await logEvent({
+      event_type: 'quote.admin_created',
+      actor_type: 'admin',
+      request_id: requestId,
+      metadata: {
+        quote_id: quote.id,
+        operator_id: operatorId,
+        operator_name: operator.company_name,
+        price,
+        vehicle_type: vehicleType,
+        created_by: admin.id,
+      },
+    });
+
+    return NextResponse.json({ success: true, quoteId: quote.id });
+  }
+
+  // ── Bulk create quotes for multiple operators at once ────────────────────
+  if (body.action === 'create_quotes_bulk') {
+    const { requestId, quotes } = body as {
+      requestId: string;
+      quotes: { operatorId: string; price: number; vehicleType: string; note?: string }[];
+    };
+
+    if (!requestId || !Array.isArray(quotes) || quotes.length === 0) {
+      return NextResponse.json({ error: 'requestId and a non-empty quotes array are required' }, { status: 400 });
+    }
+
+    const { data: request, error: reqError } = await supabaseAdmin
+      .from('transport_requests')
+      .select('*, user_id')
+      .eq('id', requestId)
+      .single();
+
+    if (reqError || !request) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // Fetch all referenced operators in one query
+    const operatorIds = quotes.map(q => q.operatorId);
+    const { data: operators, error: opError } = await supabaseAdmin
+      .from('operators')
+      .select('id, company_name, company_email')
+      .in('id', operatorIds);
+
+    if (opError || !operators || operators.length !== operatorIds.length) {
+      return NextResponse.json({ error: 'One or more operators not found' }, { status: 404 });
+    }
+
+    const operatorMap = Object.fromEntries(operators.map(op => [op.id, op]));
+
+    // Insert all quotes in one batch
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const quoteInserts = quotes.map(q => ({
+      request_id: requestId,
+      operator_id: q.operatorId,
+      total_price: q.price,
+      vehicle_type: q.vehicleType,
+      note: q.note || null,
+      status: 'pending',
+      expires_at: expiresAt,
+    }));
+
+    const { data: createdQuotes, error: quoteError } = await supabaseAdmin
+      .from('quotes')
+      .insert(quoteInserts)
+      .select('id, operator_id');
+
+    if (quoteError || !createdQuotes) {
+      return NextResponse.json({ error: `Failed to create quotes: ${quoteError?.message}` }, { status: 500 });
+    }
+
+    // Move request to 'quoted' once
+    await supabaseAdmin
+      .from('transport_requests')
+      .update({ status: 'quoted' })
+      .eq('id', requestId)
+      .eq('status', 'pending');
+
+    // Send one consolidated email to the user
+    if (request.user_id) {
+      const { data: userProfile } = await supabaseAdmin
+        .from('unified_profiles')
+        .select('email, full_name')
+        .eq('id', request.user_id)
+        .maybeSingle();
+
+      if (userProfile?.email) {
+        const appBaseUrl = getAppBaseUrl();
+        const bulkQuoteData = quotes.map(q => ({
+          operatorName: operatorMap[q.operatorId].company_name,
+          price: q.price,
+          vehicleType: q.vehicleType,
+          note: q.note,
+        }));
+
+        await sendEmail({
+          to: userProfile.email,
+          ...emailTemplates.quotesBulkReceived({
+            userName: userProfile.full_name || 'there',
+            requestId,
+            quotes: bulkQuoteData,
+            appBaseUrl,
+          }),
+        });
+      }
+    }
+
+    await logEvent({
+      event_type: 'quote.admin_bulk_created',
+      actor_type: 'admin',
+      request_id: requestId,
+      metadata: {
+        quote_ids: createdQuotes.map(q => q.id),
+        operator_ids: operatorIds,
+        count: quotes.length,
+        created_by: admin.id,
+      },
+    });
+
+    return NextResponse.json({ success: true, quoteIds: createdQuotes.map(q => q.id) });
+  }
+
+  // ── Admin manually sends user PII to operator ─────────────────────────────
+  if (body.action === 'send_operator_details') {
+    const { bookingId } = body;
+    if (!bookingId) {
+      return NextResponse.json({ error: 'bookingId is required' }, { status: 400 });
+    }
+
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from('bookings')
+      .select(`
+        id, confirmation_code, amount,
+        request_id, operator_id, user_id,
+        transport_requests ( service_type, pickup_address, dropoff_address, start_date, start_time, metadata_private ),
+        quotes ( vehicle_type ),
+        operators ( company_name, company_email )
+      `)
+      .eq('id', bookingId)
+      .eq('requires_manual_exchange', true)
+      .single();
+
+    if (bookingError || !booking) {
+      return NextResponse.json({ error: 'Booking not found or already exchanged' }, { status: 404 });
+    }
+
+    const request = (booking as any).transport_requests;
+    const operator = (booking as any).operators;
+    const quote = (booking as any).quotes;
+    const metaPrivate = request?.metadata_private || {};
+
+    // Gather user PII
+    const { data: userProfile } = await supabaseAdmin
+      .from('unified_profiles')
+      .select('full_name, email, phone')
+      .eq('id', booking.user_id)
+      .maybeSingle();
+
+    const parentName = metaPrivate.parent_name || metaPrivate.patient_name || metaPrivate.contact_name || userProfile?.full_name || 'Unknown';
+    const parentEmail = metaPrivate.parent_email || metaPrivate.contact_email || userProfile?.email || '';
+    const parentPhone = metaPrivate.parent_phone || metaPrivate.contact_phone || userProfile?.phone || '';
+
+    const appBaseUrl = getAppBaseUrl();
+
+    await sendEmail({
+      to: operator.company_email,
+      ...emailTemplates.operatorOrderDetails({
+        operatorName: operator.company_name,
+        parentName,
+        parentEmail,
+        parentPhone,
+        quoteAmount: Number(booking.amount),
+        pickup: request.pickup_address,
+        dropoff: request.dropoff_address,
+        date: new Date(request.start_date).toLocaleDateString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+        }),
+        time: request.start_time,
+        vehicleType: quote?.vehicle_type || '',
+        confirmationCode: booking.confirmation_code,
+        bookingId: booking.id,
+        appBaseUrl,
+      }),
+    });
+
+    // Mark exchange as complete
+    await supabaseAdmin
+      .from('bookings')
+      .update({ requires_manual_exchange: false })
+      .eq('id', bookingId);
+
+    await logEvent({
+      event_type: 'admin.pii_exchange.sent',
+      actor_type: 'admin',
+      request_id: booking.request_id,
+      metadata: {
+        booking_id: bookingId,
+        operator_id: booking.operator_id,
+        sent_to: operator.company_email,
+        sent_by: admin.id,
+      },
+    });
+
+    return NextResponse.json({ success: true, sentTo: operator.company_email });
+  }
+
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
 }

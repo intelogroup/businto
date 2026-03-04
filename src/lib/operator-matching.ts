@@ -1,5 +1,10 @@
 import { supabaseAdmin as supabase } from './supabase-server';
 
+// ─── Dev perf tracing ──────────────────────────────────────────────────────────────────────────
+const IS_DEV_PERF = process.env.NODE_ENV !== 'production' || process.env.ENABLE_PERF_TRACE === '1';
+function _t() { return IS_DEV_PERF ? Date.now() : 0; }
+function _log(label: string, ms: number) { if (IS_DEV_PERF) console.log(`  [om-perf] ${label}: ${ms}ms`); }
+
 // Service type to vehicle type mapping
 export const SERVICE_VEHICLE_MAP: Record<string, string[]> = {
   school: ['school_bus', 'mini_bus', 'van'],
@@ -125,6 +130,7 @@ function calculateScore(operator: MatchedOperator, distance: number): number {
  * @returns Coordinates or null
  */
 async function geocodeAddressInternal(address: string): Promise<{ lat: number; lng: number } | null> {
+  const t0 = _t();
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
     const response = await fetch(
@@ -134,6 +140,7 @@ async function geocodeAddressInternal(address: string): Promise<{ lat: number; l
     if (!response.ok) return null;
 
     const data = await response.json();
+    _log(`geocodeAddressInternal("${address.slice(0, 30)}...")`, Date.now() - t0);
     if (data && data[0] && data[0].lat && data[0].lon) {
       return { 
         lat: parseFloat(data[0].lat), 
@@ -186,6 +193,7 @@ function extractState(address?: string): string | null {
 export async function findMatchingOperators(
   request: MatchingRequest
 ): Promise<MatchedOperator[]> {
+  const fmStart = _t();
   try {
     const { service_type, pickup_address, pickup_fuzzy, metadata } = request;
     let { pickup_lat, pickup_lng } = request;
@@ -194,7 +202,9 @@ export async function findMatchingOperators(
     if (!pickup_lat || !pickup_lng) {
       const address = pickup_address || pickup_fuzzy;
       if (address) {
+        const geocodeStart = _t();
         const coords = await geocodeAddressInternal(address);
+        _log('geocode (inside findMatchingOperators)', Date.now() - geocodeStart);
         if (coords) {
           pickup_lat = coords.lat;
           pickup_lng = coords.lng;
@@ -250,7 +260,9 @@ export async function findMatchingOperators(
     }
 
     // Execute query
+    const dbStart = _t();
     const { data: operators, error } = await query;
+    _log('DB operator query', Date.now() - dbStart);
 
     if (error) {
       console.error('Error querying operators:', error);
@@ -316,6 +328,7 @@ export async function findMatchingOperators(
 
     // Distance-based filtering and scoring if we have coordinates
     if (pickup_lat && pickup_lng) {
+      const scoreStart = _t();
       console.log(`Calculating distances for ${matchedOperators.length} operators from (${pickup_lat}, ${pickup_lng})`);
 
       const operatorsWithDistance = matchedOperators
@@ -374,6 +387,7 @@ export async function findMatchingOperators(
         })
         .slice(0, 7);
 
+      _log('JS filter+score pipeline', Date.now() - scoreStart);
       console.log(`Matching complete. Found ${matchedOperators.length} unique operators.`);
     } else {
       // Fallback: No geocoding - just sort by rating, de-duplicate, and limit
@@ -400,6 +414,7 @@ export async function findMatchingOperators(
         .slice(0, 10); // Be more generous without distance filtering
     }
 
+    _log(`findMatchingOperators total (${matchedOperators.length} ops returned)`, Date.now() - fmStart);
     return matchedOperators;
   } catch (error) {
     console.error('Error in findMatchingOperators:', error);

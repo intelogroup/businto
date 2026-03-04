@@ -64,6 +64,12 @@ export function Navbar() {
           >
             Pricing
           </Link>
+          <Link
+            href="/about"
+            className="text-sm font-medium text-neutral-600 hover:text-black transition-colors duration-150"
+          >
+            About
+          </Link>
           {isAuthenticated && (
             <>
               <Link
@@ -120,6 +126,14 @@ export function Navbar() {
                       className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-white hover:text-neutral-900 transition-colors"
                     >
                       Pricing
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link
+                      href="/about"
+                      className="block py-3 px-4 rounded-lg text-sm font-semibold text-neutral-600 hover:bg-white hover:text-neutral-900 transition-colors"
+                    >
+                      About
                     </Link>
                   </SheetClose>
                   {isAuthenticated && (

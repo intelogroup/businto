@@ -3,17 +3,22 @@
 import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Clock, RefreshCw, Loader2, Bus, Heart, Plane, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { MapPin, Calendar, Clock, RefreshCw, Loader2, Bus, Heart, Plane, ChevronLeft, CheckCircle2, CreditCard, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
+import { CheckoutForm } from "@/components/payment/checkout-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 interface Quote {
     id: string;
@@ -58,6 +63,11 @@ function TripDetailContent() {
     const [quotes, setQuotes] = useState<Quote[]>([]);
     const [loading, setLoading] = useState(true);
     const [acceptingQuoteId, setAcceptingQuoteId] = useState<string | null>(null);
+    // Seamless pay state
+    const [seamlessState, setSeamlessState] = useState<'idle' | 'processing' | 'success' | 'sca' | 'fallback'>('idle');
+    const [seamlessClientSecret, setSeamlessClientSecret] = useState<string | null>(null);
+    const [seamlessBookingId, setSeamlessBookingId] = useState<string | null>(null);
+    const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
 
     const logClientError = async (message: string, metadata: any = {}) => {
         try {
@@ -84,7 +94,7 @@ function TripDetailContent() {
     const fetchData = async () => {
         // Don't start fetching until auth is determined
         if (authLoading) return;
-        
+
         setLoading(true);
         console.log("[TripDetail] Fetching data, auth state:", { hasUser: !!user });
 
@@ -105,7 +115,7 @@ function TripDetailContent() {
         }).catch(e => console.error('Failed to log page open', e));
 
         const supabase = createClient();
-        
+
         // 1. If we have a user OR no token, try fetching via standard client (RLS)
         if (user || !token) {
             try {
@@ -194,6 +204,18 @@ function TripDetailContent() {
         }
     }, [id, authLoading, token]);
 
+    useEffect(() => {
+        const paymentStatus = searchParams.get('payment');
+        if (paymentStatus === 'success') {
+            addNotification({ title: 'Payment Successful', message: 'Your booking is fully confirmed. Contact details will be sent to the operator.', type: 'success' });
+            // Clean up the URL without a page reload
+            window.history.replaceState({}, '', `/trips/${id}${token ? `?token=${token}` : ''}`);
+        } else if (paymentStatus === 'cancelled') {
+            addNotification({ title: 'Payment Cancelled', message: 'The $1.99 routing fee was not paid. The operator has not received your contact info.', type: 'error' });
+            window.history.replaceState({}, '', `/trips/${id}${token ? `?token=${token}` : ''}`);
+        }
+    }, [searchParams, id, token, addNotification]);
+
     const handleAcceptQuote = async (quoteId: string) => {
         if (!user && !token) {
             router.push(`/login?redirect=/trips/${id}`);
@@ -202,6 +224,7 @@ function TripDetailContent() {
 
         setAcceptingQuoteId(quoteId);
         try {
+            // ── Step 1: Accept the quote ───────────────────────────────────────
             const response = await fetch('/api/quotes/accept', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -213,13 +236,13 @@ function TripDetailContent() {
                 })
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const error = await response.json();
-                logClientError("Quote Acceptance Failed", { quoteId, error: error.error });
-                throw new Error(error.error || 'Failed to accept quote');
+                logClientError("Quote Acceptance Failed", { quoteId, error: data.error });
+                throw new Error(data.error || 'Failed to accept quote');
             }
 
-            // Log successful acceptance
             fetch('/api/logs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -232,16 +255,85 @@ function TripDetailContent() {
                 })
             }).catch(e => console.error('Failed to log acceptance success', e));
 
-            // Success! Refresh data
-            await fetchData();
-            addNotification({ title: 'Quote Accepted', message: 'Your booking is confirmed. Check your email for details.', type: 'success' });
+            if (!data.bookingId) {
+                // Manual dispatch / no payment required
+                await fetchData();
+                addNotification({ title: 'Quote Accepted', message: 'Your booking is confirmed.', type: 'success' });
+                setAcceptingQuoteId(null);
+                return;
+            }
+
+            // ── Step 2: Payment ────────────────────────────────────────────────
+            // Authenticated users → try seamless off-session charge first.
+            // Token-only / guest users → go straight to hosted Stripe Checkout.
+            if (user) {
+                setSeamlessBookingId(data.bookingId);
+                setSeamlessState('processing');
+                setAcceptingQuoteId(null);
+
+                const seamlessRes = await fetch('/api/payments/seamless', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookingId: data.bookingId })
+                });
+                const seamlessData = await seamlessRes.json();
+
+                if (seamlessData.status === 'success') {
+                    setSeamlessState('success');
+                    setTimeout(async () => {
+                        setSeamlessState('idle');
+                        await fetchData();
+                        addNotification({ title: 'Payment Complete', message: 'Your booking is confirmed. The operator has been notified.', type: 'success' });
+                    }, 2200);
+                    return;
+                }
+
+                if (seamlessData.status === 'requires_action' && seamlessData.clientSecret) {
+                    setSeamlessClientSecret(seamlessData.clientSecret);
+                    setSeamlessState('sca');
+                    return;
+                }
+
+                // No saved card or card declined → fall back to hosted checkout
+                setSeamlessState('fallback');
+            }
+
+            // ── Hosted Stripe Checkout (token users + fallback) ────────────────
+            addNotification({ title: 'Quote Accepted', message: 'Redirecting to secure payment...', type: 'info' });
+            const checkoutResponse = await fetch('/api/payments/booking-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingId: data.bookingId })
+            });
+            const checkoutData = await checkoutResponse.json();
+
+            if (!checkoutResponse.ok) {
+                throw new Error(checkoutData.error || 'Failed to initialize payment');
+            }
+
+            if (checkoutData.url) {
+                // Show upgrade banner for token (guest) users AFTER they come back
+                if (!user && token) setShowUpgradeBanner(true);
+                window.location.href = checkoutData.url;
+            }
         } catch (error: any) {
             console.error('Error accepting quote:', error);
             logClientError("Quote Acceptance Exception", { quoteId, message: error.message });
             addNotification({ title: 'Error', message: error.message || 'Error accepting quote. Please try again.', type: 'error' });
-        } finally {
+            setSeamlessState('idle');
             setAcceptingQuoteId(null);
         }
+    };
+
+    // Called by the inline SCA CheckoutForm on success
+    const handleScaSuccess = async () => {
+        setSeamlessState('success');
+        setTimeout(async () => {
+            setSeamlessState('idle');
+            setSeamlessClientSecret(null);
+            await fetchData();
+            addNotification({ title: 'Payment Complete', message: 'Your booking is confirmed.', type: 'success' });
+        }, 2200);
     };
 
     if (loading) {
@@ -264,8 +356,8 @@ function TripDetailContent() {
                         {(!user && !token) ? "Authentication Required" : "Trip not found"}
                     </h2>
                     <p className="text-neutral-500 mt-2">
-                        {(!user && !token) 
-                            ? "You need to be signed in to view these trip details." 
+                        {(!user && !token)
+                            ? "You need to be signed in to view these trip details."
                             : "We couldn't find the trip you're looking for. It may have been deleted or moved."}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
@@ -299,6 +391,85 @@ function TripDetailContent() {
     return (
         <div className="min-h-screen bg-background pb-20">
             <Navbar />
+
+            {/* ── Seamless Payment Overlay ─────────────────────────────────── */}
+            {seamlessState !== 'idle' && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm mx-4 text-center">
+                        {seamlessState === 'processing' && (
+                            <>
+                                <Loader2 className="h-10 w-10 animate-spin text-neutral-900 mx-auto mb-4" />
+                                <p className="text-base font-semibold text-neutral-900">Processing payment…</p>
+                                <p className="text-sm text-neutral-500 mt-1">Using your saved card. Please wait.</p>
+                            </>
+                        )}
+                        {seamlessState === 'success' && (
+                            <>
+                                <div className="h-14 w-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                                </div>
+                                <p className="text-base font-semibold text-neutral-900">Payment complete!</p>
+                                <p className="text-sm text-neutral-500 mt-1">Your booking is confirmed.</p>
+                            </>
+                        )}
+                        {seamlessState === 'fallback' && (
+                            <>
+                                <Loader2 className="h-8 w-8 animate-spin text-neutral-400 mx-auto mb-3" />
+                                <p className="text-sm text-neutral-600">Redirecting to secure checkout…</p>
+                            </>
+                        )}
+                        {seamlessState === 'sca' && seamlessClientSecret && seamlessBookingId && (
+                            <>
+                                <div className="flex items-center justify-between mb-4">
+                                    <p className="text-base font-semibold text-neutral-900">Verify your card</p>
+                                    <button
+                                        onClick={() => { setSeamlessState('idle'); setSeamlessClientSecret(null); }}
+                                        className="text-neutral-400 hover:text-neutral-700"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p className="text-xs text-neutral-500 mb-5">Your bank requires a quick verification to complete this payment.</p>
+                                <Elements
+                                    stripe={stripePromise}
+                                    options={{
+                                        clientSecret: seamlessClientSecret,
+                                        appearance: { theme: 'stripe', variables: { colorPrimary: '#000000', borderRadius: '6px' } }
+                                    }}
+                                >
+                                    <CheckoutForm
+                                        routingFee={1.99}
+                                        operatorQuote={0}
+                                        bookingId={seamlessBookingId}
+                                        confirmationCode=""
+                                        onSuccess={handleScaSuccess}
+                                        onCancel={() => { setSeamlessState('idle'); setSeamlessClientSecret(null); }}
+                                    />
+                                </Elements>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Token-user upgrade banner ────────────────────────────────── */}
+            {showUpgradeBanner && (
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
+                    <div className="bg-neutral-900 text-white rounded-lg px-5 py-4 shadow-xl flex items-start gap-3">
+                        <CreditCard className="h-5 w-5 shrink-0 mt-0.5 text-neutral-300" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold">Skip card entry next time</p>
+                            <p className="text-xs text-neutral-400 mt-0.5">Create a free account to enable 1-click checkout on future bookings.</p>
+                            <Link href="/register" className="inline-block mt-2 text-xs font-semibold text-white underline underline-offset-2 hover:text-neutral-300">
+                                Create account →
+                            </Link>
+                        </div>
+                        <button onClick={() => setShowUpgradeBanner(false)} className="text-neutral-500 hover:text-neutral-300 shrink-0">
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div className="container mx-auto max-w-4xl px-4 sm:px-6 pt-24">
                 <Link href="/trips" className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 mb-6 transition-colors duration-150">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { splitMetadataByServiceType } from "@/lib/metadata-helpers";
 
 import { ServiceSwitcher } from "./service-switcher";
 import { LocationInput } from "./location-input";
-import { motion, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue } from "framer-motion";
 import { AIChatPanel } from "@/components/dashboard/ai-chat-panel";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -283,6 +283,53 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
     dayOfContactName, dayOfContactPhone,
     note, isImmediate, isSubmitted]);
 
+  // ── Progressive form disclosure ──────────────────────────────────────────
+  const schoolVisibleSteps = useMemo(() => {
+    const step2 = pickupZip.trim().length > 0 && schoolName.trim().length > 0;
+    const step3 = step2 && gradeLevel.length > 0 && studentCount.length > 0;
+    const step4 = step3 && schoolRecurring.length > 0 && startDate.length > 0;
+    const step5 = step4 && scheduleType.length > 0;
+    if (step5) return 5;
+    if (step4) return 4;
+    if (step3) return 3;
+    if (step2) return 2;
+    return 1;
+  }, [pickupZip, schoolName, gradeLevel, studentCount, schoolRecurring, startDate, scheduleType]);
+
+  const medicalVisibleSteps = useMemo(() => {
+    const step2 = pickupLocation.trim().length > 0 && dropoffLocation.trim().length > 0;
+    const step3 = step2 && mobilityLevel.length > 0 && serviceLevel.length > 0;
+    const step4 = step3 && tripType.length > 0 && medicalDurationType.length > 0;
+    const hasDate = medicalDurationType === 'recurring' ? medicalStartDate.length > 0 : appointmentDate.length > 0;
+    const step5 = step4 && appointmentTime.length > 0 && hasDate;
+    if (step5) return 5;
+    if (step4) return 4;
+    if (step3) return 3;
+    if (step2) return 2;
+    return 1;
+  }, [pickupLocation, dropoffLocation, mobilityLevel, serviceLevel, tripType, medicalDurationType, appointmentTime, appointmentDate, medicalStartDate]);
+
+  const weddingVisibleSteps = useMemo(() => {
+    const step2 = eventCategory.length > 0 && guestCount.length > 0 && vehicleStyle.length > 0
+      && hotelZip.trim().length > 0 && venueZip.trim().length > 0 && shuttleMode.length > 0;
+    const step3 = step2 && itineraryType.length > 0 && eventDate.length > 0 && pickupTime.length > 0;
+    if (step3) return 3;
+    if (step2) return 2;
+    return 1;
+  }, [eventCategory, guestCount, vehicleStyle, hotelZip, venueZip, shuttleMode, itineraryType, eventDate, pickupTime]);
+
+  // isImmediate skips straight to full form
+  const effectiveSchoolSteps = isImmediate ? 5 : schoolVisibleSteps;
+  const effectiveMedicalSteps = isImmediate ? 5 : medicalVisibleSteps;
+  const effectiveWeddingSteps = isImmediate ? 3 : weddingVisibleSteps;
+
+  const currentStepCount = activeTab === 'school' ? effectiveSchoolSteps
+    : activeTab === 'medical' ? effectiveMedicalSteps : effectiveWeddingSteps;
+  const totalSteps = activeTab === 'school' ? 5 : activeTab === 'medical' ? 5 : 3;
+  const stepBarColor = activeTab === 'school' ? 'bg-amber-500'
+    : activeTab === 'medical' ? 'bg-emerald-600' : 'bg-indigo-600';
+  // ─────────────────────────────────────────────────────────────────────────
+
   const handleSubmit = async () => {
     // Reset errors
     setValidationErrors({});
@@ -529,7 +576,27 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
                 <ServiceSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
-                <div className="mt-12 min-h-[120px]">
+                {/* Step progress bar */}
+                <div className="mt-5 mb-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                      Step {currentStepCount} of {totalSteps}
+                    </span>
+                    {currentStepCount === totalSteps && (
+                      <span className="text-[10px] font-semibold text-emerald-600">Ready to submit</span>
+                    )}
+                  </div>
+                  <div className="h-0.5 w-full bg-neutral-100 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full rounded-full ${stepBarColor}`}
+                      initial={false}
+                      animate={{ width: `${(currentStepCount / totalSteps) * 100}%` }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 min-h-[120px]">
                   {activeTab === "school" && (
                     <div className="space-y-6">
 
@@ -556,6 +623,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Section: Student Details */}
+                      <AnimatePresence>
+                      {effectiveSchoolSteps >= 2 && (
+                      <motion.div key="school-step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Grade Level</label>
@@ -608,8 +678,14 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           </Select>
                         </div>
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                       {/* Section: Route Schedule */}
+                      <AnimatePresence>
+                      {effectiveSchoolSteps >= 3 && (
+                      <motion.div key="school-step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Frequency</label>
@@ -645,6 +721,16 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             )}
                           />
                         </div>
+                      </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
+
+                      {/* Section: Times & Days */}
+                      <AnimatePresence>
+                      {effectiveSchoolSteps >= 4 && (
+                      <motion.div key="school-step4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">AM/PM</label>
                           <Select value={scheduleType} onValueChange={setScheduleType}>
@@ -732,8 +818,14 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           </div>
                         )}
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                       {/* Section: Guardian & Security */}
+                      <AnimatePresence>
+                      {effectiveSchoolSteps >= 5 && (
+                      <motion.div key="school-step5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
 
                         <div className="col-span-1 sm:col-span-2 md:col-span-4 space-y-1.5">
@@ -815,6 +907,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                         />
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                     </div>
                   )}
@@ -844,6 +939,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </div>
                       </div>
                       {/* Row 2: Mobility & Service Details */}
+                      <AnimatePresence>
+                      {effectiveMedicalSteps >= 2 && (
+                      <motion.div key="medical-step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="bg-white border border-neutral-200 rounded-lg p-4 space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
@@ -884,8 +982,14 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </div>
                       </div>
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                       {/* Row 2b: Trip details */}
+                      <AnimatePresence>
+                      {effectiveMedicalSteps >= 3 && (
+                      <motion.div key="medical-step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Trip Type</label>
@@ -974,8 +1078,14 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           />
                         </div>
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                       {/* Toggles Row */}
+                      <AnimatePresence>
+                      {effectiveMedicalSteps >= 4 && (
+                      <motion.div key="medical-step4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="bg-white border border-neutral-200 rounded-lg px-4 py-3 flex flex-wrap gap-6">
                         <label className="flex items-center gap-2 cursor-pointer group">
                           <input
@@ -1020,8 +1130,14 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           )}>ASAP / Immediate Request</span>
                         </label>
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                       {/* Row 3: Times & Dates */}
+                      <AnimatePresence>
+                      {effectiveMedicalSteps >= 5 && (
+                      <motion.div key="medical-step5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 pt-2">
                         <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Appt Time</label>
@@ -1148,6 +1264,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                         />
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
                     </div>
                   )}
 
@@ -1235,6 +1354,13 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             </SelectContent>
                           </Select>
                         </div>
+                      </div>
+
+                      {/* Section: Schedule */}
+                      <AnimatePresence>
+                      {effectiveWeddingSteps >= 2 && (
+                      <motion.div key="wedding-step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Itinerary Type</label>
                           <Select value={itineraryType} onValueChange={setItineraryType}>
@@ -1304,8 +1430,14 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           />
                         </div>
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
 
                       {/* Row 4: Coordinator & Extras */}
+                      <AnimatePresence>
+                      {effectiveWeddingSteps >= 3 && (
+                      <motion.div key="wedding-step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Planner Name</label>
@@ -1390,6 +1522,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                           className="h-10 w-full rounded-md px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400"
                         />
                       </div>
+                      </motion.div>
+                      )}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>

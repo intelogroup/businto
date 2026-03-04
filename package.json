@@ -18,6 +18,7 @@
     "test:resend": "node scripts/test-resend-comprehensive.mjs",
     "test:resend-simple": "node scripts/test-resend-email.mjs",
     "test:compare-providers": "node scripts/test-compare-providers.mjs",
+    "test:chat": "vitest tests/chat-context.test.ts",
     "prepare": "husky"
   },
   "dependencies": {

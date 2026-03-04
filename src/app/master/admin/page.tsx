@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import {
     Users, MapPin, Bus, Activity as ActivityIcon,
     Shield, Search, MoreVertical, Radio, Send,
-    AlertTriangle, Clock, Loader2, ToggleLeft, ToggleRight, Mail,
+    AlertTriangle, Clock, Loader2, ToggleLeft, ToggleRight, Mail, ArrowRight, Plus, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +104,16 @@ export default function AdminDashboard() {
     const [loadingOperators, setLoadingOperators] = useState(true);
     const [loadingStaff, setLoadingStaff]         = useState(true);
     const [loadingCritical, setLoadingCritical]   = useState(true);
+
+    // Pending PII exchanges
+    const [pendingExchanges, setPendingExchanges] = useState<any[]>([]);
+    const [loadingExchanges, setLoadingExchanges] = useState(true);
+    const [sendingExchange, setSendingExchange] = useState<string | null>(null);
+
+    // Bulk quote rows (used in manual dispatch mode)
+    type QuoteRow = { operatorId: string; price: string; vehicleType: string; note: string };
+    const emptyRow = (): QuoteRow => ({ operatorId: '', price: '', vehicleType: 'school_bus', note: '' });
+    const [quoteRows, setQuoteRows] = useState<QuoteRow[]>([emptyRow()]);
 
     // Search
     const [operatorSearch, setOperatorSearch] = useState("");
@@ -203,6 +213,21 @@ export default function AdminDashboard() {
         }
     };
 
+    const fetchExchanges = async () => {
+        setLoadingExchanges(true);
+        try {
+            const res = await fetch('/api/master/admin/exchanges');
+            if (res.ok) {
+                const { exchanges } = await res.json();
+                setPendingExchanges(exchanges || []);
+            }
+        } catch (e) {
+            console.error('fetchExchanges failed', e);
+        } finally {
+            setLoadingExchanges(false);
+        }
+    };
+
     // ── Effects ────────────────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -218,6 +243,7 @@ export default function AdminDashboard() {
             fetchOperators();
             fetchStaff();
             fetchCritical();
+            fetchExchanges();
             fetchDispatchSettings();
         }
     }, [isAuthenticated, user]);
@@ -272,19 +298,23 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'toggle', enabled: !manualDispatchMode }),
             });
-            if (res.ok) {
-                const json = await res.json();
-                setManualDispatchMode(json.manualDispatchMode);
-                addNotification({
-                    title: json.manualDispatchMode ? "Manual Dispatch ON" : "Auto Matching ON",
-                    message: json.manualDispatchMode
-                        ? "Auto operator notifications are disabled. You control every dispatch."
-                        : "Auto operator matching is now active.",
-                    type: "info",
-                });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                addNotification({ title: "Toggle Failed", message: err.error || "Server error", type: "error" });
+                return;
             }
+            const json = await res.json();
+            setManualDispatchMode(json.manualDispatchMode);
+            addNotification({
+                title: json.manualDispatchMode ? "Manual: ON" : "Auto: ON",
+                message: json.manualDispatchMode
+                    ? "Auto operator notifications disabled. Create quotes manually for each request."
+                    : "Auto operator matching is now active.",
+                type: "info",
+            });
         } catch (e) {
             console.error('toggleDispatchMode failed', e);
+            addNotification({ title: "Toggle Failed", message: "Network error", type: "error" });
         } finally {
             setTogglingDispatch(false);
         }
@@ -295,6 +325,7 @@ export default function AdminDashboard() {
         setSelectedOperatorId("");
         setDispatchMode('existing');
         setNewOpForm({ company_name: '', company_email: '', company_phone: '', vehicle_types: [], is_partner: false });
+        setQuoteRows([emptyRow()]);
     };
 
     const handleSendDispatch = async () => {
@@ -302,7 +333,25 @@ export default function AdminDashboard() {
         setSendingDispatch(true);
         try {
             let body: Record<string, unknown>;
-            if (dispatchMode === 'new') {
+
+            if (manualDispatchMode) {
+                // Manual mode: bulk-create quotes on operator's behalf
+                const invalid = quoteRows.find(r => !r.operatorId || !r.price || !r.vehicleType);
+                if (invalid) {
+                    addNotification({ title: "Missing Fields", message: "Every row needs an operator, price, and vehicle type", type: "error" });
+                    return;
+                }
+                body = {
+                    action: 'create_quotes_bulk',
+                    requestId: dispatchRequest.id,
+                    quotes: quoteRows.map(r => ({
+                        operatorId: r.operatorId,
+                        price: Number(r.price),
+                        vehicleType: r.vehicleType,
+                        note: r.note || undefined,
+                    })),
+                };
+            } else if (dispatchMode === 'new') {
                 if (!newOpForm.company_name || !newOpForm.company_email || !newOpForm.company_phone) {
                     addNotification({ title: "Missing Fields", message: "Name, email, and phone are required", type: "error" });
                     return;
@@ -320,16 +369,43 @@ export default function AdminDashboard() {
             });
             const json = await res.json();
             if (res.ok) {
-                const title = dispatchMode === 'new' && json.isNewOperator ? "Operator Created & Notified" : "Email Sent";
-                addNotification({ title, message: `Operator notified at ${json.sentTo}`, type: "success" });
+                if (manualDispatchMode) {
+                    addNotification({ title: "Quotes Created", message: `${quoteRows.length} quote(s) created — user notified in one email.`, type: "success" });
+                    fetchRequests();
+                } else {
+                    const title = dispatchMode === 'new' && json.isNewOperator ? "Operator Created & Notified" : "Email Sent";
+                    addNotification({ title, message: `Operator notified at ${json.sentTo}`, type: "success" });
+                }
                 closeDispatchModal();
+            } else {
+                addNotification({ title: "Action Failed", message: json.error || "Unknown error", type: "error" });
+            }
+        } catch (e) {
+            addNotification({ title: "Action Failed", message: "Network error", type: "error" });
+        } finally {
+            setSendingDispatch(false);
+        }
+    };
+
+    const handleSendExchange = async (bookingId: string) => {
+        setSendingExchange(bookingId);
+        try {
+            const res = await fetch('/api/master/admin/dispatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'send_operator_details', bookingId }),
+            });
+            const json = await res.json();
+            if (res.ok) {
+                addNotification({ title: "Details Sent", message: `User info sent to operator at ${json.sentTo}`, type: "success" });
+                fetchExchanges();
             } else {
                 addNotification({ title: "Send Failed", message: json.error || "Unknown error", type: "error" });
             }
         } catch (e) {
             addNotification({ title: "Send Failed", message: "Network error", type: "error" });
         } finally {
-            setSendingDispatch(false);
+            setSendingExchange(null);
         }
     };
 
@@ -400,7 +476,7 @@ export default function AdminDashboard() {
                             ) : (
                                 <ToggleLeft size={14} />
                             )}
-                            {manualDispatchMode ? "Manual Dispatch" : "Auto Matching"}
+                            {manualDispatchMode ? "Manual: ON" : "Auto: ON"}
                         </button>
 
                         <div className="relative">
@@ -470,117 +546,192 @@ export default function AdminDashboard() {
                                 initial={{ opacity: 0, scale: 0.96, y: 8 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.96, y: 8 }}
-                                className="relative w-full max-w-md bg-white rounded-lg p-6 shadow-lg border border-neutral-100"
+                                className={cn(
+                                    "relative bg-white rounded-lg p-6 shadow-lg border border-neutral-100 w-full",
+                                    manualDispatchMode ? "max-w-2xl" : "max-w-md"
+                                )}
                             >
                                 <div className="flex items-center gap-2 mb-1">
                                     <Mail size={15} className="text-amber-600" />
-                                    <h2 className="text-base font-semibold text-neutral-900">Dispatch Operator Email</h2>
+                                    <h2 className="text-base font-semibold text-neutral-900">
+                                        {manualDispatchMode ? "Create Quotes (Bulk)" : "Dispatch Operator Email"}
+                                    </h2>
                                 </div>
                                 <p className="text-sm text-neutral-500 mb-4">
-                                    Send a job notification for request{" "}
-                                    <span className="font-mono text-indigo-600">#{dispatchRequest.id.slice(0, 8)}</span>
-                                    {" "}({dispatchRequest.service_type}).
+                                    {manualDispatchMode
+                                        ? <>Add one row per operator — all quotes are inserted at once and the user receives <strong>one</strong> consolidated email for request <span className="font-mono text-indigo-600">#{dispatchRequest.id.slice(0, 8)}</span>.</>
+                                        : <>Send a job notification for request <span className="font-mono text-indigo-600">#{dispatchRequest.id.slice(0, 8)}</span> ({dispatchRequest.service_type}).</>
+                                    }
                                 </p>
                                 <div className="bg-neutral-50 rounded p-3 mb-4 text-xs text-neutral-600 space-y-1">
                                     <p><span className="font-medium">Pickup:</span> {dispatchRequest.pickup_address}</p>
                                     <p><span className="font-medium">Dropoff:</span> {dispatchRequest.dropoff_address}</p>
                                 </div>
 
-                                {/* Mode tabs */}
-                                <div className="flex rounded border border-neutral-200 mb-4 overflow-hidden text-sm">
-                                    <button
-                                        className={cn("flex-1 py-2 font-medium transition-colors", dispatchMode === 'existing' ? "bg-amber-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50")}
-                                        onClick={() => setDispatchMode('existing')}
-                                    >
-                                        Existing Operator
-                                    </button>
-                                    <button
-                                        className={cn("flex-1 py-2 font-medium transition-colors border-l border-neutral-200", dispatchMode === 'new' ? "bg-amber-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50")}
-                                        onClick={() => setDispatchMode('new')}
-                                    >
-                                        New Operator
-                                    </button>
-                                </div>
-
-                                {dispatchMode === 'existing' ? (
-                                    <>
-                                        <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Select Operator</label>
-                                        <select
-                                            value={selectedOperatorId}
-                                            onChange={(e) => setSelectedOperatorId(e.target.value)}
-                                            className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-indigo-500 outline-none mb-4"
-                                        >
-                                            <option value="">— Choose an operator —</option>
-                                            {dispatchOperators.map((op) => (
-                                                <option key={op.id} value={op.id}>
-                                                    {op.company_name}{op.is_partner ? " ★" : ""} — {op.company_email}
-                                                </option>
+                                {manualDispatchMode ? (
+                                    /* ── Bulk quote rows ─────────────────────────────── */
+                                    <div className="mb-4">
+                                        <div className="grid grid-cols-[1fr_90px_110px_1fr_32px] gap-2 mb-1 px-1">
+                                            {['Operator', 'Price ($)', 'Vehicle', 'Note', ''].map(h => (
+                                                <span key={h} className="text-xs font-semibold text-neutral-500">{h}</span>
                                             ))}
-                                        </select>
-                                    </>
-                                ) : (
-                                    <div className="space-y-3 mb-4">
-                                        <div>
-                                            <label className="block text-xs font-semibold text-neutral-600 mb-1">Company Name *</label>
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. Metro School Transport"
-                                                value={newOpForm.company_name}
-                                                onChange={(e) => setNewOpForm(f => ({ ...f, company_name: e.target.value }))}
-                                                className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
-                                            />
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-neutral-600 mb-1">Email *</label>
-                                            <input
-                                                type="email"
-                                                placeholder="operator@company.com"
-                                                value={newOpForm.company_email}
-                                                onChange={(e) => setNewOpForm(f => ({ ...f, company_email: e.target.value }))}
-                                                className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
-                                            />
+                                        <div className="space-y-2">
+                                            {quoteRows.map((row, idx) => (
+                                                <div key={idx} className="grid grid-cols-[1fr_90px_110px_1fr_32px] gap-2 items-center">
+                                                    <select
+                                                        value={row.operatorId}
+                                                        onChange={(e) => setQuoteRows(rows => rows.map((r, i) => i === idx ? { ...r, operatorId: e.target.value } : r))}
+                                                        className="rounded border border-neutral-200 bg-white p-2 text-xs text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    >
+                                                        <option value="">— operator —</option>
+                                                        {dispatchOperators.map(op => (
+                                                            <option key={op.id} value={op.id}>
+                                                                {op.company_name}{op.is_partner ? " ★" : ""}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        placeholder="250"
+                                                        value={row.price}
+                                                        onChange={(e) => setQuoteRows(rows => rows.map((r, i) => i === idx ? { ...r, price: e.target.value } : r))}
+                                                        className="rounded border border-neutral-200 bg-white p-2 text-xs text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    />
+                                                    <select
+                                                        value={row.vehicleType}
+                                                        onChange={(e) => setQuoteRows(rows => rows.map((r, i) => i === idx ? { ...r, vehicleType: e.target.value } : r))}
+                                                        className="rounded border border-neutral-200 bg-white p-2 text-xs text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    >
+                                                        {['school_bus', 'mini_bus', 'coach', 'van', 'sedan'].map(vt => (
+                                                            <option key={vt} value={vt}>{vt.replace(/_/g, ' ')}</option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="optional note"
+                                                        value={row.note}
+                                                        onChange={(e) => setQuoteRows(rows => rows.map((r, i) => i === idx ? { ...r, note: e.target.value } : r))}
+                                                        className="rounded border border-neutral-200 bg-white p-2 text-xs text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    />
+                                                    <button
+                                                        onClick={() => setQuoteRows(rows => rows.length === 1 ? rows : rows.filter((_, i) => i !== idx))}
+                                                        className="flex items-center justify-center text-neutral-400 hover:text-red-500 transition-colors"
+                                                        title="Remove row"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-neutral-600 mb-1">Phone *</label>
-                                            <input
-                                                type="tel"
-                                                placeholder="(555) 000-0000"
-                                                value={newOpForm.company_phone}
-                                                onChange={(e) => setNewOpForm(f => ({ ...f, company_phone: e.target.value }))}
-                                                className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold text-neutral-600 mb-1">Vehicle Types</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {['school_bus', 'mini_bus', 'coach', 'van', 'sedan'].map((vt) => (
-                                                    <label key={vt} className="flex items-center gap-1.5 text-xs text-neutral-700 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={newOpForm.vehicle_types.includes(vt)}
-                                                            onChange={(e) => setNewOpForm(f => ({
-                                                                ...f,
-                                                                vehicle_types: e.target.checked
-                                                                    ? [...f.vehicle_types, vt]
-                                                                    : f.vehicle_types.filter(v => v !== vt)
-                                                            }))}
-                                                            className="rounded"
-                                                        />
-                                                        {vt.replace('_', ' ')}
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <label className="flex items-center gap-2 text-xs text-neutral-700 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={newOpForm.is_partner}
-                                                onChange={(e) => setNewOpForm(f => ({ ...f, is_partner: e.target.checked }))}
-                                                className="rounded"
-                                            />
-                                            <span className="font-medium">Mark as partner operator ★</span>
-                                        </label>
+                                        <button
+                                            onClick={() => setQuoteRows(rows => [...rows, emptyRow()])}
+                                            className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                                        >
+                                            <Plus size={13} />
+                                            Add operator row
+                                        </button>
                                     </div>
+                                ) : (
+                                    /* ── Standard send mode ──────────────────────────── */
+                                    <>
+                                        {/* Mode tabs */}
+                                        <div className="flex rounded border border-neutral-200 mb-4 overflow-hidden text-sm">
+                                            <button
+                                                className={cn("flex-1 py-2 font-medium transition-colors", dispatchMode === 'existing' ? "bg-amber-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50")}
+                                                onClick={() => setDispatchMode('existing')}
+                                            >
+                                                Existing Operator
+                                            </button>
+                                            <button
+                                                className={cn("flex-1 py-2 font-medium transition-colors border-l border-neutral-200", dispatchMode === 'new' ? "bg-amber-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50")}
+                                                onClick={() => setDispatchMode('new')}
+                                            >
+                                                New Operator
+                                            </button>
+                                        </div>
+
+                                        {dispatchMode === 'existing' ? (
+                                            <>
+                                                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Select Operator</label>
+                                                <select
+                                                    value={selectedOperatorId}
+                                                    onChange={(e) => setSelectedOperatorId(e.target.value)}
+                                                    className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-indigo-500 outline-none mb-4"
+                                                >
+                                                    <option value="">— Choose an operator —</option>
+                                                    {dispatchOperators.map((op) => (
+                                                        <option key={op.id} value={op.id}>
+                                                            {op.company_name}{op.is_partner ? " ★" : ""} — {op.company_email}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </>
+                                        ) : (
+                                            <div className="space-y-3 mb-4">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-neutral-600 mb-1">Company Name *</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. Metro School Transport"
+                                                        value={newOpForm.company_name}
+                                                        onChange={(e) => setNewOpForm(f => ({ ...f, company_name: e.target.value }))}
+                                                        className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-neutral-600 mb-1">Email *</label>
+                                                    <input
+                                                        type="email"
+                                                        placeholder="operator@company.com"
+                                                        value={newOpForm.company_email}
+                                                        onChange={(e) => setNewOpForm(f => ({ ...f, company_email: e.target.value }))}
+                                                        className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-neutral-600 mb-1">Phone *</label>
+                                                    <input
+                                                        type="tel"
+                                                        placeholder="(555) 000-0000"
+                                                        value={newOpForm.company_phone}
+                                                        onChange={(e) => setNewOpForm(f => ({ ...f, company_phone: e.target.value }))}
+                                                        className="w-full rounded border border-neutral-200 bg-white p-2.5 text-sm text-neutral-900 focus:ring-1 focus:ring-amber-500 outline-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-neutral-600 mb-1">Vehicle Types</label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {['school_bus', 'mini_bus', 'coach', 'van', 'sedan'].map((vt) => (
+                                                            <label key={vt} className="flex items-center gap-1.5 text-xs text-neutral-700 cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={newOpForm.vehicle_types.includes(vt)}
+                                                                    onChange={(e) => setNewOpForm(f => ({
+                                                                        ...f,
+                                                                        vehicle_types: e.target.checked
+                                                                            ? [...f.vehicle_types, vt]
+                                                                            : f.vehicle_types.filter(v => v !== vt)
+                                                                    }))}
+                                                                    className="rounded"
+                                                                />
+                                                                {vt.replace('_', ' ')}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <label className="flex items-center gap-2 text-xs text-neutral-700 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={newOpForm.is_partner}
+                                                        onChange={(e) => setNewOpForm(f => ({ ...f, is_partner: e.target.checked }))}
+                                                        className="rounded"
+                                                    />
+                                                    <span className="font-medium">Mark as partner operator ★</span>
+                                                </label>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
 
                                 <div className="flex gap-2 justify-end">
@@ -593,11 +744,11 @@ export default function AdminDashboard() {
                                     </Button>
                                     <Button
                                         className="h-9 rounded bg-amber-600 hover:bg-amber-700 font-medium gap-2 text-sm"
-                                        disabled={sendingDispatch || (dispatchMode === 'existing' ? !selectedOperatorId : !newOpForm.company_name || !newOpForm.company_email || !newOpForm.company_phone)}
+                                        disabled={sendingDispatch || (!manualDispatchMode && (dispatchMode === 'existing' ? !selectedOperatorId : !newOpForm.company_name || !newOpForm.company_email || !newOpForm.company_phone))}
                                         onClick={handleSendDispatch}
                                     >
                                         {sendingDispatch ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                                        {dispatchMode === 'new' ? 'Create & Dispatch' : 'Send Email'}
+                                        {manualDispatchMode ? `Create ${quoteRows.length} Quote${quoteRows.length > 1 ? 's' : ''}` : dispatchMode === 'new' ? 'Create & Dispatch' : 'Send Email'}
                                     </Button>
                                 </div>
                             </motion.div>
@@ -633,9 +784,9 @@ export default function AdminDashboard() {
                         </TabsTrigger>
                         <TabsTrigger value="safety-valve" className="px-5 h-9 rounded font-medium text-sm relative">
                             Safety Valve
-                            {criticalRequests.length > 0 && (
+                            {(criticalRequests.length + pendingExchanges.length) > 0 && (
                                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full">
-                                    {criticalRequests.length}
+                                    {criticalRequests.length + pendingExchanges.length}
                                 </span>
                             )}
                         </TabsTrigger>
@@ -741,11 +892,11 @@ export default function AdminDashboard() {
                                         </div>
                                         <div>
                                             <CardTitle className="text-base font-semibold text-red-900">Manual Allocation Queue</CardTitle>
-                                            <CardDescription className="text-sm mt-0.5">High-priority rides requiring human intervention.</CardDescription>
+                                            <CardDescription className="text-sm mt-0.5">High-priority rides requiring human intervention, and bookings awaiting manual PII exchange.</CardDescription>
                                         </div>
                                     </div>
                                     <span className="text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded">
-                                        {criticalRequests.length} alerts
+                                        {criticalRequests.length + pendingExchanges.length} alerts
                                     </span>
                                 </div>
                             </CardHeader>
@@ -800,6 +951,93 @@ export default function AdminDashboard() {
                                                                         Manual Match
                                                                     </Button>
                                                                 </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </ScrollArea>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* ── Pending PII Exchange ──────────────────────────── */}
+                        <Card className="border-none shadow-sm bg-white rounded-lg overflow-hidden mt-4">
+                            <CardHeader className="p-5 pb-4 border-b border-neutral-50">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-amber-50 text-amber-600 rounded">
+                                            <ArrowRight size={15} />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-base font-semibold text-neutral-900">Pending PII Exchange</CardTitle>
+                                            <CardDescription className="text-sm mt-0.5">
+                                                Accepted bookings where the operator's full contact details haven't been sent yet.
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded">
+                                        {pendingExchanges.length} pending
+                                    </span>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {loadingExchanges ? <TableLoader /> : pendingExchanges.length === 0 ? (
+                                    <div className="flex flex-col items-center py-14 text-center">
+                                        <Mail className="text-neutral-200 mb-3" size={24} />
+                                        <p className="text-sm font-medium text-neutral-500">No pending exchanges</p>
+                                        <p className="text-xs text-neutral-400 mt-1">All operator PII has been sent.</p>
+                                    </div>
+                                ) : (
+                                    <ScrollArea className="h-[350px]">
+                                        <div className="px-6 pb-6">
+                                            <table className="w-full">
+                                                <thead className="sticky top-0 bg-white z-10 border-b border-neutral-100">
+                                                    <tr className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wide">
+                                                        <th className="text-left py-3">Booking</th>
+                                                        <th className="text-left py-3">Route</th>
+                                                        <th className="text-left py-3">Operator</th>
+                                                        <th className="text-left py-3">Accepted</th>
+                                                        <th className="text-right py-3">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-neutral-50">
+                                                    {pendingExchanges.map((ex) => (
+                                                        <tr key={ex.id} className="hover:bg-amber-50/20 transition-colors">
+                                                            <td className="py-4">
+                                                                <span className="text-sm font-semibold text-neutral-900">
+                                                                    #{ex.confirmation_code || ex.id.substring(0, 8)}
+                                                                </span>
+                                                                <p className="text-xs text-neutral-500 mt-0.5 capitalize">
+                                                                    {ex.transport_requests?.service_type?.replace('_', ' ')}
+                                                                </p>
+                                                            </td>
+                                                            <td className="py-4">
+                                                                <p className="text-xs text-neutral-600">{ex.transport_requests?.pickup_fuzzy}</p>
+                                                                <p className="text-xs text-neutral-400">→ {ex.transport_requests?.dropoff_fuzzy}</p>
+                                                            </td>
+                                                            <td className="py-4">
+                                                                <p className="text-sm text-neutral-800">{ex.operators?.company_name}</p>
+                                                                <p className="text-xs text-neutral-400">{ex.operators?.company_email}</p>
+                                                            </td>
+                                                            <td className="py-4">
+                                                                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                                                    <Clock size={12} />
+                                                                    {formatTime(ex.created_at)}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 text-right">
+                                                                <Button
+                                                                    className="h-7 text-xs bg-amber-600 hover:bg-amber-700 gap-1.5"
+                                                                    disabled={sendingExchange === ex.id}
+                                                                    onClick={() => handleSendExchange(ex.id)}
+                                                                >
+                                                                    {sendingExchange === ex.id
+                                                                        ? <Loader2 size={11} className="animate-spin" />
+                                                                        : <Send size={11} />}
+                                                                    Send PII
+                                                                </Button>
                                                             </td>
                                                         </tr>
                                                     ))}

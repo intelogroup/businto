@@ -3,6 +3,12 @@
     "supabase": {
       "url": "https://mcp.supabase.com/mcp",
       "type": "http"
+    },
+    "playwright": {
+      "command": "npx -y @modelcontextprotocol/server-playwright",
+      "args": [
+        "--global"
+      ]
     }
   }
 }

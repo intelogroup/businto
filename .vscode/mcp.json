@@ -3,6 +3,11 @@
 		"supabase": {
 			"type": "http",
 			"url": "https://mcp.supabase.com/mcp?project_ref=expwyvyphwlyhwrzdmmv&features=account,database,docs,debugging,development,functions,storage"
+		},
+		"playwright": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "@modelcontextprotocol/server-playwright"]
 		}
 	},
 	"inputs": []

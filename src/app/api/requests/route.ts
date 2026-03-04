@@ -10,14 +10,33 @@ import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { generateOperatorQuoteLink, generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 import { calculateRoute, geocodeToCoords } from '@/lib/routing';
+import { getDispatchMode } from '@/lib/app-settings';
+
+// ─── Dev-only perf timing helper ─────────────────────────────────────────────
+const IS_DEV_PERF = process.env.NODE_ENV !== 'production' || process.env.ENABLE_PERF_TRACE === '1';
+function mark(label: string) { if (IS_DEV_PERF) performance.mark(label); }
+function measure(name: string, start: string, end: string) {
+  if (!IS_DEV_PERF) return 0;
+  try {
+    const m = performance.measure(name, start, end);
+    return Math.round(m.duration);
+  } catch { return 0; }
+}
 
 export async function POST(request: NextRequest) {
+  const reqStart = `req-start-${Date.now()}`;
+  mark(reqStart);
+  const perfTrace: Record<string, number> = {};
+
   try {
     // ── Auth: derive user identity from session, never trust client ──────
+    mark('auth-start');
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     // Allow unauthenticated requests but track them clearly
     const user_id = user?.id ?? null;
+    mark('auth-end');
+    perfTrace.auth_ms = measure('auth', 'auth-start', 'auth-end');
     // ─────────────────────────────────────────────────────────────────────
 
     // Use helper for consistent base URL logic (handles production domain forcing)
@@ -102,17 +121,27 @@ export async function POST(request: NextRequest) {
     let distance_miles: number | null = null;
     let duration_mins: number | null = null;
 
+    mark('geocode-start');
     try {
       if (!pickup_lat || !pickup_lng) {
+        mark('geocode-pickup-start');
         const coords = await geocodeToCoords(pickup_address);
+        mark('geocode-pickup-end');
+        perfTrace.geocode_pickup_ms = measure('geocode-pickup', 'geocode-pickup-start', 'geocode-pickup-end');
         if (coords) { pickup_lat = coords.lat; pickup_lng = coords.lng; }
       }
       if (!dropoff_lat || !dropoff_lng) {
+        mark('geocode-dropoff-start');
         const coords = await geocodeToCoords(dropoff_address);
+        mark('geocode-dropoff-end');
+        perfTrace.geocode_dropoff_ms = measure('geocode-dropoff', 'geocode-dropoff-start', 'geocode-dropoff-end');
         if (coords) { dropoff_lat = coords.lat; dropoff_lng = coords.lng; }
       }
       if (pickup_lat && pickup_lng && dropoff_lat && dropoff_lng) {
+        mark('osrm-start');
         const route = await calculateRoute(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng);
+        mark('osrm-end');
+        perfTrace.osrm_ms = measure('osrm', 'osrm-start', 'osrm-end');
         if (route) {
           distance_miles = parseFloat(route.distance_miles.toFixed(2));
           duration_mins = route.duration_mins;
@@ -121,6 +150,8 @@ export async function POST(request: NextRequest) {
     } catch (routeErr) {
       console.error('Route calculation failed (non-fatal):', routeErr);
     }
+    mark('geocode-end');
+    perfTrace.geocode_total_ms = measure('geocode-total', 'geocode-start', 'geocode-end');
 
     // Affiliate Priority Window Logic
     // Care (medical) rides get a 15 min head-start for affiliates.
@@ -135,6 +166,7 @@ export async function POST(request: NextRequest) {
     const priority_until = hasPaid ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null;
     const payment_status = hasPaid ? 'paid' : 'pending';
 
+    mark('db-insert-request-start');
     const { data, error } = await supabaseAdmin
       .from('transport_requests')
       .insert({
@@ -168,6 +200,9 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single();
+
+    mark('db-insert-request-end');
+    perfTrace.db_insert_request_ms = measure('db-insert-request', 'db-insert-request-start', 'db-insert-request-end');
 
     if (error) {
       console.error('Supabase error:', error);
@@ -279,14 +314,17 @@ export async function POST(request: NextRequest) {
     let matchedOperatorsCount = 0;
     try {
       // Check if manual dispatch mode is on — if so, notify admin instead of operators
-      const { data: dispatchSetting } = await supabaseAdmin
-        .from('app_settings')
-        .select('value')
-        .eq('key', 'manual_dispatch_mode')
-        .maybeSingle();
+      // PERF: Uses cached setting (60s TTL) — avoids a 135ms DB hit on every request
+      const isManualDispatch = await getDispatchMode();
 
-      if (dispatchSetting?.value === true) {
+      if (isManualDispatch) {
         console.log(`[Manual Dispatch] Mode ON — skipping auto operator notifications for request ${data.id}`);
+
+        // Flag request for Safety Valve queue
+        await supabaseAdmin
+          .from('transport_requests')
+          .update({ metadata_private: { ...(data.metadata_private || {}), requires_manual_allocation: true } })
+          .eq('id', data.id);
 
         await sendEmail({
           to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
@@ -313,36 +351,39 @@ export async function POST(request: NextRequest) {
         });
       } else {
 
-      const operators = await findMatchingOperators({
-        service_type,
-        pickup_address,
-        pickup_fuzzy,
-        dropoff_address,
-        dropoff_fuzzy,
-        metadata
-      });
+        mark('operator-matching-start');
+        const operators = await findMatchingOperators({
+          service_type,
+          pickup_address,
+          pickup_fuzzy,
+          dropoff_address,
+          dropoff_fuzzy,
+          metadata
+        });
+        mark('operator-matching-end');
+        perfTrace.operator_matching_ms = measure('operator-matching', 'operator-matching-start', 'operator-matching-end');
 
-      matchedOperatorsCount = operators.length;
+        matchedOperatorsCount = operators.length;
 
-      const requirements = extractRequirements(service_type, metadata);
+        const requirements = extractRequirements(service_type, metadata);
 
-      // Fallback mechanism: if no operators found for specialized requests, notify admins for manual review
-      if (operators.length === 0) {
-        console.log(`⚠️ No matching operators for request ${data.id}. Firing admin fallback notification.`);
-        try {
-          // You can also change the request status or add a flag so admins know it requires review.
-          // For now, we update a flag in metadata_private
-          await supabaseAdmin
-            .from('transport_requests')
-            .update({
-              metadata_private: { ...metadata_private, requires_manual_allocation: true }
-            })
-            .eq('id', data.id);
+        // Fallback mechanism: if no operators found for specialized requests, notify admins for manual review
+        if (operators.length === 0) {
+          console.log(`⚠️ No matching operators for request ${data.id}. Firing admin fallback notification.`);
+          try {
+            // You can also change the request status or add a flag so admins know it requires review.
+            // For now, we update a flag in metadata_private
+            await supabaseAdmin
+              .from('transport_requests')
+              .update({
+                metadata_private: { ...metadata_private, requires_manual_allocation: true }
+              })
+              .eq('id', data.id);
 
-          await sendEmail({
-            to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
-            subject: `URGENT: Manual Allocation Required for Request #${data.id.substring(0, 8)}`,
-            html: `
+            await sendEmail({
+              to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
+              subject: `URGENT: Manual Allocation Required for Request #${data.id.substring(0, 8)}`,
+              html: `
               <h2>Action Required: No Automated Matches Found</h2>
               <p>A specialized transport request was submitted and no operators matched the strict criteria.</p>
               <ul>
@@ -354,179 +395,194 @@ export async function POST(request: NextRequest) {
               </ul>
               <p>Please log in to the admin dashboard to match this request manually or provide a quote.</p>
             `,
-          });
+            });
 
-          await logEvent({
-            event_type: 'request.manual_allocation.flagged',
-            actor_type: 'system',
-            request_id: data.id,
-            metadata: { service_type, pickup: pickup_fuzzy }
-          });
-        } catch (err) {
-          console.error('Failed to handle unmatched request fallback:', err);
-          await logEvent({
-            event_type: 'request.manual_allocation.failed',
-            status: 'error',
-            actor_type: 'system',
-            request_id: data.id,
-            message: err instanceof Error ? err.message : 'Unknown fallback error'
+            await logEvent({
+              event_type: 'request.manual_allocation.flagged',
+              actor_type: 'system',
+              request_id: data.id,
+              metadata: { service_type, pickup: pickup_fuzzy }
+            });
+          } catch (err) {
+            console.error('Failed to handle unmatched request fallback:', err);
+            await logEvent({
+              event_type: 'request.manual_allocation.failed',
+              status: 'error',
+              actor_type: 'system',
+              request_id: data.id,
+              message: err instanceof Error ? err.message : 'Unknown fallback error'
+            });
+          }
+
+          // Generate response even in fallback case to avoid "Unexpected end of JSON input"
+          const sanitizedRequest = {
+            id: data.id,
+            service_type: data.service_type,
+            pickup_fuzzy: data.pickup_fuzzy,
+            dropoff_fuzzy: data.dropoff_fuzzy,
+            start_date: data.start_date,
+            start_time: data.start_time,
+            end_date: data.end_date,
+            end_time: data.end_time,
+            is_recurring: data.is_recurring,
+            recurrence_pattern: data.recurrence_pattern,
+            metadata_safe: data.metadata_safe,
+            status: data.status,
+            created_at: data.created_at,
+            payment_status: data.payment_status,
+            priority_until: data.priority_until,
+            routing_fee_amount: data.routing_fee_amount,
+            matched_operators_count: 0
+          };
+
+          return NextResponse.json({
+            success: true,
+            request: sanitizedRequest,
+            paymentUrl: undefined,
+            message: 'Transport request created and flagged for manual review',
           });
         }
 
-        // Generate response even in fallback case to avoid "Unexpected end of JSON input"
-        const sanitizedRequest = {
-          id: data.id,
-          service_type: data.service_type,
-          pickup_fuzzy: data.pickup_fuzzy,
-          dropoff_fuzzy: data.dropoff_fuzzy,
-          start_date: data.start_date,
-          start_time: data.start_time,
-          end_date: data.end_date,
-          end_time: data.end_time,
-          is_recurring: data.is_recurring,
-          recurrence_pattern: data.recurrence_pattern,
-          metadata_safe: data.metadata_safe,
-          status: data.status,
-          created_at: data.created_at,
-          payment_status: data.payment_status,
-          priority_until: data.priority_until,
-          routing_fee_amount: data.routing_fee_amount,
-          matched_operators_count: 0
+        // Affiliate Priority Window Logic:
+        // ALL new requests go to partners/affiliates FIRST for the duration of priority_window_ends_at.
+        const operatorsToNotify = operators.filter(op => op.is_partner);
+
+        console.log('\n🔔 ==========================================');
+        console.log(`🔔 Found ${operators.length} matching operators for request ${data.id}`);
+        console.log(`🔔 Priority Head-Start Active for Affiliates.`);
+        console.log(`🔔 Notifying ${operatorsToNotify.length} unique Affiliate operators initially`);
+        console.log('🔔 ==========================================\n');
+
+        const serviceTypeMap: Record<string, string> = {
+          school: 'School Transportation',
+          medical: 'Medical Transportation',
+          wedding: 'Event Shuttle',
+          corporate: 'Corporate Travel'
         };
 
-        return NextResponse.json({
-          success: true,
-          request: sanitizedRequest,
-          paymentUrl: undefined,
-          message: 'Transport request created and flagged for manual review',
-        });
-      }
+        const serviceTypeDisplay = serviceTypeMap[service_type] || service_type;
 
-      // Affiliate Priority Window Logic:
-      // ALL new requests go to partners/affiliates FIRST for the duration of priority_window_ends_at.
-      const operatorsToNotify = operators.filter(op => op.is_partner);
+        // Send email to each matching operator
+        mark('operator-loop-start');
+        for (const operator of operatorsToNotify) {
+          const opStart = Date.now();
+          try {
+            // Generate tracking-resistant claim link (survives email provider click tracking)
+            const claimLink = await generateOperatorQuoteLink(
+              data.id,
+              operator.id,
+              operator.company_email
+            );
 
-      console.log('\n🔔 ==========================================');
-      console.log(`🔔 Found ${operators.length} matching operators for request ${data.id}`);
-      console.log(`🔔 Priority Head-Start Active for Affiliates.`);
-      console.log(`🔔 Notifying ${operatorsToNotify.length} unique Affiliate operators initially`);
-      console.log('🔔 ==========================================\n');
+            console.log(`[API/Requests] Generated claimLink for ${operator.company_email}: ${claimLink}`);
 
-      const serviceTypeMap: Record<string, string> = {
-        school: 'School Transportation',
-        medical: 'Medical Transportation',
-        wedding: 'Event Shuttle',
-        corporate: 'Corporate Travel'
-      };
-
-      const serviceTypeDisplay = serviceTypeMap[service_type] || service_type;
-
-      // Send email to each matching operator
-      for (const operator of operatorsToNotify) {
-        try {
-          // Generate tracking-resistant claim link (survives email provider click tracking)
-          const claimLink = await generateOperatorQuoteLink(
-            data.id,
-            operator.id,
-            operator.company_email
-          );
-
-          console.log(`[API/Requests] Generated claimLink for ${operator.company_email}: ${claimLink}`);
-
-          const emailResult = await sendEmail({
-            to: operator.company_email,
-            ...emailTemplates.operatorNewRequest({
-              operatorName: operator.company_name,
-              serviceType: service_type,
-              serviceTypeDisplay,
-              pickupAddress: pickup_address,
-              dropoffAddress: dropoff_address,
-              pickupFuzzy: pickup_fuzzy || pickup_address.split(',')[0],
-              dropoffFuzzy: dropoff_fuzzy || dropoff_address.split(',')[0],
-              date: new Date(start_date).toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              }),
-              time: start_time,
-              scheduleType: metadata?.schedule_type,
-              studentCount: metadata?.student_count,
-              requirements,
-              requestId: data.id,
-              claimLink, // Short tracking-resistant link
-              appBaseUrl
-            }),
-            // CRITICAL: Force SMTP relay (not REST API) to ensure X-Mailin-Track-Click header is respected
-            // Brevo's click tracking corrupts the link; SMTP relay respects this header better than API
-            trackingClicks: false,
-            forceSmtp: true,
-          });
-
-          await logEvent({
-            event_type: 'operator.request_email.sent',
-            actor_type: 'system',
-            operator_id: operator.id,
-            request_id: data.id,
-            metadata: {
-              operator_name: operator.company_name,
+            const emailResult = await sendEmail({
               to: operator.company_email,
-              message_id: emailResult?.id,
-              is_partner: operator.is_partner
-            },
-          });
-
-          if (emailResult.previewUrl) {
-            emailPreviewUrls.push(emailResult.previewUrl);
-          }
-
-          // Create in-app notification for operator (only if they have a linked profile)
-          if (operator.profile_id) {
-            await supabaseAdmin.from('notifications').insert({
-              user_id: operator.profile_id,
-              type: 'new_request_available',
-              title: `New ${serviceTypeDisplay} Request`,
-              message: `${pickup_fuzzy || pickup_address.split(',')[0]} → ${dropoff_fuzzy || dropoff_address.split(',')[0]}`,
-              data: {
-                request_id: data.id,
-                service_type,
-                pickup_fuzzy: pickup_fuzzy || pickup_address.split(',')[0],
-                dropoff_fuzzy: dropoff_fuzzy || dropoff_address.split(',')[0]
-              }
+              ...emailTemplates.operatorNewRequest({
+                operatorName: operator.company_name,
+                serviceType: service_type,
+                serviceTypeDisplay,
+                pickupAddress: pickup_address,
+                dropoffAddress: dropoff_address,
+                pickupFuzzy: pickup_fuzzy || pickup_address.split(',')[0],
+                dropoffFuzzy: dropoff_fuzzy || dropoff_address.split(',')[0],
+                date: new Date(start_date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                }),
+                time: start_time,
+                scheduleType: metadata?.schedule_type,
+                studentCount: metadata?.student_count,
+                requirements,
+                requestId: data.id,
+                claimLink, // Short tracking-resistant link
+                appBaseUrl
+              }),
+              // CRITICAL: Force SMTP relay (not REST API) to ensure X-Mailin-Track-Click header is respected
+              // Brevo's click tracking corrupts the link; SMTP relay respects this header better than API
+              trackingClicks: false,
+              forceSmtp: true,
             });
-          } else {
-            console.log(`ℹ️ Skipping in-app notification for ${operator.company_name} (no profile_id)`);
-          }
 
-          console.log(`✓ Notified operator via email: ${operator.company_name} (Partner: ${operator.is_partner})`);
+            await logEvent({
+              event_type: 'operator.request_email.sent',
+              actor_type: 'system',
+              operator_id: operator.id,
+              request_id: data.id,
+              metadata: {
+                operator_name: operator.company_name,
+                to: operator.company_email,
+                message_id: emailResult?.id,
+                is_partner: operator.is_partner
+              },
+            });
 
-          // SMS Notification (Fire and forget)
-          if (operator.company_phone) {
-            try {
-              const operatorPhone = operator.company_phone;
-              await sendSMS({
-                to: operatorPhone,
-                ...smsTemplates.newRequestAlert({
-                  serviceType: service_type,
-                  location: pickup_fuzzy || pickup_address.split(',')[0],
-                  requestId: data.id,
-                  claimLink: claimLink
-                })
-              });
-              console.log(`✓ Notified operator via SMS: ${operator.company_name}`);
-            } catch (smsErr) {
-              console.error(`Failed to send SMS to ${operator.company_name}:`, smsErr);
+            if (emailResult.previewUrl) {
+              emailPreviewUrls.push(emailResult.previewUrl);
             }
-          }
-        } catch (err) {
-          console.error(`Failed to notify operator ${operator.company_name}:`, err);
-        }
-      }
 
-      console.log(`Operator notification complete for request ${data.id}`);
+            // Create in-app notification for operator (only if they have a linked profile)
+            if (operator.profile_id) {
+              await supabaseAdmin.from('notifications').insert({
+                user_id: operator.profile_id,
+                type: 'new_request_available',
+                title: `New ${serviceTypeDisplay} Request`,
+                message: `${pickup_fuzzy || pickup_address.split(',')[0]} → ${dropoff_fuzzy || dropoff_address.split(',')[0]}`,
+                data: {
+                  request_id: data.id,
+                  service_type,
+                  pickup_fuzzy: pickup_fuzzy || pickup_address.split(',')[0],
+                  dropoff_fuzzy: dropoff_fuzzy || dropoff_address.split(',')[0]
+                }
+              });
+            } else {
+              console.log(`ℹ️ Skipping in-app notification for ${operator.company_name} (no profile_id)`);
+            }
+
+            if (IS_DEV_PERF) console.log(`  [perf] operator ${operator.company_name} email+notification: ${Date.now() - opStart}ms`);
+            console.log(`✓ Notified operator via email: ${operator.company_name} (Partner: ${operator.is_partner})`)
+
+            // SMS Notification (Fire and forget)
+            if (operator.company_phone) {
+              try {
+                const operatorPhone = operator.company_phone;
+                await sendSMS({
+                  to: operatorPhone,
+                  ...smsTemplates.newRequestAlert({
+                    serviceType: service_type,
+                    location: pickup_fuzzy || pickup_address.split(',')[0],
+                    requestId: data.id,
+                    claimLink: claimLink
+                  })
+                });
+                console.log(`✓ Notified operator via SMS: ${operator.company_name}`);
+              } catch (smsErr) {
+                console.error(`Failed to send SMS to ${operator.company_name}:`, smsErr);
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to notify operator ${operator.company_name}:`, err);
+          }
+        }
+
+        mark('operator-loop-end');
+        perfTrace.operator_loop_ms = measure('operator-loop', 'operator-loop-start', 'operator-loop-end');
+        console.log(`Operator notification complete for request ${data.id}`);
       } // end else (auto dispatch)
     } catch (matchErr) {
       console.error('Failed to match/notify operators:', matchErr);
+    }
+
+    if (IS_DEV_PERF) {
+      mark('req-end');
+      const total = measure('req-total', reqStart, 'req-end');
+      console.log(`\n[PERF TRACE] POST /api/requests — total: ${total}ms`, {
+        ...perfTrace,
+        total_ms: total,
+        note: 'excludes: confirmation email (awaited), Stripe checkout URL'
+      });
     }
 
     let paymentUrl: string | undefined;

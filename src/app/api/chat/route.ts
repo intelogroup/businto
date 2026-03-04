@@ -1,55 +1,88 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 
-// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+
+export function buildTripSummary(requests: any[]): string {
+  if (!requests || requests.length === 0) return 'No recent trips found.';
+  return requests.map((r: any) => {
+    const quotes: any[] = r.quotes || [];
+    const acceptedQuote = quotes.find((q: any) => q.status === 'accepted');
+    const pendingQuotes = quotes.filter((q: any) => q.status === 'pending').length;
+    let tripState = '';
+    if (r.status === 'booked' && acceptedQuote) {
+      tripState = `BOOKED at $${acceptedQuote.total_price ?? acceptedQuote.amount}`;
+    } else if (quotes.length > 0) {
+      tripState = `QUOTED — ${quotes.length} quote(s) received, ${pendingQuotes} pending`;
+    } else {
+      tripState = `PENDING — awaiting operator quotes`;
+    }
+    const date = new Date(r.created_at).toLocaleDateString();
+    return `- Trip ${r.id.slice(0, 8).toUpperCase()} | ${(r.service_type as string).toUpperCase()} | ${tripState} | Submitted: ${date}`;
+  }).join('\n');
+}
+
+export function selectModel(provider: string) {
+  if (provider === 'groq') {
+    const groq = createOpenAI({
+      baseURL: 'https://api.groq.com/openai/v1',
+      apiKey: process.env.GROQ_API_KEY,
+    });
+    return groq('llama-3.3-70b-versatile');
+  }
+  return openai('gpt-4o-mini');
+}
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
   const supabase = await createClient();
 
-  // 1. Get user session (Optional for landing page chat)
   const { data: { user } } = await supabase.auth.getUser();
-  
-  let requests: any[] = [];
+
+  let tripSummary = '';
   if (user) {
-    // 2. Fetch user context (trips and requests) if logged in
-    const { data } = await supabase
+    const { data: requests } = await supabase
       .from('transport_requests')
-      .select('*')
+      .select(`id, service_type, status, created_at, quotes(id, status, total_price)`)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(5);
-    requests = data || [];
+
+    tripSummary = buildTripSummary(requests ?? []);
   }
 
+  const provider = process.env.AI_PROVIDER || 'openai';
+  const model = selectModel(provider);
+
   const contextPrompt = `
-You are the Businto AI Assistant, a specialized expert in high-engagement transport logistics.
+You are the Businto AI Assistant, a specialized expert in transport logistics dispatch.
 You help users manage their transport requests and provide insights based on their data.
 
 ${user ? `CURRENT USER CONTEXT:
 User ID: ${user.id}
-Recent Transport Requests: ${JSON.stringify(requests, null, 2)}` : 'The user is not logged in. You are acting as a landing page assistant to guide them.'}
+Recent Trip Activity:
+${tripSummary}` : 'The user is not logged in. Guide them to create an account or use the booking forms.'}
 
 APP CAPABILITIES:
-- Service Types: School, Medical (Care Rides), and Event Shuttles (Weddings).
-- Real-time Quoting: Users receive multiple quotes from different operators.
-- Specialized Logic: 
-  - School: Recurring schedules, student safety details.
+- Service Types: School Runs, Medical (Care Rides), and Event Shuttles (Weddings, Corporate).
+- Real-time Quoting: Users receive multiple quotes from operators. They accept one to book.
+- Specialized Logic:
+  - School: Recurring schedules, student safety details, guardian/security info.
   - Medical: Mobility levels (ambulatory, wheelchair, stretcher), service levels.
   - Wedding/Event: Itineraries, shuttle modes, guest counts.
-- Dashboard: Users can view their trips, accept quotes, and track notifications.
+- Dashboard: View trips, accept quotes, track notifications.
 
 GUIDELINES:
 - Be concise, professional, and helpful.
-- Reference the user's specific trips if they are logged in and ask about them.
-- If they ask for something you can't do (like book a flight), steer them back to transport options.
-- Use a helpful, friendly tone appropriate for a logistics professional.
-- If they want to book, tell them to use the forms on the dashboard or landing page.
+- Reference the user's specific trips by their Trip ID (e.g. "Trip ABCD1234") when relevant.
+- If they ask for something outside transport, redirect to transport options.
+- If they want to book a new trip, direct them to the forms on the dashboard or landing page.
 `;
 
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model: model as any,
     system: contextPrompt,
     messages,
   });

@@ -7,10 +7,6 @@
         {
             "path": "/api/cron/process-completed-trips",
             "schedule": "0 12 * * *"
-        },
-        {
-            "path": "/api/cron/process-timeouts",
-            "schedule": "0 */2 * * *"
         }
     ]
 }

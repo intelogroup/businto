@@ -46,6 +46,22 @@ export async function GET(
   // Route based on resource type
   switch (redemption.resourceType) {
     case 'operator_quote': {
+      // Block if request already accepted by another operator
+      const { data: requestStatus } = await supabaseAdmin
+        .from('transport_requests')
+        .select('status')
+        .eq('id', redemption.resourceId)
+        .single();
+
+      if (requestStatus?.status === 'booked') {
+        console.log(`[Claim] Request ${redemption.resourceId} already booked, blocking operator claim`);
+        return NextResponse.redirect(
+          `${baseUrl}/?error=request_fulfilled&message=${encodeURIComponent(
+            'This request has already been fulfilled by another operator.'
+          )}`
+        );
+      }
+
       // Generate data token for operator to submit quote
       const token = await generateOperatorViewToken(
         redemption.resourceId,

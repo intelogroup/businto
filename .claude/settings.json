@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Supabase__list_extensions",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(npm uninstall @ai-sdk/groq)",
+      "Bash(npx vitest run tests/admin-security.test.ts tests/admin-dispatch.test.ts --reporter=verbose)",
+      "Bash(npx vitest run tests/admin-dispatch.test.ts)"
+    ],
+    "additionalDirectories": [
+      "/Users/kalinovdameus/.claude/plans"
+    ]
+  }
+}

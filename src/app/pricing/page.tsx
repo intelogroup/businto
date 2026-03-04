@@ -148,6 +148,16 @@ export default function PricingPage() {
             </Link>
           </div>
         </section>
+
+        {/* Learn More / About Link */}
+        <section className="text-center pt-8">
+          <p className="text-neutral-500 font-medium">
+            Want to learn more about our mission and vision?{" "}
+            <Link href="/about" className="text-neutral-900 font-bold hover:underline underline-offset-4 decoration-neutral-200 decoration-2 transition-all">
+              Read our story
+            </Link>
+          </p>
+        </section>
       </div>
     </InfoLayout>
   );

@@ -4,6 +4,7 @@ import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
 import { verifyUserTripToken } from '@/lib/tokens';
+import { getDispatchMode } from '@/lib/app-settings';
 
 
 export async function POST(request: NextRequest) {
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    if (requestVerification.status === 'booked' || requestVerification.status === 'quote_accepted') {
+    if (requestVerification.status === 'booked') {
       await logEvent({
         event_type: 'quote.accept.conflict',
         status: 'error',
@@ -61,17 +62,6 @@ export async function POST(request: NextRequest) {
         {
           error: 'Request already fulfilled. Acceptance is final - cannot change operators.',
           locked: true
-        },
-        { status: 409 }
-      );
-    }
-
-    // Also check request status (defense in depth)
-    if (requestVerification.status === 'booked' || requestVerification.status === 'quote_accepted') {
-      return NextResponse.json(
-        {
-          error: 'This request has already been accepted. Acceptance is final.',
-          status: requestVerification.status
         },
         { status: 409 }
       );
@@ -100,12 +90,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     }
 
-    // Get full transport request details including private fields
-    // SECURITY: This data is ONLY used server-side for the operator email
-    // It is NEVER returned in the HTTP response
+    // Get full transport request details including private fields + user profile in ONE query
+    // PERF: Was two sequential DB queries (transport_requests then profiles) — merged to save ~130ms
+    // SECURITY: This data is ONLY used server-side; it is NEVER returned in the HTTP response
     const { data: transportRequest } = await supabaseAdmin
       .from('transport_requests')
-      .select('*')
+      .select('*, userProfile:profiles!user_id(email, full_name, phone)')
       .eq('id', tripRequestId)
       .single();
 
@@ -182,6 +172,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Check if manual dispatch mode is active — PERF: use cached setting (60s TTL)
+    const isManualMode = await getDispatchMode();
+
     // Create a booking record
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
@@ -192,7 +185,8 @@ export async function POST(request: NextRequest) {
         operator_id: quote.operator_id,
         amount: quote.total_price,
         status: 'confirmed',
-        payment_status: 'pending'
+        payment_status: 'pending',
+        requires_manual_exchange: isManualMode,
       })
       .select()
       .single();
@@ -243,11 +237,11 @@ export async function POST(request: NextRequest) {
 
     // Send booking confirmation email (fire and forget)
     if (booking?.confirmation_code) {
-      const { data: userProfile, error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .select('email, full_name, phone')
-        .eq('id', userId)
-        .single();
+      // PERF: Profile data already fetched via JOIN in the transport_request query above
+      // No extra DB round-trip needed here
+      const joinedProfile = (transportRequest as any)?.userProfile;
+      const profileError = joinedProfile ? null : new Error('Profile not joined');
+      const userProfile = joinedProfile || null;
 
       if (profileError) {
         console.error('Failed to fetch user for booking email:', profileError);
@@ -317,57 +311,36 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // NEW: Notify Operator with Order Details (PII Release)
-        // Since we are not enforcing a separate routing fee payment flow for quotes right now,
-        // we release the details to the operator as soon as the quote is accepted.
-        const operatorEmail = quote.operator?.company_email;
-        if (operatorEmail) {
-          try {
-            await sendEmail({
-              to: operatorEmail,
-              ...emailTemplates.operatorOrderDetails({
-                operatorName,
-                parentName: userProfile.full_name || 'Customer',
-                parentEmail: userProfile.email,
-                parentPhone: userProfile.phone || 'Not provided',
-                quoteAmount: quote.total_price,
-                pickup: transportRequest.pickup_address,
-                dropoff: transportRequest.dropoff_address,
-                date: transportRequest.start_date,
-                time: transportRequest.start_time,
-                vehicleType: quote.vehicle_type,
-                confirmationCode: booking.confirmation_code,
-                bookingId: booking.id,
-                appBaseUrl: getAppBaseUrl()
-              }),
-              trackingClicks: false,
-              forceSmtp: true
-            });
-            console.log(`✓ Notified operator via email: ${operatorEmail}`);
-            
-            await logEvent({
-              event_type: 'operator.order_details_email.sent',
-              actor_type: 'system',
-              request_id: tripRequestId,
-              quote_id: quoteId,
-              booking_id: booking.id,
-              operator_id: quote.operator_id,
-              metadata: { to: operatorEmail },
-            });
-          } catch (err) {
-            console.error('Failed to send order details email to operator:', err);
-            await logEvent({
-              event_type: 'operator.order_details_email.failed',
-              status: 'error',
-              actor_type: 'system',
-              request_id: tripRequestId,
-              quote_id: quoteId,
-              booking_id: booking.id,
-              operator_id: quote.operator_id,
-              message: err instanceof Error ? err.message : 'Unknown operator order email error',
-              metadata: { to: operatorEmail },
-            });
-          }
+        // PII Release to Operator is removed from here
+        // The detailed operator view containing PII will be sent via `payments/webhook/route.ts`
+        // once the $1.99 Platform Routing Fee payment intent has succeeded.
+        if (isManualMode) {
+          // Notify admin to complete PII exchange manually
+          const appBaseUrl = getAppBaseUrl();
+          await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
+            subject: `[Businto] Booking Confirmed — PII Exchange Pending #${booking.id.slice(0, 8)}`,
+            html: `
+              <h2>Booking Confirmed — Manual PII Exchange Required</h2>
+              <p>User accepted a quote. Please send their details to the operator from the admin panel.</p>
+              <ul>
+                <li><strong>Booking ID:</strong> ${booking.id}</li>
+                <li><strong>Operator:</strong> ${operatorName}</li>
+                <li><strong>Amount:</strong> $${quote.total_price}</li>
+              </ul>
+              <p><a href="${appBaseUrl}/master/admin">Open Admin Panel → Pending PII Exchange</a></p>
+            `,
+          }).catch(err => console.error('Failed to send admin PII exchange notification:', err));
+
+          await logEvent({
+            event_type: 'booking.pii_exchange.pending',
+            actor_type: 'system',
+            request_id: tripRequestId,
+            quote_id: quoteId,
+            booking_id: booking.id,
+            operator_id: quote.operator_id,
+            metadata: { manual_mode: true },
+          });
         }
       }
     }
