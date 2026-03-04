@@ -253,9 +253,20 @@ export const emailTemplates = {
     accessToken?: string;
     claimLink?: string;
     appBaseUrl?: string;
-  }) => ({
-    subject: `New Quote Received: $${data.price} from ${data.operatorName}`,
-    html: `
+  }) => {
+    // If appBaseUrl is a full magic link URL, use it directly as the CTA href
+    const isMagicLink = data.appBaseUrl && (
+      data.appBaseUrl.includes('type=magiclink') ||
+      data.appBaseUrl.includes('auth/v1/verify')
+    );
+    const viewLink = data.claimLink
+      || (isMagicLink
+        ? data.appBaseUrl!
+        : `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`);
+
+    return {
+      subject: `New Quote Received: $${data.price} from ${data.operatorName}`,
+      html: `
       <!DOCTYPE html>
       <html>
         <head>
@@ -289,7 +300,7 @@ export const emailTemplates = {
 
               <p>Log in to your dashboard to accept this quote or compare with other quotes.</p>
 
-              <a href="${data.claimLink || `${getAppBaseUrl(data.appBaseUrl)}/trips/${data.requestId}${data.accessToken ? `?token=${encodeURIComponent(data.accessToken)}` : ''}`}" class="button">View &amp; Accept Quote</a>
+              <a href="${viewLink}" class="button">View &amp; Accept Quote</a>
 
               <div class="footer">
                 <p>&copy; 2026 Businto. All rights reserved.</p>
@@ -299,7 +310,8 @@ export const emailTemplates = {
         </body>
       </html>
     `
-  }),
+    };
+  },
 
   operatorOrderDetails: (data: {
     operatorName: string;

@@ -30,9 +30,13 @@ describe('Claim Code System', () => {
             expect(redemption.resourceType).toBe('operator_quote');
         }
 
-        // 3. Try to redeem again (should fail)
+        // 3. Redeem again — codes are intentionally reusable until expiry
+        // so operators can return to the same email link multiple times
         const secondRedemption = await redeemClaimCode(code, '127.0.0.1');
-        expect(secondRedemption).toBeNull();
+        expect(secondRedemption).not.toBeNull();
+        if (secondRedemption) {
+            expect(secondRedemption.resourceId).toBe(requestId);
+        }
     });
 
     it('should handle expired codes correctly', async () => {
