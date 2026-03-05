@@ -1,5 +1,5 @@
 import { openai, createOpenAI } from '@ai-sdk/openai';
-import { streamText } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 
 export const maxDuration = 30;
@@ -80,12 +80,14 @@ GUIDELINES:
 - If they want to book a new trip, direct them to the forms on the dashboard or landing page.
 `;
 
+  const modelMessages = await convertToModelMessages(messages);
+
   const result = streamText({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: model as any,
     system: contextPrompt,
-    messages,
+    messages: modelMessages,
   });
 
-  return result.toTextStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
