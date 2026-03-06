@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     // Calculate average rating if filtering by operator
     let averageRating = 0;
     if (data && data.length > 0) {
-      averageRating = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+      averageRating = (data as any[]).reduce((sum, r) => sum + r.rating, 0) / data.length;
     }
 
     return NextResponse.json({
