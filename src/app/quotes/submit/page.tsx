@@ -229,7 +229,7 @@ function SubmitQuoteContent() {
       const response = await fetch("/api/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validation.data),
+        body: JSON.stringify({ ...validation.data, token: accessToken }),
       });
 
       const data = await response.json();
