@@ -59,6 +59,16 @@ vi.mock('../src/lib/app-settings', () => ({
   invalidateSettingsCache: vi.fn(),
 }));
 
+// Mock createClient so auth.getUser() returns the test user (route no longer reads userId from body)
+vi.mock('../src/lib/supabase/server', () => ({
+  createClient: vi.fn().mockResolvedValue({
+    auth: {
+      // Inline literal — vi.mock factories are hoisted and cannot reference outer consts
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-456' } } }),
+    },
+  }),
+}));
+
 describe('Quote Acceptance - Operator Email Verification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -109,12 +119,12 @@ describe('Quote Acceptance - Operator Email Verification', () => {
     mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null }); // no existing accepted quote / no dispatch setting
 
     // 3. Execute the API Route handler
+    // Note: userId is NOT sent in body — route uses session auth (mocked above)
     const request = new NextRequest('https://businto.com/api/quotes/accept', {
       method: 'POST',
       body: JSON.stringify({
         quoteId: mockQuoteId,
         tripRequestId: mockRequestId,
-        userId: mockUserId
       }),
     });
 

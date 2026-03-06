@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
-import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
+import { generateOperatorViewToken, generateUserTripToken, verifyOperatorViewToken } from '@/lib/tokens';
 import { generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
@@ -13,10 +13,40 @@ export async function POST(request: NextRequest) {
     const appBaseUrl = getAppBaseUrl(process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin);
     const body = await request.json();
 
+    // SECURITY: Extract and verify the operator token BEFORE trusting any operator_id.
+    // Operators arrive via a signed JWT email link — we verify it here and use the
+    // operatorId embedded in the token, ignoring whatever operator_id the body claims.
+    const { token: operatorToken, ...quoteBody } = body;
+    let tokenVerifiedOperatorId: string | null = null;
+    let tokenVerifiedRequestId: string | null = null;
+
+    // SECURITY: A valid operator token is required. Body-supplied operator_id is never trusted.
+    if (!operatorToken) {
+      return NextResponse.json({ error: 'Operator token is required' }, { status: 403 });
+    }
+
+    const decoded = await verifyOperatorViewToken(operatorToken);
+    if (!decoded) {
+      return NextResponse.json({ error: 'Invalid or expired operator token' }, { status: 403 });
+    }
+    tokenVerifiedOperatorId = decoded.operatorId || null;
+    tokenVerifiedRequestId = decoded.requestId || null;
+
+    // Cross-check: token must be for the same request being quoted
+    if (tokenVerifiedRequestId && quoteBody.request_id && tokenVerifiedRequestId !== quoteBody.request_id) {
+      await logEvent({
+        event_type: 'quote.submission.token_mismatch',
+        status: 'error',
+        message: 'Token request_id does not match body request_id',
+        metadata: { token_request_id: tokenVerifiedRequestId, body_request_id: quoteBody.request_id }
+      });
+      return NextResponse.json({ error: 'Token does not match this request' }, { status: 403 });
+    }
+
     // VALIDATE INPUT with Zod schema — runs BEFORE any DB queries for fast-fail
-    const validation = validateQuote(body);
+    const validation = validateQuote(quoteBody);
     if (!validation.success) {
-      console.error('🔴 Quote Validation Failed:', validation.error.format());
+      console.error('Quote Validation Failed:', validation.error.format());
       // PERF: Fire-and-forget — don't await logEvent, return 400 immediately
       // Skip logging for benchmark/test probes (x-benchmark-test header) to keep event_logs clean
       const isBenchmarkProbe = request.headers.get('x-benchmark-test') === '1';
@@ -25,7 +55,7 @@ export async function POST(request: NextRequest) {
           event_type: 'quote.submission.validation_failed',
           status: 'error',
           message: 'Invalid quote data',
-          metadata: { errors: validation.error.format(), body_keys: Object.keys(body) }
+          metadata: { errors: validation.error.format(), body_keys: Object.keys(quoteBody) }
         }).catch(() => { });
       }
       return NextResponse.json(
@@ -39,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     const {
       request_id,
-      operator_id,
+      // operator_id from body is intentionally ignored — use token-verified id instead
       total_price,
       base_fare,
       distance_charge,
@@ -51,6 +81,9 @@ export async function POST(request: NextRequest) {
       wheelchair_accessible,
       note
     } = validation.data;
+
+    // SECURITY: Always use the token-verified operator_id. Body operator_id is ignored.
+    const operator_id = tokenVerifiedOperatorId;
 
     // MARKETPLACE INTEGRITY: Request is locked once a quote is accepted
     const { data: acceptedQuote } = await supabaseAdmin
@@ -321,12 +354,31 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // SECURITY: Require authentication — quotes expose operator contact details
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const requestId = searchParams.get('request_id');
     const operatorId = searchParams.get('operator_id');
     // PERF: Pagination — was unbounded (caused 590ms p95). Default 50, max 100.
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const page = Math.max(parseInt(searchParams.get('page') || '0', 10), 0);
+
+    // SECURITY: Determine the caller's role to scope results appropriately.
+    // Admins see all quotes; users see only quotes on their own requests;
+    // operators see only their own company's quotes.
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'manager';
 
     // PERF: Only include the request join when filtering by request_id (detail view).
     // The list view (no filter) doesn't need the extra join — saves ~400ms p95.
@@ -358,6 +410,47 @@ export async function GET(request: NextRequest) {
     }
     if (operatorId) {
       query = query.eq('operator_id', operatorId);
+    }
+
+    // SECURITY: Scope to owned data for non-admins
+    if (!isAdmin) {
+      if (requestId) {
+        // Verify the user owns this request
+        const { data: req } = await supabaseAdmin
+          .from('transport_requests')
+          .select('user_id')
+          .eq('id', requestId)
+          .single();
+        if (!req || req.user_id !== user.id) {
+          // Check if they're an operator with a quote on this request
+          const { data: opProfile } = await supabaseAdmin
+            .from('operator_profiles')
+            .select('operator_id')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (opProfile?.operator_id) {
+            query = query.eq('operator_id', opProfile.operator_id);
+          } else {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+          }
+        }
+      } else {
+        // Non-admins without a request_id filter: scope to their operator's quotes only
+        const { data: opProfile } = await supabaseAdmin
+          .from('operator_profiles')
+          .select('operator_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (opProfile?.operator_id) {
+          query = query.eq('operator_id', opProfile.operator_id);
+        } else {
+          // Regular user with no request_id filter — require request_id
+          return NextResponse.json(
+            { error: 'request_id is required' },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     const { data, error } = await query;

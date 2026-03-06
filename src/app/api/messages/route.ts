@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Fetch sender info from unified_profiles for the response
+    // Fetch sender info for the response — only expose safe display fields, never phone/email
     const { data: senderProfile } = await supabase
       .from('unified_profiles')
-      .select('*')
+      .select('id, full_name, avatar_url, role')
       .eq('id', sender_id)
       .single();
 
@@ -103,10 +103,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const requestId = searchParams.get('request_id');
     const bookingId = searchParams.get('booking_id');
-    const userId = searchParams.get('user_id');
 
     let query = supabase
       .from('messages')
@@ -119,9 +123,9 @@ export async function GET(request: NextRequest) {
     if (bookingId) {
       query = query.eq('booking_id', bookingId);
     }
-    if (userId) {
-      query = query.or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
-    }
+
+    // SECURITY: Always scope to the authenticated user — never trust client-supplied user_id
+    query = query.or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`);
 
     const { data: messages, error } = await query;
 
@@ -134,9 +138,10 @@ export async function GET(request: NextRequest) {
     const userIds = [...new Set(messages.flatMap(m => [m.sender_id, m.recipient_id]))];
     
     if (userIds.length > 0) {
+      // SECURITY: Only expose display fields — never phone, email, or private metadata
       const { data: profiles } = await supabase
         .from('unified_profiles')
-        .select('*')
+        .select('id, full_name, avatar_url, role')
         .in('id', userIds);
       
       const profileMap = (profiles || []).reduce((acc, p) => {

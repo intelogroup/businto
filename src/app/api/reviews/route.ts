@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { booking_id, user_id, operator_id, rating, comment } = await request.json();
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (!booking_id || !user_id || !operator_id || !rating) {
+    const { booking_id, operator_id, rating, comment } = await request.json();
+
+    if (!booking_id || !operator_id || !rating) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -17,6 +22,21 @@ export async function POST(request: NextRequest) {
         { error: 'Rating must be between 1 and 5' },
         { status: 400 }
       );
+    }
+
+    // SECURITY: Use session user id — never trust user_id from request body
+    const user_id = user.id;
+
+    // SECURITY: Verify this booking belongs to the authenticated user
+    const { data: booking } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('id', booking_id)
+      .eq('user_id', user_id)
+      .single();
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found or access denied' }, { status: 403 });
     }
 
     // Check if review already exists
@@ -80,23 +100,53 @@ export async function GET(request: NextRequest) {
     const operatorId = searchParams.get('operator_id');
     const userId = searchParams.get('user_id');
 
+    // SECURITY: Require at least one filter — prevent unbounded enumeration of all reviews.
+    // operator_id is allowed unauthenticated (public operator profiles).
+    // user_id filter requires authentication (user's own review history).
+    if (!operatorId && !userId) {
+      return NextResponse.json(
+        { error: 'operator_id or user_id filter is required' },
+        { status: 400 }
+      );
+    }
+
+    if (userId) {
+      // Filtering by user_id requires auth — users can only fetch their own reviews
+      const user = await requireUser();
+      if (!user || user.id !== userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+
+    // Public operator reviews: only expose reviewer name + avatar (no booking confirmation codes)
+    const selectClause = operatorId && !userId
+      ? `
+          id, rating, comment, operator_response, operator_response_at, created_at,
+          user:profiles!reviews_user_id_fkey (
+            id,
+            full_name,
+            avatar_url
+          )
+        `
+      : `
+          *,
+          user:profiles!reviews_user_id_fkey (
+            id,
+            full_name,
+            avatar_url
+          ),
+          booking:bookings (
+            id,
+            confirmation_code,
+            request:transport_requests (
+              service_type
+            )
+          )
+        `;
+
     let query = supabase
       .from('reviews')
-      .select(`
-        *,
-        user:profiles!reviews_user_id_fkey (
-          id,
-          full_name,
-          avatar_url
-        ),
-        booking:bookings (
-          id,
-          confirmation_code,
-          request:transport_requests (
-            service_type
-          )
-        )
-      `)
+      .select(selectClause)
       .order('created_at', { ascending: false });
 
     if (operatorId) {
@@ -136,6 +186,11 @@ export async function GET(request: NextRequest) {
 // Operator response to review
 export async function PATCH(request: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { review_id, operator_response } = await request.json();
 
     if (!review_id || !operator_response) {
@@ -143,6 +198,30 @@ export async function PATCH(request: NextRequest) {
         { error: 'Missing review_id or operator_response' },
         { status: 400 }
       );
+    }
+
+    // SECURITY: Verify the authenticated user is the operator on this review
+    const { data: review } = await supabase
+      .from('reviews')
+      .select('operator_id')
+      .eq('id', review_id)
+      .single();
+
+    if (!review) {
+      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+    }
+
+    // operator_id in reviews references operators table; look up via operator_profiles
+    const { data: opProfile } = await supabase
+      .from('operator_profiles')
+      .select('operator_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const userOperatorId = opProfile?.operator_id ?? null;
+
+    if (!userOperatorId || userOperatorId !== review.operator_id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { data, error } = await supabase

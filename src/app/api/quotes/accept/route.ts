@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
+import { createClient } from '@/lib/supabase/server';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
@@ -9,28 +10,43 @@ import { getDispatchMode } from '@/lib/app-settings';
 
 export async function POST(request: NextRequest) {
   try {
-    const { quoteId, tripRequestId, userId: providedUserId, token } = await request.json();
+    const { quoteId, tripRequestId, token } = await request.json();
 
-    let actualUserId = providedUserId;
+    // SECURITY: Resolve identity from session (preferred) or verified token (magic link).
+    // Never trust userId from the request body — it is ignored entirely.
+    let actualUserId: string | null = null;
 
-    if (token) {
+    // 1. Try session first (authenticated users)
+    const supabase = await createClient();
+    const { data: { user: sessionUser } } = await supabase.auth.getUser();
+    if (sessionUser) {
+      actualUserId = sessionUser.id;
+    }
+
+    // 2. Fall back to signed token (anonymous / magic-link users)
+    if (!actualUserId && token) {
       const decoded = await verifyUserTripToken(token);
       if (decoded && decoded.requestId === tripRequestId) {
         actualUserId = decoded.userId || null;
-      } else if (!actualUserId) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
+      } else {
+        return NextResponse.json({ error: 'Invalid or mismatched token' }, { status: 403 });
       }
     }
 
-    if (!quoteId || !tripRequestId || !actualUserId) {
+    // 3. No valid identity — reject
+    if (!actualUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    if (!quoteId || !tripRequestId) {
       await logEvent({
         event_type: 'quote.accept.validation_failed',
         status: 'error',
         message: 'Missing required fields',
-        metadata: { quoteId, tripRequestId, hasUserId: !!actualUserId }
+        metadata: { quoteId, tripRequestId }
       });
       return NextResponse.json(
-        { error: 'Missing required fields: quoteId, tripRequestId, userId or token' },
+        { error: 'Missing required fields: quoteId, tripRequestId' },
         { status: 400 }
       );
     }
@@ -46,6 +62,18 @@ export async function POST(request: NextRequest) {
 
     if (verificationError || !requestVerification) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // SECURITY: Verify the authenticated user owns this request
+    if (requestVerification.user_id && requestVerification.user_id !== userId) {
+      await logEvent({
+        event_type: 'quote.accept.ownership_failed',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        message: 'User attempted to accept a quote on a request they do not own',
+      });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (requestVerification.status === 'booked') {

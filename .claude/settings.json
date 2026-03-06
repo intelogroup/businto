@@ -6,7 +6,15 @@
       "mcp__claude_ai_Supabase__apply_migration",
       "Bash(npm uninstall @ai-sdk/groq)",
       "Bash(npx vitest run tests/admin-security.test.ts tests/admin-dispatch.test.ts --reporter=verbose)",
-      "Bash(npx vitest run tests/admin-dispatch.test.ts)"
+      "Bash(npx vitest run tests/admin-dispatch.test.ts)",
+      "Read(//Users/kalinovdameus/.vscode/**)",
+      "Bash(do sleep 2)",
+      "Bash(if curl -s http://localhost:300)",
+      "Bash(then echo \"ready\")",
+      "Bash(break)",
+      "Bash(fi)",
+      "Bash(echo \"waiting $i...\")",
+      "Bash(done)"
     ],
     "additionalDirectories": [
       "/Users/kalinovdameus/.claude/plans"

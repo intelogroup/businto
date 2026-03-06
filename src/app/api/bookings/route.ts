@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('user_id');
     const operatorId = searchParams.get('operator_id');
     const status = searchParams.get('status');
 
@@ -35,9 +39,9 @@ export async function GET(request: NextRequest) {
       `)
       .order('created_at', { ascending: false });
 
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // SECURITY: Always scope to the authenticated user — never trust client-supplied user_id
+    query = query.eq('user_id', user.id);
+
     if (operatorId) {
       query = query.eq('operator_id', operatorId);
     }
@@ -64,25 +68,46 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { bookingId, status, special_instructions } = await request.json();
 
     if (!bookingId) {
       return NextResponse.json({ error: 'Missing bookingId' }, { status: 400 });
     }
 
+    // SECURITY: Whitelist the only status a user may set — they can cancel but
+    // cannot self-promote to completed/refunded/confirmed.
+    const ALLOWED_USER_STATUSES = ['cancelled'];
+    if (status !== undefined && !ALLOWED_USER_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Allowed values: ${ALLOWED_USER_STATUSES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     const updateData: any = {};
-    if (status) updateData.status = status;
+    if (status !== undefined) updateData.status = status;
     if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
 
+    // SECURITY: Scope update to the authenticated user's own bookings
     const { data, error } = await supabase
       .from('bookings')
       .update(updateData)
       .eq('id', bookingId)
+      .eq('user_id', user.id)
       .select()
       .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: 'Booking not found or access denied' }, { status: 404 });
     }
 
     return NextResponse.json({
