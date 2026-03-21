@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`[notify] ${emailType} notification sent to ${profile.email} for request ${tripRequestId}`);
+    console.log(`[notify] ${emailType} notification sent for request ${tripRequestId}`);
 
     return NextResponse.json({
       success: true,

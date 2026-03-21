@@ -333,7 +333,7 @@ export async function POST(request: NextRequest) {
                 appUrl: getAppBaseUrl()
               })
             });
-            console.log(`✓ Notified user via SMS: ${userProfile.full_name}`);
+            console.log(`✓ Notified user via SMS for booking ${booking.id.slice(0, 8)}`);
           } catch (smsErr) {
             console.error('Failed to send user confirmation SMS:', smsErr);
           }
