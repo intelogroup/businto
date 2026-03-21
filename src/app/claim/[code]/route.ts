@@ -77,7 +77,7 @@ export async function GET(
         const supabase = await createClient();
         const { data: { user: existingUser } } = await supabase.auth.getUser();
         if (existingUser) {
-          console.log(`[Claim] Existing session for operator ${existingUser.id}, redirecting directly`);
+          console.log(`[Claim] Existing session found for operator, redirecting directly`);
           return NextResponse.redirect(`${baseUrl}${destination}`);
         }
       } catch (e) {
@@ -102,7 +102,7 @@ export async function GET(
             });
 
             if (!linkError && linkData?.properties?.action_link) {
-              console.log(`[Claim] Generated magic link for operator ${redemption.userId}`);
+              console.log(`[Claim] Generated magic link for operator`);
               return NextResponse.redirect(linkData.properties.action_link);
             }
           }
@@ -111,7 +111,7 @@ export async function GET(
         }
       }
 
-      console.log(`[Claim] Redirecting to operator quote page (no auto-auth): ${baseUrl}${destination}`);
+      console.log(`[Claim] Redirecting to operator quote page (no auto-auth)`);
       return NextResponse.redirect(`${baseUrl}${destination}`);
     }
 
@@ -135,7 +135,7 @@ export async function GET(
         const supabase = await createClient();
         const { data: { user: existingUser } } = await supabase.auth.getUser();
         if (existingUser) {
-          console.log(`[Claim] Existing session for user ${existingUser.id}, redirecting directly`);
+          console.log(`[Claim] Existing session found for user, redirecting directly`);
           return NextResponse.redirect(`${baseUrl}${destination}`);
         }
       } catch (e) {
@@ -160,7 +160,7 @@ export async function GET(
             });
 
             if (!linkError && linkData?.properties?.action_link) {
-              console.log(`[Claim] Generated magic link for user ${redemption.userId}`);
+              console.log(`[Claim] Generated magic link for user`);
               // This link will hit /api/auth/callback (Supabase default) then redirect to our destination
               return NextResponse.redirect(linkData.properties.action_link);
             }
@@ -171,7 +171,7 @@ export async function GET(
         }
       }
 
-      console.log(`[Claim] Redirecting to trip view (no auto-auth): ${baseUrl}${destination}`);
+      console.log(`[Claim] Redirecting to trip view (no auto-auth)`);
       return NextResponse.redirect(`${baseUrl}${destination}`);
     }
 
@@ -179,7 +179,7 @@ export async function GET(
       // For password reset, redirect to reset page
       // The reset page will use the Supabase session
       const destination = `${baseUrl}/login/reset-password?verified=true`;
-      console.log(`[Claim] Redirecting to password reset: ${destination}`);
+      console.log(`[Claim] Redirecting to password reset`);
       return NextResponse.redirect(destination);
     }
 

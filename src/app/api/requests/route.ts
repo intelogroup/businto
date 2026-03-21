@@ -474,7 +474,7 @@ export async function POST(request: NextRequest) {
               operator.company_email
             );
 
-            console.log(`[API/Requests] Generated claimLink for ${operator.company_email}: ${claimLink}`);
+            console.log(`[API/Requests] Generated claimLink for operator ${operator.id}`);
 
             const emailResult = await sendEmail({
               to: operator.company_email,
@@ -538,11 +538,11 @@ export async function POST(request: NextRequest) {
                 }
               });
             } else {
-              console.log(`ℹ️ Skipping in-app notification for ${operator.company_name} (no profile_id)`);
+              console.log(`ℹ️ Skipping in-app notification for operator ${operator.id} (no profile_id)`);
             }
 
             if (IS_DEV_PERF) console.log(`  [perf] operator ${operator.company_name} email+notification: ${Date.now() - opStart}ms`);
-            console.log(`✓ Notified operator via email: ${operator.company_name} (Partner: ${operator.is_partner})`)
+            console.log(`✓ Notified operator ${operator.id} via email (Partner: ${operator.is_partner})`)
 
             // SMS Notification (Fire and forget)
             if (operator.company_phone) {

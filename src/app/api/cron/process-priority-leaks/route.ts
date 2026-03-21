@@ -67,7 +67,7 @@ export async function GET(req: Request) {
                 for (const operator of freeOperators) {
                     try {
                         const claimLink = await generateOperatorQuoteLink(request.id, operator.id, operator.company_email);
-                        console.log(`[Cron/Leaks] Generated claimLink for ${operator.company_email}: ${claimLink}`);
+                        console.log(`[Cron/Leaks] Generated claimLink for operator ${operator.id}`);
 
                         const emailResult = await sendEmail({
                             to: operator.company_email,
