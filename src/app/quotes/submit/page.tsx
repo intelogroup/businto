@@ -77,8 +77,6 @@ function SubmitQuoteContent() {
 
   useEffect(() => {
     async function init() {
-      console.log('🔍 Quote Submit Page - Initializing...');
-      
       // Early log for tracking link clicks
       fetch('/api/logs', {
         method: 'POST',
@@ -95,18 +93,13 @@ function SubmitQuoteContent() {
         })
       }).catch(e => console.error('Failed to log page load start', e));
 
-      console.log('📋 Request ID:', requestId);
-      console.log('🔑 Access Token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'MISSING');
-
       if (!accessToken) {
-        console.error('❌ No access token provided');
         setError("Access token required. Please use the link from your email.");
         setLoading(false);
         logClientError("Missing token in URL", { request_id: requestId });
         return;
       }
 
-      console.log('✅ AccessToken present. Fetching request details...');
 
       // Fetch sanitized request details via operator view API with token
       // This endpoint only returns safe fields, no PII
@@ -119,16 +112,11 @@ function SubmitQuoteContent() {
           ? apiUrl.split('token=')[0] + 'token=[REDACTED]' 
           : apiUrl;
           
-        console.log('🌐 Fetching from:', sanitizedUrl);
-
         const response = await fetch(apiUrl);
-        console.log('📡 Response status:', response.status, response.statusText);
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('❌ API Error Response:', errorText);
-          
-          await logClientError("API Fetch Failed", { 
+          await logClientError("API Fetch Failed", {
             status: response.status, 
             statusText: response.statusText,
             errorText,
@@ -136,15 +124,12 @@ function SubmitQuoteContent() {
           });
 
           if (response.status === 401) {
-            console.error('🔒 Authentication failed - invalid or expired token');
             setError("Invalid or expired access token. Please use the link from your email.");
             logClientError("Invalid/Expired Token", { status: 401, errorText });
           } else if (response.status === 429) {
-            console.error('⏱️ Rate limit exceeded');
             setError("Rate limit exceeded. Please try again later.");
             logClientError("Rate Limited", { status: 429 });
           } else {
-            console.error(`🚫 Request failed with status ${response.status}`);
             setError(`Request not found (${response.status})`);
             logClientError("Upstream API Error", { status: response.status, errorText });
           }
@@ -153,13 +138,6 @@ function SubmitQuoteContent() {
         }
 
         const requestData = await response.json();
-        console.log('✅ Request data loaded:', {
-          id: requestData.id,
-          service_type: requestData.service_type,
-          pickup: requestData.pickup_fuzzy,
-          dropoff: requestData.dropoff_fuzzy,
-          operator_id: requestData.operator_id
-        });
         setRequest(requestData);
         // Explicitly set to null if not present to avoid 'undefined' issues
         setOperatorId(requestData.operator_id || null);
@@ -195,10 +173,8 @@ function SubmitQuoteContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📤 Quote submission initiated');
 
     if (!request) {
-      console.error('❌ No request data available');
       logClientError("Submission Attempted Without Request Data");
       return;
     }
@@ -218,7 +194,6 @@ function SubmitQuoteContent() {
     const validation = quoteSchema.safeParse(quotePayload);
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message || "Invalid quote data";
-      console.error('❌ Quote validation failed:', validation.error.format());
       setError(firstError);
       setSubmitting(false);
       logClientError("Quote Validation Failed", { errors: validation.error.format() });
@@ -284,17 +259,12 @@ function SubmitQuoteContent() {
   const handleWithdraw = async () => {
     if (!request) return;
 
-    try {
-      // For MVP without auth, we can't reliably identify which quote to withdraw
-      // This feature would require auth or a unique withdrawal token
-      console.log("Withdraw feature requires authentication");
-      setSubmitted(false);
-      setPrice("");
-      setVehicleType("");
-      setMessage("");
-    } catch (err) {
-      console.error("Failed to withdraw quote:", err);
-    }
+    // Reset local form state so operator can re-submit a revised quote.
+    // Server-side withdrawal requires auth (future feature).
+    setSubmitted(false);
+    setPrice("");
+    setVehicleType("");
+    setMessage("");
   };
 
   if (loading) {
