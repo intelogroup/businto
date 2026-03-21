@@ -37,12 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         let isMounted = true;
 
-        console.log("[Auth] Setting up auth state listener...");
-
         // Use onAuthStateChange as the single source of truth for session state.
         // It fires immediately with the current session upon subscription.
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
-            console.log("[Auth] onAuthStateChange event:", event, "session:", !!nextSession);
 
             if (!isMounted) return;
 
@@ -53,13 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 mapSupabaseUser(nextSession.user, supabase)
                     .then((mapped) => {
                         if (isMounted) {
-                            console.log("[Auth] User mapping successful, id:", mapped.id);
                             setUser(mapped);
                             setIsLoading(false);
                         }
                     })
-                    .catch((err) => {
-                        console.error("[Auth] Error mapping user:", err);
+                    .catch(() => {
                         if (isMounted) {
                             setUser(null);
                             setIsLoading(false);
@@ -74,7 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fallback safety: ensure loading stops even if listener hangs (unlikely with Supabase v2)
         const timeout = setTimeout(() => {
             if (isMounted && isLoading) {
-                console.log("[Auth] Loading timeout reached, force-stopping loading state");
                 setIsLoading(false);
             }
         }, 5000);
@@ -87,29 +81,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const login = async (email: string, password?: string, redirectTo?: string) => {
-        console.log("[Auth] login method called for:", email, "with password:", !!password);
-        // We don't set isLoading(true) here because onAuthStateChange will handle it 
+        // We don't set isLoading(true) here because onAuthStateChange will handle it
         // if a session is successfully created.
-        try {
-            if (password && password.trim().length > 0) {
-                console.log("[Auth] Executing signInWithPassword...");
-                const result = await signInWithPassword(email, password, supabase);
-                console.log("[Auth] signInWithPassword result user:", !!result.user);
-                // State will be updated by onAuthStateChange listener
-                return { mode: "password" as const };
-            }
-
-            console.log("[Auth] Executing sendMagicLink...");
-            await sendMagicLink(email, redirectTo, supabase);
-            return { mode: "magic_link" as const };
-        } catch (err) {
-            console.error("[Auth] login method error:", err);
-            throw err;
+        if (password && password.trim().length > 0) {
+            const result = await signInWithPassword(email, password, supabase);
+            // State will be updated by onAuthStateChange listener
+            return { mode: "password" as const };
         }
+
+        await sendMagicLink(email, redirectTo, supabase);
+        return { mode: "magic_link" as const };
     };
 
     const signup = async (email: string, password: string, fullName: string) => {
-        console.log("[Auth] Signup attempt for:", email);
         // State will be updated by onAuthStateChange listener if successful
         await registerUser(email, password, fullName, supabase);
     };
@@ -117,11 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = async () => {
         setIsLoading(true);
         try {
-            console.log('[Auth] Initiating sign-out...');
             await signOutUser();
-            console.log('[Auth] Sign-out completed');
         } catch (err) {
-            console.error('[Auth] Logout error:', err);
         } finally {
             setSession(null);
             setUser(null);
