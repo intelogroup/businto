@@ -19,7 +19,12 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    await logEvent({
+      event_type: 'webhook.signature_failed',
+      status: 'error',
+      actor_type: 'system',
+      message: err.message,
+    });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -31,7 +36,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (processedEvent) {
-    console.log(`Event ${event.id} already processed, skipping`);
+    // Duplicate event — already processed (idempotency)
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -45,7 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
   if (webhookError) {
-    console.error('Failed to record webhook event:', webhookError);
+    // DB error already logged via logEvent below
     await logEvent({
       event_type: 'webhook.db_error',
       status: 'error',
@@ -124,7 +129,7 @@ export async function POST(request: NextRequest) {
                   appBaseUrl
                 })
               });
-              console.log(`[PII Reveal] Contact info sent to operator for booking ${bookingId}`);
+              // PII reveal success logged via logEvent below
               await logEvent({
                 event_type: 'booking.pii_reveal.success',
                 actor_type: 'system',
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
                 metadata: { to: tripData.operator.company_email }
               });
             } catch (emailErr) {
-              console.error('[PII Reveal] Failed to send operator details:', emailErr);
+              // PII reveal failure logged via logEvent below
               await logEvent({
                 event_type: 'booking.pii_reveal.failed',
                 status: 'error',

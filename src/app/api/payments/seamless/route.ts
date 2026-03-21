@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logEvent } from '@/lib/event-logger';
 
 const ROUTING_FEE_CENTS = 199; // $1.99
 
@@ -123,7 +124,14 @@ export async function POST(request: NextRequest) {
                 }
             }
             // Any other Stripe error (declined, insufficient funds, expired, etc.)
-            console.error('[seamless] Stripe error:', stripeErr.code, stripeErr.message);
+            await logEvent({
+                event_type: 'payment.seamless.stripe_error',
+                status: 'error',
+                actor_type: 'user',
+                actor_id: user?.id,
+                booking_id: bookingId,
+                message: `${stripeErr.code}: ${stripeErr.message}`,
+            });
             return NextResponse.json({
                 status: 'requires_payment_method',
                 error: stripeErr.code ?? 'stripe_error',
@@ -156,7 +164,12 @@ export async function POST(request: NextRequest) {
                 });
         }
     } catch (error: any) {
-        console.error('[seamless] Unexpected error:', error);
+        await logEvent({
+            event_type: 'payment.seamless.error',
+            status: 'error',
+            actor_type: 'system',
+            message: error.message || 'Unexpected seamless payment error',
+        });
         return NextResponse.json(
             { error: error.message || 'Unexpected error' },
             { status: 500 }
