@@ -26,7 +26,7 @@ function LoginContent() {
     // PERSISTENCE GUARD: If already logged in, skip the login page entirely
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            console.log("[Login Page] User already authenticated, redirecting to:", redirect || "/dashboard");
+            // User already authenticated, redirect
             router.replace(redirect || "/dashboard");
         }
     }, [isAuthenticated, isLoading, router, redirect]);
@@ -42,12 +42,9 @@ function LoginContent() {
         setIsSubmitting(true);
         setErrorMsg(null);
         try {
-            console.log("[Login Page] Form submitted for:", email);
             const result = await login(email, password, redirect || undefined);
-            console.log("[Login Page] Login result:", result);
 
             if (result.mode === "password") {
-                console.log("[Login Page] Password login successful, redirecting to:", redirect || "/dashboard");
                 router.push(redirect || "/dashboard");
             } else {
                 toast.success("Check your email for a secure sign-in link.");

@@ -92,8 +92,6 @@ function TripViewContent() {
         if (authLoading) return;
         
         setLoading(true);
-        console.log("[TripView] Fetching data, hasToken:", !!token);
-
         const supabase = createClient();
         
         // 1. Standard Fetch (if ID exists)

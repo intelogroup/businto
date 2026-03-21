@@ -96,8 +96,6 @@ function TripDetailContent() {
         if (authLoading) return;
 
         setLoading(true);
-        console.log("[TripDetail] Fetching data, auth state:", { hasUser: !!user });
-
         // Log page open
         fetch('/api/logs', {
             method: 'POST',
@@ -119,7 +117,6 @@ function TripDetailContent() {
         // 1. If we have a user OR no token, try fetching via standard client (RLS)
         if (user || !token) {
             try {
-                console.log("[TripDetail] Attempting standard fetch...");
                 const { data: tripData, error: tripError } = await supabase
                     .from('transport_requests')
                     .select('*')
@@ -169,7 +166,7 @@ function TripDetailContent() {
                     }
                 }
             } catch (err) {
-                console.log('Standard fetch failed, will try token if available');
+                // Standard fetch failed, will try token if available
                 logClientError("Standard Fetch Exception", { error: err instanceof Error ? err.message : err });
             }
         }
