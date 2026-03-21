@@ -4,6 +4,18 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Businto – Intelligent Dispatch for Private Transport",
   description: "Route your transportation requests to 50+ local operators instantly. School routes, elderly care, private charters.",
+  openGraph: {
+    title: "Businto – Intelligent Dispatch for Private Transport",
+    description: "Route your transportation requests to 50+ local operators instantly. School routes, elderly care, private charters.",
+    url: "https://businto.com",
+    siteName: "Businto",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Businto – Intelligent Dispatch for Private Transport",
+    description: "Route your transportation requests to 50+ local operators instantly.",
+  },
 };
 
 import { Footer } from "@/components/footer";
