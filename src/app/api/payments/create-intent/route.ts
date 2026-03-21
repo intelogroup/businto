@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { logEvent } from '@/lib/event-logger';
 
 // Platform routing fee - this is what we charge requesters to connect them with operators
 // Operators are paid separately outside the platform
@@ -8,6 +11,24 @@ const ROUTING_FEE = 1.99;
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Auth gate ───────────────────────────────────────────────────────
+    const cookieStore = await cookies();
+    const supabaseUser = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: () => { /* read-only in route handler */ },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { bookingId, currency = 'usd' } = await request.json();
 
     if (!bookingId) {
@@ -17,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get booking details
+    // Get booking details (ownership check: user must own the booking)
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .select(`
@@ -26,6 +47,7 @@ export async function POST(request: NextRequest) {
         operator:profiles!bookings_operator_id_fkey (company_name)
       `)
       .eq('id', bookingId)
+      .eq('user_id', user.id)
       .single();
 
     if (bookingError || !booking) {
@@ -63,7 +85,13 @@ export async function POST(request: NextRequest) {
       operatorQuote: booking.amount
     });
   } catch (error: any) {
-    console.error('Error creating payment intent:', error);
+    await logEvent({
+      event_type: 'payment.create_intent.error',
+      status: 'error',
+      actor_type: 'user',
+      actor_id: user?.id,
+      message: error.message || 'Failed to create payment intent',
+    });
     return NextResponse.json(
       { error: error.message || 'Failed to create payment intent' },
       { status: 500 }

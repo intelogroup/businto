@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { logEvent } from '@/lib/event-logger';
 
 /**
  * Refund Policy:
@@ -12,6 +15,24 @@ import { supabaseAdmin as supabase } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Auth gate ───────────────────────────────────────────────────────
+    const cookieStore = await cookies();
+    const supabaseUser = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: () => { /* read-only in route handler */ },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { bookingId, reason = 'No operator response' } = await request.json();
 
     if (!bookingId) {
@@ -21,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get booking with quotes
+    // Get booking with quotes (ownership check: user must own the booking)
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .select(`
@@ -33,6 +54,7 @@ export async function POST(request: NextRequest) {
         )
       `)
       .eq('id', bookingId)
+      .eq('user_id', user.id)
       .single();
 
     if (bookingError || !booking) {
@@ -128,7 +150,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error processing refund:', error);
+    await logEvent({
+      event_type: 'payment.refund.error',
+      status: 'error',
+      actor_type: 'system',
+      message: error.message || 'Failed to process refund',
+    });
 
     // Handle duplicate refund attempts
     if (error.type === 'StripeInvalidRequestError' && error.message?.includes('already been refunded')) {

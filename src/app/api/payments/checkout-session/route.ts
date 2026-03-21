@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { getAppBaseUrl } from '@/lib/email';
+import { logEvent } from '@/lib/event-logger';
 
 export async function POST(request: NextRequest) {
     try {
+        // ── Auth gate ───────────────────────────────────────────────────────
+        const cookieStore = await cookies();
+        const supabaseUser = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll: () => cookieStore.getAll(),
+                    setAll: () => { /* read-only in route handler */ },
+                },
+            }
+        );
+
+        const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { requestId } = await request.json();
 
         if (!requestId) {
@@ -14,7 +35,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get request details
+        // Get request details (ownership check: user must own the request)
         const { data: transportRequest, error: requestError } = await supabase
             .from('transport_requests')
             .select(`
@@ -22,6 +43,7 @@ export async function POST(request: NextRequest) {
         user:profiles!transport_requests_user_id_fkey (email, full_name)
       `)
             .eq('id', requestId)
+            .eq('user_id', user.id)
             .single();
 
         if (requestError || !transportRequest) {
@@ -61,7 +83,13 @@ export async function POST(request: NextRequest) {
             sessionId: session.id
         });
     } catch (error: any) {
-        console.error('Error creating checkout session:', error);
+        await logEvent({
+            event_type: 'payment.checkout_session.error',
+            status: 'error',
+            actor_type: 'user',
+            actor_id: user?.id,
+            message: error.message || 'Failed to create checkout session',
+        });
         return NextResponse.json(
             { error: error.message || 'Failed to create payment session' },
             { status: 500 }
