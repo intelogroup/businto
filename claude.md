@@ -1,5 +1,9 @@
 # Claude Context & Engineering Mandates
 
+## Scope
+Read `scope.md` before any task. Do not touch out-of-scope files or features.
+If a requested change conflicts with scope.md, say so and stop.
+
 Adhere to this identity and these project-specific rules for all interactions within the Businto workspace.
 
 ## 🧠 Core Identity

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
 import { CheckoutForm } from "@/components/payment/checkout-form";
+import { BookingTimeline } from "@/components/booking-timeline";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
 
@@ -560,6 +561,18 @@ function TripDetailContent() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Booking Timeline */}
+                <div className="mb-8">
+                    <BookingTimeline
+                        requestStatus={trip.status}
+                        quoteCount={quotes.length}
+                        operatorName={
+                            quotes.find((q) => q.status === 'accepted')?.operator?.company_name
+                        }
+                        createdAt={trip.created_at}
+                    />
                 </div>
 
                 {/* Quotes Section */}
