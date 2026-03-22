@@ -125,8 +125,7 @@ export async function POST(request: NextRequest) {
         await logEvent({
             event_type: 'payment.booking_checkout.error',
             status: 'error',
-            actor_type: 'user',
-            actor_id: user?.id,
+            actor_type: 'system',
             message: error.message || 'Failed to create checkout session',
         });
         return NextResponse.json(

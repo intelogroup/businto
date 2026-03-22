@@ -88,8 +88,7 @@ export async function POST(request: NextRequest) {
     await logEvent({
       event_type: 'payment.create_intent.error',
       status: 'error',
-      actor_type: 'user',
-      actor_id: user?.id,
+      actor_type: 'system',
       message: error.message || 'Failed to create payment intent',
     });
     return NextResponse.json(

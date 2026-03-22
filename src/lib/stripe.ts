@@ -1,12 +1,20 @@
 import Stripe from 'stripe';
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is not set');
-}
+let _stripe: Stripe | null = null;
 
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2025-12-15.clover' as Stripe.LatestApiVersion,
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    if (!_stripe) {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+      }
+      _stripe = new Stripe(stripeSecretKey, {
+        apiVersion: '2025-12-15.clover' as Stripe.LatestApiVersion,
+      });
+    }
+    return (_stripe as any)[prop];
+  },
 });
 
 export const getStripePublishableKey = () => {

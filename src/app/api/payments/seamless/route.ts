@@ -127,8 +127,7 @@ export async function POST(request: NextRequest) {
             await logEvent({
                 event_type: 'payment.seamless.stripe_error',
                 status: 'error',
-                actor_type: 'user',
-                actor_id: user?.id,
+                actor_type: 'system',
                 booking_id: bookingId,
                 message: `${stripeErr.code}: ${stripeErr.message}`,
             });
