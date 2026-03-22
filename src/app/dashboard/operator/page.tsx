@@ -22,6 +22,9 @@ import {
   Star,
   TrendingUp,
   AlertCircle,
+  ArrowRight,
+  ClipboardList,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +140,10 @@ function OperatorDashboardContent() {
   const [data, setData] = useState<OperatorDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [profileComplete, setProfileComplete] = useState(true);
+  const [profileCompletedSteps, setProfileCompletedSteps] = useState(0);
+  const [profileTotalSteps, setProfileTotalSteps] = useState(0);
 
   useEffect(() => {
     if (authLoading) return;
@@ -150,7 +157,35 @@ function OperatorDashboardContent() {
       return;
     }
     fetchDashboard();
+    fetchPendingRequests();
+    fetchProfileStatus();
   }, [user, authLoading]);
+
+  const fetchPendingRequests = async () => {
+    try {
+      const res = await fetch("/api/operator/pending-requests");
+      if (res.ok) {
+        const data = await res.json();
+        setPendingRequests(data.requests || []);
+      }
+    } catch {
+      // Non-blocking — dashboard still loads
+    }
+  };
+
+  const fetchProfileStatus = async () => {
+    try {
+      const res = await fetch("/api/operator/profile");
+      if (res.ok) {
+        const data = await res.json();
+        setProfileComplete(data.isProfileComplete);
+        setProfileCompletedSteps(data.completedSteps);
+        setProfileTotalSteps(data.totalSteps);
+      }
+    } catch {
+      // Non-blocking
+    }
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -230,10 +265,46 @@ function OperatorDashboardContent() {
               )}
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchDashboard} className="h-9 rounded-md">
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {!profileComplete && (
+              <Button
+                size="sm"
+                onClick={() => router.push("/operator/onboarding")}
+                className="h-9 rounded-md bg-neutral-900 hover:bg-neutral-700 text-white"
+              >
+                <UserCog className="h-4 w-4 mr-1.5" />
+                Complete Profile
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={fetchDashboard} className="h-9 rounded-md">
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {/* Profile completion banner */}
+        {!profileComplete && (
+          <div className="mb-6 border border-amber-200 bg-amber-50 rounded-lg px-5 py-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900">
+                Your operator profile is incomplete ({profileCompletedSteps}/{profileTotalSteps} steps done)
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Complete your profile to start receiving matched transport requests.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push("/operator/onboarding")}
+              className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
+            >
+              Complete Now
+              <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            </Button>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -305,8 +376,12 @@ function OperatorDashboardContent() {
         </div>
 
         {/* Tabs: Active Bookings / Quote History */}
-        <Tabs defaultValue="active" className="w-full">
+        <Tabs defaultValue={pendingRequests.length > 0 ? "requests" : "active"} className="w-full">
           <TabsList className="mb-6 bg-white p-1 border border-neutral-200 shadow-sm rounded-md">
+            <TabsTrigger value="requests" className="text-sm font-medium rounded px-6">
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+              Open Requests ({pendingRequests.length})
+            </TabsTrigger>
             <TabsTrigger value="active" className="text-sm font-medium rounded px-6">
               Active Trips ({activeBookings.length})
             </TabsTrigger>
@@ -317,6 +392,69 @@ function OperatorDashboardContent() {
               Past Trips ({pastBookings.length})
             </TabsTrigger>
           </TabsList>
+
+          {/* Open Requests — requests the operator can quote on */}
+          <TabsContent value="requests">
+            {pendingRequests.length === 0 ? (
+              <Card className="border-dashed border-2 bg-white shadow-none rounded-lg">
+                <CardContent className="flex flex-col items-center justify-center py-20">
+                  <div className="w-12 h-12 rounded bg-white flex items-center justify-center mb-4">
+                    <ClipboardList className="h-6 w-6 text-neutral-400" />
+                  </div>
+                  <h3 className="font-semibold text-neutral-900 mb-1">No Open Requests</h3>
+                  <p className="text-neutral-500 text-sm text-center max-w-sm">
+                    There are no transport requests available for quoting right now. Check back soon.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {pendingRequests.map((req: any) => (
+                  <Card
+                    key={req.id}
+                    className="shadow-sm border-neutral-200 rounded-lg bg-white hover:border-neutral-300 transition-colors"
+                  >
+                    <CardContent className="p-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          {getServiceIcon(req.service_type)}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-neutral-900 capitalize">
+                                {req.service_type} Transport
+                              </span>
+                              <Badge className="bg-green-100 text-green-700 border-green-200 shadow-none text-[10px] font-bold h-5 px-1.5 uppercase">
+                                Open
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-neutral-500">
+                              <span className="truncate max-w-[180px]">{req.pickup_fuzzy}</span>
+                              <span className="text-neutral-300">&rarr;</span>
+                              <span className="truncate max-w-[180px]">{req.dropoff_fuzzy}</span>
+                            </div>
+                            <p className="text-[10px] text-neutral-400 mt-1">
+                              {req.start_date && new Date(req.start_date).toLocaleDateString("en-US", {
+                                month: "short", day: "numeric", year: "numeric",
+                              })}
+                              {req.start_time && ` at ${req.start_time}`}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => router.push(`/operator/requests/${req.id}/quote`)}
+                          className="shrink-0 bg-neutral-900 hover:bg-neutral-700 text-white h-9"
+                        >
+                          Submit Quote
+                          <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           {/* Active Bookings */}
           <TabsContent value="active">

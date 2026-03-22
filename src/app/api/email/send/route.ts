@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import { requireUser } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Require authentication — prevents unauthenticated email sending abuse.
+    // This route is only used by the test-email page, but was previously open to anyone.
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     // Support both formats: {type, to, data} and {type, data: {userEmail, ...}}

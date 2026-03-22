@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, DollarSign, User } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
@@ -23,6 +23,15 @@ type TransportRequest = {
   metadata: Record<string, any>;
   metadata_safe?: Record<string, any>;
   quotes?: { count: number }[];
+  // Joined booking data for trip history
+  bookings?: {
+    id: string;
+    status: string;
+    total_cost: number | null;
+    operator: {
+      company_name: string;
+    } | null;
+  }[];
 };
 
 const SERVICE_CONFIG = {
@@ -42,7 +51,16 @@ export default function TripsPage() {
     try {
       let query = supabase
         .from('transport_requests')
-        .select('*, quotes(count)')
+        .select(`
+          *,
+          quotes(count),
+          bookings(
+            id,
+            status,
+            total_cost,
+            operator:operators!bookings_operator_id_fkey(company_name)
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
@@ -144,6 +162,24 @@ export default function TripsPage() {
                     <p className="text-sm text-neutral-500 line-clamp-1">{trip.dropoff_address}</p>
                   )}
                 </div>
+
+                {/* Operator + Cost (when booked) */}
+                {trip.bookings?.[0] && (
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    {trip.bookings[0].operator?.company_name && (
+                      <span className="flex items-center gap-1 text-neutral-600 truncate">
+                        <User className="h-3 w-3 shrink-0 text-neutral-400" />
+                        {trip.bookings[0].operator.company_name}
+                      </span>
+                    )}
+                    {trip.bookings[0].total_cost != null && (
+                      <span className="flex items-center gap-0.5 font-semibold text-neutral-900 shrink-0">
+                        <DollarSign className="h-3 w-3 text-neutral-400" />
+                        {trip.bookings[0].total_cost.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Footer */}
                 <p className="text-xs text-neutral-400 pt-3 border-t border-neutral-100">

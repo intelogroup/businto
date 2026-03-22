@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Calendar, Clock, RefreshCw, Loader2, Bus, Heart, Plane, ChevronLeft, CheckCircle2, CreditCard, X } from "lucide-react";
+import { MapPin, Calendar, Clock, RefreshCw, Loader2, Bus, Heart, Plane, ChevronLeft, CheckCircle2, CreditCard, X, Star } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { QuoteCard } from "@/components/quote-card";
 import { CheckoutForm } from "@/components/payment/checkout-form";
 import { BookingTimeline } from "@/components/booking-timeline";
+import { ReviewForm } from "@/components/reviews/review-form";
+import { ReviewCard } from "@/components/reviews/review-card";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
 
@@ -69,6 +71,10 @@ function TripDetailContent() {
     const [seamlessClientSecret, setSeamlessClientSecret] = useState<string | null>(null);
     const [seamlessBookingId, setSeamlessBookingId] = useState<string | null>(null);
     const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
+    // Review state
+    const [booking, setBooking] = useState<{ id: string; operator_id: string; status: string } | null>(null);
+    const [existingReview, setExistingReview] = useState<any>(null);
+    const [showReviewForm, setShowReviewForm] = useState(false);
 
     const logClientError = async (message: string, metadata: any = {}) => {
         try {
@@ -162,6 +168,28 @@ function TripDetailContent() {
                         logClientError("Supabase Quotes Fetch Error", { error: quotesError });
                     } else {
                         setQuotes(quotesData || []);
+
+                        // Fetch booking + review for completed/booked trips
+                        if (user && ['completed', 'booked', 'quote_accepted'].includes(tripData.status)) {
+                            const { data: bookingData } = await supabase
+                                .from('bookings')
+                                .select('id, operator_id, status')
+                                .eq('request_id', id)
+                                .eq('user_id', user.id)
+                                .maybeSingle();
+                            if (bookingData) {
+                                setBooking(bookingData);
+                                // Check for existing review
+                                const { data: reviewData } = await supabase
+                                    .from('reviews')
+                                    .select('*, user:profiles!reviews_user_id_fkey (full_name, avatar_url)')
+                                    .eq('booking_id', bookingData.id)
+                                    .eq('user_id', user.id)
+                                    .maybeSingle();
+                                if (reviewData) setExistingReview(reviewData);
+                            }
+                        }
+
                         setLoading(false);
                         return; // Successfully loaded via session
                     }
@@ -630,6 +658,45 @@ function TripDetailContent() {
                         </div>
                     )}
                 </div>
+
+                {/* ── Review Section (completed trips only) ────────────────────── */}
+                {user && booking && ['completed', 'booked', 'quote_accepted'].includes(trip.status) && (
+                    <div className="mb-8">
+                        <h2 className="text-xl font-semibold text-neutral-900 mb-6">Your Review</h2>
+
+                        {existingReview ? (
+                            <ReviewCard review={existingReview} showUser={false} />
+                        ) : showReviewForm ? (
+                            <Card className="p-6 bg-white border border-neutral-200 shadow-sm rounded-lg">
+                                <ReviewForm
+                                    bookingId={booking.id}
+                                    operatorId={booking.operator_id}
+                                    operatorName={
+                                        quotes.find(q => q.status === 'accepted')?.operator?.company_name || 'Your Operator'
+                                    }
+                                    userId={user.id}
+                                    onSuccess={() => {
+                                        setShowReviewForm(false);
+                                        fetchData(); // Refresh to show the submitted review
+                                    }}
+                                    onCancel={() => setShowReviewForm(false)}
+                                />
+                            </Card>
+                        ) : (
+                            <Card className="p-8 text-center bg-white border border-neutral-200 shadow-sm rounded-lg">
+                                <Star className="h-8 w-8 text-amber-400 mx-auto mb-3" />
+                                <h3 className="text-lg font-semibold text-neutral-900 mb-1">How was your trip?</h3>
+                                <p className="text-sm text-neutral-500 mb-4">Rate your experience to help other travelers.</p>
+                                <Button
+                                    onClick={() => setShowReviewForm(true)}
+                                    className="bg-neutral-900 hover:bg-black text-white"
+                                >
+                                    Write a Review
+                                </Button>
+                            </Card>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

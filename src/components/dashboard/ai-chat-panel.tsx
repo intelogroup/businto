@@ -46,21 +46,31 @@ const MOCK_WIDGET = (
     </div>
 );
 
+/**
+ * Renders simple markdown (bold + lists) using safe React elements.
+ * Previously used innerHTML which could allow XSS from AI output.
+ */
 function renderMarkdown(text: string) {
     const lines = text.split('\n');
+
+    /** Split a line into text and <strong> segments safely. */
+    const renderBold = (line: string) => {
+        const parts = line.split(/\*\*(.+?)\*\*/g);
+        return parts.map((part, j) =>
+            j % 2 === 1 ? <strong key={j}>{part}</strong> : <span key={j}>{part}</span>
+        );
+    };
+
     return lines.map((line, i) => {
-        const bolded = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         if (/^[-*]\s/.test(line)) {
             return (
-                <li
-                    key={i}
-                    className="ml-4 list-disc"
-                    dangerouslySetInnerHTML={{ __html: bolded.replace(/^[-*]\s/, '') }}
-                />
+                <li key={i} className="ml-4 list-disc">
+                    {renderBold(line.replace(/^[-*]\s/, ''))}
+                </li>
             );
         }
-        return bolded ? (
-            <p key={i} className="mb-0.5 last:mb-0" dangerouslySetInnerHTML={{ __html: bolded }} />
+        return line.trim() ? (
+            <p key={i} className="mb-0.5 last:mb-0">{renderBold(line)}</p>
         ) : <br key={i} />;
     });
 }
