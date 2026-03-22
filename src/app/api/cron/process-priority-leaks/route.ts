@@ -14,10 +14,7 @@ export async function GET(req: Request) {
         // SECURITY: Require the cron secret whenever it is configured, regardless of
         // environment. The old check (VERCEL_ENV === 'production' &&) made this a no-op
         // in dev/staging, leaving the endpoint publicly accessible.
-        if (
-            process.env.VERCEL_CRON_SECRET &&
-            authHeader !== `Bearer ${process.env.VERCEL_CRON_SECRET}`
-        ) {
+        if (authHeader !== `Bearer ${process.env.VERCEL_CRON_SECRET}`) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
