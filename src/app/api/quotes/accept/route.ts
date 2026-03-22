@@ -118,6 +118,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     }
 
+    // QUOTE EXPIRY: Prevent accepting expired quotes
+    if (quote.expires_at && new Date(quote.expires_at) < new Date()) {
+      // Mark the quote as expired in DB if it isn't already
+      if (quote.status !== 'expired') {
+        await supabaseAdmin
+          .from('quotes')
+          .update({ status: 'expired' })
+          .eq('id', quoteId);
+      }
+      await logEvent({
+        event_type: 'quote.accept.expired',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Attempted to accept an expired quote',
+        metadata: { expires_at: quote.expires_at }
+      });
+      return NextResponse.json(
+        { error: 'This quote has expired and can no longer be accepted. Please request a new quote.' },
+        { status: 410 }
+      );
+    }
+
     // Get full transport request details including private fields + user profile in ONE query
     // PERF: Was two sequential DB queries (transport_requests then profiles) — merged to save ~130ms
     // SECURITY: This data is ONLY used server-side; it is NEVER returned in the HTTP response

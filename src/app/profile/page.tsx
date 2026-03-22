@@ -3,11 +3,18 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { useAuth } from "@/hooks/use-auth";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { Loader2, Save, CheckCircle } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -16,21 +23,71 @@ const ROLE_LABELS: Record<string, string> = {
   user: "Traveler",
 };
 
+const MOBILITY_OPTIONS = [
+  { value: "ambulatory", label: "Ambulatory (can walk)" },
+  { value: "wheelchair", label: "Wheelchair" },
+  { value: "manual-wheelchair", label: "Manual Wheelchair" },
+  { value: "electric-wheelchair", label: "Electric Wheelchair" },
+  { value: "stretcher", label: "Stretcher" },
+];
+
+const SERVICE_LEVEL_OPTIONS = [
+  { value: "curb-to-curb", label: "Curb to Curb" },
+  { value: "door-to-door", label: "Door to Door" },
+  { value: "door-through-door", label: "Door Through Door" },
+  { value: "hand-to-hand", label: "Hand to Hand" },
+];
+
+interface TransportPreferences {
+  default_mobility?: string;
+  default_service_level?: string;
+  oxygen_required?: boolean;
+  service_animal?: boolean;
+  attendant_needed?: boolean;
+  special_requirements?: string;
+}
+
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+
+  // Form state
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [preferences, setPreferences] = useState<TransportPreferences>({});
+
+  // UI state
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (user) setName(user.name);
-  }, [user]);
-
-  useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
   }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (user) fetchProfile();
+  }, [user]);
+
+  async function fetchProfile() {
+    try {
+      const res = await fetch("/api/customer/profile");
+      if (res.ok) {
+        const data = await res.json();
+        setName(data.profile.fullName || user?.name || "");
+        setPhone(data.profile.phone || "");
+        setPreferences(data.profile.transportPreferences || {});
+      } else {
+        // Fallback to auth user data
+        setName(user?.name || "");
+      }
+    } catch {
+      setName(user?.name || "");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -39,24 +96,42 @@ export default function ProfilePage() {
     setError("");
     setSaved(false);
 
-    const supabase = createClient();
-    const { error: err } = await supabase.auth.updateUser({
-      data: { full_name: name.trim() },
-    });
+    try {
+      const res = await fetch("/api/customer/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: name.trim(),
+          phone: phone.trim(),
+          transport_preferences: Object.keys(preferences).length > 0 ? preferences : null,
+        }),
+      });
 
-    if (err) {
-      setError(err.message);
-    } else {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      if (!res.ok) {
+        const errData = await res.json();
+        setError(errData.error || "Failed to save profile");
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch {
+      setError("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
-  if (isLoading || !user) {
+  function updatePreference(key: keyof TransportPreferences, value: any) {
+    setPreferences((prev) => ({ ...prev, [key]: value }));
+  }
+
+  if (isLoading || !user || loading) {
     return (
       <div className="min-h-screen bg-neutral-50">
         <Navbar />
+        <div className="flex items-center justify-center pt-32">
+          <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+        </div>
       </div>
     );
   }
@@ -67,56 +142,204 @@ export default function ProfilePage() {
       <div className="container mx-auto max-w-2xl px-6 pt-32 pb-24">
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-neutral-950 mb-1">Profile</h1>
-          <p className="text-sm text-neutral-500">Manage your personal information</p>
+          <p className="text-sm text-neutral-500">
+            Manage your personal information and transport preferences
+          </p>
         </div>
 
-        {/* Avatar + identity card */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
-          <div className="flex items-center gap-4 mb-6">
-            <img
-              src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
-              alt={user.name}
-              className="w-16 h-16 rounded-full border border-neutral-200 object-cover"
-            />
-            <div>
-              <p className="text-base font-semibold text-neutral-900">{user.name}</p>
-              <p className="text-sm text-neutral-500">{user.email}</p>
-              <span className="inline-block mt-1 text-xs font-medium bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">
-                {ROLE_LABELS[user.role] ?? user.role}
-              </span>
+        <form onSubmit={handleSave}>
+          {/* Identity Card */}
+          <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+            <div className="flex items-center gap-4 mb-6">
+              <img
+                src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                alt={user.name}
+                className="w-16 h-16 rounded-full border border-neutral-200 object-cover"
+              />
+              <div>
+                <p className="text-base font-semibold text-neutral-900">{user.name}</p>
+                <p className="text-sm text-neutral-500">{user.email}</p>
+                <span className="inline-block mt-1 text-xs font-medium bg-neutral-100 text-neutral-600 px-2 py-0.5 rounded-full">
+                  {ROLE_LABELS[user.role] ?? user.role}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm font-medium text-neutral-700">
+                  Display name
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="max-w-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">Email</Label>
+                <Input
+                  value={user.email}
+                  disabled
+                  className="max-w-sm bg-neutral-50 text-neutral-400"
+                />
+                <p className="text-xs text-neutral-400">Email cannot be changed here.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-sm font-medium text-neutral-700">
+                  Phone number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="max-w-sm"
+                />
+                <p className="text-xs text-neutral-400">
+                  Used for trip coordination with your operator.
+                </p>
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-medium text-neutral-700">
-                Display name
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-                className="max-w-sm"
-              />
-            </div>
+          {/* Medical Transport Preferences */}
+          <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+            <h2 className="text-base font-semibold text-neutral-900 mb-1">
+              Medical Transport Preferences
+            </h2>
+            <p className="text-xs text-neutral-500 mb-5">
+              Save your default preferences to pre-fill future medical transport requests.
+            </p>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-neutral-700">Email</Label>
-              <Input value={user.email} disabled className="max-w-sm bg-neutral-50 text-neutral-400" />
-              <p className="text-xs text-neutral-400">Email cannot be changed here.</p>
-            </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">
+                  Default mobility level
+                </Label>
+                <Select
+                  value={preferences.default_mobility || ""}
+                  onValueChange={(v) => updatePreference("default_mobility", v)}
+                >
+                  <SelectTrigger className="max-w-sm">
+                    <SelectValue placeholder="Select mobility level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOBILITY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">
+                  Default service level
+                </Label>
+                <Select
+                  value={preferences.default_service_level || ""}
+                  onValueChange={(v) => updatePreference("default_service_level", v)}
+                >
+                  <SelectTrigger className="max-w-sm">
+                    <SelectValue placeholder="Select service level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_LEVEL_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-center gap-3 pt-1">
-              <Button type="submit" disabled={saving || name.trim() === user.name} className="bg-neutral-950 text-white hover:bg-black">
-                {saving ? "Saving…" : "Save changes"}
-              </Button>
-              {saved && <span className="text-sm text-green-600 font-medium">Saved!</span>}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-neutral-700">
+                  Additional needs
+                </Label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preferences.oxygen_required || false}
+                      onChange={(e) => updatePreference("oxygen_required", e.target.checked)}
+                      className="rounded border-neutral-300"
+                    />
+                    Oxygen required
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preferences.service_animal || false}
+                      onChange={(e) => updatePreference("service_animal", e.target.checked)}
+                      className="rounded border-neutral-300"
+                    />
+                    Service animal
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={preferences.attendant_needed || false}
+                      onChange={(e) => updatePreference("attendant_needed", e.target.checked)}
+                      className="rounded border-neutral-300"
+                    />
+                    Attendant / companion needed
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="special-req" className="text-sm font-medium text-neutral-700">
+                  Special requirements
+                </Label>
+                <textarea
+                  id="special-req"
+                  value={preferences.special_requirements || ""}
+                  onChange={(e) => updatePreference("special_requirements", e.target.value)}
+                  placeholder="Any additional notes for your medical transport needs..."
+                  rows={3}
+                  className="w-full max-w-sm rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-1"
+                />
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          {/* Actions */}
+          {error && <p className="text-sm text-red-500 mb-3">{error}</p>}
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="submit"
+              disabled={saving || !name.trim()}
+              className="bg-neutral-950 text-white hover:bg-black"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1.5" />
+                  Save changes
+                </>
+              )}
+            </Button>
+            {saved && (
+              <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
+                <CheckCircle className="h-4 w-4" />
+                Saved!
+              </span>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   );

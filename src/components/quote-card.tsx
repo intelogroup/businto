@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Star, CheckCircle2, MessageSquare, Phone, Mail } from "lucide-react";
+import { Star, CheckCircle2, MessageSquare, Phone, Mail, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCountdown } from "@/hooks/use-countdown";
 
 interface QuoteCardProps {
   quote: Quote;
@@ -19,7 +20,8 @@ interface QuoteCardProps {
 export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: QuoteCardProps) {
   const isAccepted = quote.status === 'accepted';
   const isDeclined = quote.status === 'declined';
-  const isExpired  = quote.status === 'expired';
+  const countdown = useCountdown(quote.expiresAt);
+  const isExpired  = quote.status === 'expired' || countdown.isExpired;
 
   const certs = [
     quote.coriCertified        && 'CORI',
@@ -73,21 +75,48 @@ export function QuoteCard({ quote, isNew, onAccept, onDecline, onMessage }: Quot
           {quote.vehicleYear} {quote.vehicleType} · {quote.vehicleCapacity} passengers
         </p>
 
+        {/* Expiry countdown */}
+        {!isAccepted && !isDeclined && countdown.label && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <Timer className={cn(
+              "w-3 h-3",
+              countdown.urgency === 'critical' && "text-red-500",
+              countdown.urgency === 'warning' && "text-amber-500",
+              countdown.urgency === 'normal' && "text-neutral-400",
+              countdown.urgency === 'expired' && "text-red-500"
+            )} />
+            <span className={cn(
+              "text-xs font-medium",
+              countdown.urgency === 'critical' && "text-red-600",
+              countdown.urgency === 'warning' && "text-amber-600",
+              countdown.urgency === 'normal' && "text-neutral-500",
+              countdown.urgency === 'expired' && "text-red-600"
+            )}>
+              {countdown.isExpired ? 'Quote expired' : `Expires in ${countdown.label}`}
+            </span>
+          </div>
+        )}
+
         {/* Operator note */}
         {quote.operatorNote && (
           <p className="text-xs text-neutral-500 italic mt-2 line-clamp-2">"{quote.operatorNote}"</p>
         )}
 
         {/* Status badges */}
-        {(isNew || isAccepted) && (
+        {(isNew || isAccepted || isExpired) && (
           <div className="flex gap-2 mt-3">
-            {isNew && (
+            {isNew && !isExpired && (
               <Badge className="bg-sky-600 text-white text-[10px] h-5 px-1.5">New</Badge>
             )}
             {isAccepted && (
               <Badge className="bg-green-600 text-white text-[10px] h-5 px-1.5 flex items-center gap-1">
                 <CheckCircle2 className="w-2.5 h-2.5" />
                 Accepted
+              </Badge>
+            )}
+            {isExpired && !isAccepted && (
+              <Badge className="bg-red-100 text-red-700 text-[10px] h-5 px-1.5 font-semibold">
+                Expired
               </Badge>
             )}
           </div>
