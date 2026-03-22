@@ -18,9 +18,9 @@ Focus: complete both sides of the marketplace — customer AND operator journeys
 
 - [x] **Rating & review UI** — post-trip, customer rates operator (1–5 stars + comment); API exists, UI is missing
 - [x] **Customer trip history** — filterable list of past trips with status, operator, cost
-- [ ] **Operator earnings history** — accepted trips, payout per trip, total this month
+- [x] **Operator earnings history** — accepted trips, payout per trip, total this month
 - [ ] **In-app messaging** — customer ↔ operator chat on a trip (chat route exists; needs UI thread view)
-- [ ] **Customer profile page** — edit name, contact info, saved medical transport preferences
+- [x] **Customer profile page** — edit name, contact info, saved medical transport preferences
 - [ ] **Quote expiry countdown** — show timer on open quotes so customer knows urgency; prevent stale-quote acceptance
 - [ ] **Operator availability toggle** — operators can pause/resume receiving new requests
 

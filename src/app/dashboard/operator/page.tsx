@@ -276,6 +276,15 @@ function OperatorDashboardContent() {
                 Complete Profile
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/dashboard/operator/earnings")}
+              className="h-9 rounded-md"
+            >
+              <DollarSign className="h-4 w-4 mr-1.5" />
+              Earnings History
+            </Button>
             <Button variant="outline" size="sm" onClick={fetchDashboard} className="h-9 rounded-md">
               Refresh
             </Button>
