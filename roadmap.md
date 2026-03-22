@@ -22,7 +22,7 @@ Focus: complete both sides of the marketplace — customer AND operator journeys
 - [x] **In-app messaging** — customer ↔ operator chat on a trip (chat route exists; needs UI thread view)
 - [x] **Customer profile page** — edit name, contact info, saved medical transport preferences
 - [x] **Quote expiry countdown** — show timer on open quotes so customer knows urgency; prevent stale-quote acceptance
-- [ ] **Operator availability toggle** — operators can pause/resume receiving new requests
+- [x] **Operator availability toggle** — operators can pause/resume receiving new requests
 
 ---
 

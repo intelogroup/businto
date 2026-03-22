@@ -27,6 +27,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OperatorAvailabilityToggle } from "@/components/operator-availability-toggle";
 
 interface OperatorDashboardData {
   operator: {
@@ -314,6 +315,11 @@ function OperatorDashboardContent() {
             </Button>
           </div>
         )}
+
+        {/* Availability Toggle */}
+        <div className="mb-6">
+          <OperatorAvailabilityToggle />
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
