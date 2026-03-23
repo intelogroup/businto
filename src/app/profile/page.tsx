@@ -54,6 +54,7 @@ export default function ProfilePage() {
   // Form state
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [preferences, setPreferences] = useState<TransportPreferences>({});
 
   // UI state
@@ -77,6 +78,7 @@ export default function ProfilePage() {
         const data = await res.json();
         setName(data.profile.fullName || user?.name || "");
         setPhone(data.profile.phone || "");
+        setSmsOptIn(data.profile.smsOptIn ?? false);
         setPreferences(data.profile.transportPreferences || {});
       } else {
         // Fallback to auth user data
@@ -103,6 +105,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           full_name: name.trim(),
           phone: phone.trim(),
+          sms_opt_in: smsOptIn,
           transport_preferences: Object.keys(preferences).length > 0 ? preferences : null,
         }),
       });
@@ -206,6 +209,44 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* SMS Notifications */}
+          <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+            <h2 className="text-base font-semibold text-neutral-900 mb-1">
+              SMS Notifications
+            </h2>
+            <p className="text-xs text-neutral-500 mb-5">
+              Receive text messages for critical trip events: quote received, trip accepted, and 30-minute ETA alerts.
+            </p>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <div className="relative mt-0.5">
+                <input
+                  type="checkbox"
+                  id="sms-opt-in"
+                  checked={smsOptIn}
+                  onChange={(e) => setSmsOptIn(e.target.checked)}
+                  disabled={!phone.trim()}
+                  className="sr-only peer"
+                />
+                <div className={`w-10 h-6 rounded-full transition-colors duration-200 ${smsOptIn && phone.trim() ? 'bg-neutral-950' : 'bg-neutral-200'} peer-focus-visible:ring-2 peer-focus-visible:ring-neutral-950 peer-focus-visible:ring-offset-2`} />
+                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${smsOptIn && phone.trim() ? 'translate-x-4' : 'translate-x-0'}`} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-800">
+                  Opt in to SMS alerts
+                </p>
+                {!phone.trim() ? (
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    Add a phone number above to enable SMS notifications.
+                  </p>
+                ) : (
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Messages sent via Brevo to {phone}. Standard carrier rates may apply.
+                  </p>
+                )}
+              </div>
+            </label>
           </div>
 
           {/* Medical Transport Preferences */}

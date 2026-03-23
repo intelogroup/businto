@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { sendEmail, emailTemplates } from '@/lib/email';
 import { generateUserTripToken } from '@/lib/tokens';
 import { generateTripViewLink } from '@/lib/email-helpers';
+import { sendSMS, smsTemplates } from '@/lib/sms';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,10 +24,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user profile for email
+    // Fetch user profile for email and SMS opt-in status
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('email, full_name')
+      .select('email, full_name, phone, sms_opt_in')
       .eq('id', user.id)
       .single();
 
@@ -106,11 +107,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`[notify] ${emailType} notification sent for request ${tripRequestId}`);
+    // Send SMS if user has opted in and has a phone number
+    let smsSent = false;
+    if (profile.sms_opt_in && profile.phone) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://businto.com';
+      const smsPayload = smsTemplates.newRequestAlert({
+        serviceType: tripRequest.service_type || 'transport',
+        location: tripRequest.pickup_fuzzy || 'your area',
+        requestId: tripRequest.id,
+        claimLink: claimLink,
+      });
+      const smsResult = await sendSMS({ to: profile.phone, ...smsPayload });
+      smsSent = smsResult.success;
+      if (!smsResult.success) {
+        console.warn('SMS send failed (non-fatal):', smsResult.error);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Notification sent successfully',
+      smsSent,
     });
   } catch (error) {
     console.error('Error sending notification:', error);

@@ -28,10 +28,10 @@ Focus: complete both sides of the marketplace — customer AND operator journeys
 
 ## P2 — Quality of Life
 
-- [ ] **Push/SMS notification opt-in** — Brevo SMS for critical events (quote received, trip accepted, 30-min ETA)
-- [ ] **Re-request flow** — one-click re-submit a past trip request with same details
-- [ ] **Operator search / directory** — customer can browse verified operators by specialty and location before submitting
-- [ ] **Admin: dispute management** — flag a trip for review; simple status + note, no workflow engine needed
+- [x] **Push/SMS notification opt-in** — Brevo SMS for critical events (quote received, trip accepted, 30-min ETA)
+- [x] **Re-request flow** — one-click re-submit a past trip request with same details
+- [x] **Operator search / directory** — customer can browse verified operators by specialty and location before submitting
+- [x] **Admin: dispute management** — flag a trip for review; simple status + note, no workflow engine needed
 
 ---
 

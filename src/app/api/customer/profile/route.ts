@@ -19,7 +19,7 @@ export async function GET() {
     // Fetch profile from unified_profiles view
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, email, phone, role, transport_preferences, created_at')
+      .select('id, full_name, email, phone, role, transport_preferences, sms_opt_in, created_at')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -39,6 +39,7 @@ export async function GET() {
           fullName: user.user_metadata?.full_name || '',
           email: user.email || '',
           phone: '',
+          smsOptIn: false,
           transportPreferences: null,
         },
       });
@@ -50,6 +51,7 @@ export async function GET() {
         fullName: profile.full_name || '',
         email: profile.email || '',
         phone: profile.phone || '',
+        smsOptIn: profile.sms_opt_in ?? false,
         transportPreferences: profile.transport_preferences || null,
       },
     });
@@ -68,6 +70,7 @@ export async function GET() {
  * Updates the customer's profile fields:
  * - full_name
  * - phone
+ * - sms_opt_in (boolean — opt in/out of Brevo SMS notifications)
  * - transport_preferences (saved medical transport preferences)
  *
  * SECURITY: Authenticated users only. Scoped to own profile.
@@ -82,7 +85,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
 
     // Whitelist of updatable fields
-    const allowedFields = ['full_name', 'phone', 'transport_preferences'];
+    const allowedFields = ['full_name', 'phone', 'sms_opt_in', 'transport_preferences'];
     const updateData: Record<string, any> = {};
 
     for (const field of allowedFields) {
@@ -121,6 +124,16 @@ export async function PATCH(request: NextRequest) {
       if (updateData.phone && !/^[\d\s\-+().]{7,20}$/.test(updateData.phone)) {
         return NextResponse.json(
           { error: 'Invalid phone number format' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate sms_opt_in
+    if (updateData.sms_opt_in !== undefined) {
+      if (typeof updateData.sms_opt_in !== 'boolean') {
+        return NextResponse.json(
+          { error: 'sms_opt_in must be a boolean' },
           { status: 400 }
         );
       }
@@ -167,13 +180,13 @@ export async function PATCH(request: NextRequest) {
         .from('profiles')
         .update(updateData)
         .eq('id', user.id)
-        .select('id, full_name, email, phone, transport_preferences')
+        .select('id, full_name, email, phone, sms_opt_in, transport_preferences')
         .single();
     } else {
       result = await supabaseAdmin
         .from('profiles')
         .insert({ id: user.id, email: user.email, ...updateData })
-        .select('id, full_name, email, phone, transport_preferences')
+        .select('id, full_name, email, phone, sms_opt_in, transport_preferences')
         .single();
     }
 
@@ -199,6 +212,7 @@ export async function PATCH(request: NextRequest) {
         fullName: result.data.full_name || '',
         email: result.data.email || '',
         phone: result.data.phone || '',
+        smsOptIn: result.data.sms_opt_in ?? false,
         transportPreferences: result.data.transport_preferences || null,
       },
     });
