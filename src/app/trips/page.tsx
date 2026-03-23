@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, DollarSign, User } from "lucide-react";
+import { Loader2, DollarSign, User, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 
@@ -41,9 +42,73 @@ const SERVICE_CONFIG = {
 } as const;
 
 export default function TripsPage() {
+  const router = useRouter();
   const [trips, setTrips] = useState<TransportRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'school' | 'medical' | 'wedding'>('all');
+  const [reRequestingId, setReRequestingId] = useState<string | null>(null);
+
+  const handleReRequest = async (tripId: string, e: React.MouseEvent) => {
+    e.preventDefault(); // prevent the parent Link from navigating
+    e.stopPropagation();
+    setReRequestingId(tripId);
+    try {
+      const res = await fetch(`/api/trips/${tripId}/re-request`);
+      if (!res.ok) {
+        console.error('[Re-request] Failed to fetch trip data', await res.text());
+        return;
+      }
+      const { trip } = await res.json();
+
+      // Map API response to the form draft shape that Forms component reads from sessionStorage
+      const metaSafe = trip.metadata_safe ?? {};
+      const draft: Record<string, any> = {
+        activeTab: trip.service_type === 'wedding' ? 'wedding' : trip.service_type,
+      };
+
+      if (trip.service_type === 'school') {
+        if (trip.pickup_address) draft.pickupZip = trip.pickup_address;
+        if (metaSafe.school_name) draft.schoolName = metaSafe.school_name;
+        if (metaSafe.grade_level) draft.gradeLevel = metaSafe.grade_level;
+        if (metaSafe.schedule_type) draft.scheduleType = metaSafe.schedule_type;
+        if (metaSafe.am_time) draft.amTime = metaSafe.am_time;
+        if (metaSafe.pm_time) draft.pmTime = metaSafe.pm_time;
+        if (trip.start_date) draft.startDate = trip.start_date;
+        if (trip.end_date) draft.endDate = trip.end_date;
+        if (metaSafe.student_count) draft.studentCount = String(metaSafe.student_count);
+      } else if (trip.service_type === 'medical') {
+        if (trip.pickup_address) draft.pickupLocation = trip.pickup_address;
+        if (trip.dropoff_address) draft.dropoffLocation = trip.dropoff_address;
+        if (metaSafe.mobility_level) draft.mobilityLevel = metaSafe.mobility_level;
+        if (trip.start_date) draft.appointmentDate = trip.start_date;
+        if (trip.start_time) draft.appointmentTime = trip.start_time;
+        if (metaSafe.service_level) draft.serviceLevel = metaSafe.service_level;
+        if (metaSafe.trip_type) draft.tripType = metaSafe.trip_type;
+        if (metaSafe.oxygen_use !== undefined) draft.oxygenUse = metaSafe.oxygen_use;
+        if (metaSafe.is_bariatric !== undefined) draft.isBariatric = metaSafe.is_bariatric;
+        if (metaSafe.facility_details) draft.facilityDetails = metaSafe.facility_details;
+        if (metaSafe.stair_factor) draft.stairFactor = metaSafe.stair_factor;
+        if (metaSafe.return_status) draft.returnStatus = metaSafe.return_status;
+        if (metaSafe.additional_passengers) draft.additionalPassengers = String(metaSafe.additional_passengers);
+        if (metaSafe.service_animal !== undefined) draft.serviceAnimal = metaSafe.service_animal;
+      } else if (trip.service_type === 'wedding') {
+        if (trip.pickup_address) draft.hotelZip = trip.pickup_address;
+        if (trip.dropoff_address) draft.venueZip = trip.dropoff_address;
+        if (trip.start_date) draft.eventDate = trip.start_date;
+        if (metaSafe.guest_count) draft.guestCount = String(metaSafe.guest_count);
+        if (metaSafe.vehicle_style) draft.vehicleStyle = metaSafe.vehicle_style;
+        if (metaSafe.itinerary_type) draft.itineraryType = metaSafe.itinerary_type;
+        if (trip.start_time) draft.pickupTime = trip.start_time;
+      }
+
+      sessionStorage.setItem('businto_form_draft', JSON.stringify(draft));
+      router.push('/');
+    } catch (err) {
+      console.error('[Re-request] Unexpected error:', err);
+    } finally {
+      setReRequestingId(null);
+    }
+  };
 
   const fetchTrips = async () => {
     setLoading(true);
@@ -131,7 +196,15 @@ export default function TripsPage() {
   const filteredActive = filter === 'all' ? activeTrips : activeTrips.filter(t => t.service_type === filter);
   const filteredPast   = filter === 'all' ? pastTrips   : pastTrips.filter(t =>   t.service_type === filter);
 
-  const TripGrid = ({ items, emptyMessage }: { items: TransportRequest[], emptyMessage: string }) => {
+  const TripGrid = ({
+    items,
+    emptyMessage,
+    showReRequest = false,
+  }: {
+    items: TransportRequest[];
+    emptyMessage: string;
+    showReRequest?: boolean;
+  }) => {
     if (items.length === 0) {
       return (
         <p className="py-6 text-sm text-neutral-400">{emptyMessage}</p>
@@ -182,9 +255,28 @@ export default function TripsPage() {
                 )}
 
                 {/* Footer */}
-                <p className="text-xs text-neutral-400 pt-3 border-t border-neutral-100">
-                  {trip.start_date ? formatDate(trip.start_date) : formatDate(trip.created_at)} · {formatTime(trip.start_time)}
-                </p>
+                <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
+                  <p className="text-xs text-neutral-400">
+                    {trip.start_date ? formatDate(trip.start_date) : formatDate(trip.created_at)} · {formatTime(trip.start_time)}
+                  </p>
+                  {showReRequest && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[11px] text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 gap-1"
+                      onClick={(e) => handleReRequest(trip.id, e)}
+                      disabled={reRequestingId === trip.id}
+                      aria-label="Re-request this trip"
+                    >
+                      {reRequestingId === trip.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3 w-3" />
+                      )}
+                      Re-request
+                    </Button>
+                  )}
+                </div>
               </Card>
             </Link>
           );
@@ -252,7 +344,7 @@ export default function TripsPage() {
             {filteredPast.length > 0 && (
               <section className="space-y-4">
                 <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wide">Past</h2>
-                <TripGrid items={filteredPast} emptyMessage="No past trips." />
+                <TripGrid items={filteredPast} emptyMessage="No past trips." showReRequest />
               </section>
             )}
           </div>

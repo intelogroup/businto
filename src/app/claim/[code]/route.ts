@@ -29,7 +29,7 @@ export async function GET(
     request.headers.get('x-real-ip') ||
     'unknown';
 
-  console.log(`[Claim] Attempting to redeem code: ${code} from IP: ${ip}`);
+  if (process.env.NODE_ENV !== 'production') console.log('[Claim] Attempting to redeem code');
 
   // Redeem the claim code
   const redemption = await redeemClaimCode(code, ip);

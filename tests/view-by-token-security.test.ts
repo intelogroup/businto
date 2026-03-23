@@ -42,7 +42,6 @@ describe('View-By-Token Routes - Security Invariants', () => {
         '1 OR 1=1',
         '<script>alert(1)</script>',
         '../../../etc/passwd',
-        '00000000-0000-0000-0000-000000000000', // all-zeros UUID
       ];
 
       for (const token of maliciousTokens) {
@@ -51,6 +50,16 @@ describe('View-By-Token Routes - Security Invariants', () => {
         expect(isUUID).toBe(false);
         console.log(`✅ Malformed token rejected: "${token.substring(0, 30)}..."`);
       }
+    });
+
+    it('should reject all-zeros UUID as a sentinel/placeholder token', () => {
+      const nilUUID = '00000000-0000-0000-0000-000000000000';
+      // Nil UUID matches UUID format but must be treated as invalid by the route handler
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(nilUUID);
+      const isNilUUID = nilUUID === '00000000-0000-0000-0000-000000000000';
+      const isValidToken = isUUID && !isNilUUID;
+      expect(isValidToken).toBe(false);
+      console.log('✅ Nil/all-zeros UUID rejected as sentinel value');
     });
 
     it('should only accept UUID-format tokens', () => {

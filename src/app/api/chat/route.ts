@@ -1,5 +1,6 @@
 import { openai, createOpenAI } from '@ai-sdk/openai';
 import { streamText, convertToModelMessages } from 'ai';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export const maxDuration = 30;
@@ -40,17 +41,16 @@ export async function POST(req: Request) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  let tripSummary = '';
-  if (user) {
-    const { data: requests } = await supabase
-      .from('transport_requests')
-      .select(`id, service_type, status, created_at, quotes(id, status, total_price)`)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(5);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    tripSummary = buildTripSummary(requests ?? []);
-  }
+  const { data: requests } = await supabase
+    .from('transport_requests')
+    .select(`id, service_type, status, created_at, quotes(id, status, total_price)`)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const tripSummary = buildTripSummary(requests ?? []);
 
   const provider = process.env.AI_PROVIDER || 'openai';
   const model = selectModel(provider);
@@ -59,10 +59,10 @@ export async function POST(req: Request) {
 You are the Businto AI Assistant, a specialized expert in transport logistics dispatch.
 You help users manage their transport requests and provide insights based on their data.
 
-${user ? `CURRENT USER CONTEXT:
+CURRENT USER CONTEXT:
 User ID: ${user.id}
 Recent Trip Activity:
-${tripSummary}` : 'The user is not logged in. Guide them to create an account or use the booking forms.'}
+${tripSummary}
 
 APP CAPABILITIES:
 - Service Types: School Runs, Medical (Care Rides), and Event Shuttles (Weddings, Corporate).

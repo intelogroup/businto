@@ -203,12 +203,18 @@ describe('POST /api/chat handler', () => {
   });
 
   it('returns a streaming response for valid UIMessage payload', async () => {
-    // Mock supabase — unauthenticated user path
+    // Mock supabase — authenticated user path
     vi.doMock('@/lib/supabase/server', () => ({
       createClient: vi.fn().mockResolvedValue({
         auth: {
-          getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } } }),
         },
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue({ data: [] }),
+        }),
       }),
     }));
 
@@ -246,12 +252,42 @@ describe('POST /api/chat handler', () => {
     expect(res.status).toBe(200);
   });
 
-  it('does not pass raw UIMessages (with parts) directly to streamText', async () => {
+  it('returns 401 when user is unauthenticated', async () => {
+    // B1 regression: unauthenticated requests must be rejected before reaching streamText
     vi.doMock('@/lib/supabase/server', () => ({
       createClient: vi.fn().mockResolvedValue({
         auth: {
           getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
         },
+      }),
+    }));
+
+    const { POST } = await import('@/app/api/chat/route');
+
+    const req = new Request('http://localhost/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [] }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: 'Unauthorized' });
+  });
+
+  it('does not pass raw UIMessages (with parts) directly to streamText', async () => {
+    vi.doMock('@/lib/supabase/server', () => ({
+      createClient: vi.fn().mockResolvedValue({
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-123' } } }),
+        },
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue({ data: [] }),
+        }),
       }),
     }));
 

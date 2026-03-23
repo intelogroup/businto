@@ -92,7 +92,7 @@ export async function GET(
       })
       .then(({ error }) => {
         if (error) {
-          console.error(`Failed to log access for ${id}:`, error);
+          console.error('Failed to log access for request:', id, error);
         }
       });
 
@@ -119,14 +119,14 @@ export async function GET(
       .single();
 
     if (error || !data) {
-      console.error(`[Operator View] Request ${id} not found. Error:`, error);
+      console.error('[Operator View] Request not found:', id, error);
       return NextResponse.json(
         { error: 'Request not found' },
         { status: 404 }
       );
     }
 
-    console.log(`[Operator View] Request ${id} found:`, data.service_type, data.pickup_fuzzy);
+    if (process.env.NODE_ENV !== 'production') console.log('[Operator View] Request found:', id);
 
     // Return the sanitized DTO
     // This is the ONLY data operators should ever see

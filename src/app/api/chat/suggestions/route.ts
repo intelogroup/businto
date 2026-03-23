@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSmartReplies } from '@/lib/ai';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin, requireUser } from '@/lib/supabase-server';
 
 export async function POST(req: NextRequest) {
   try {
+    // SECURITY: Require authentication — smart replies use DB context
+    const user = await requireUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { messages, requestId, bookingId, role } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -11,10 +17,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch context from DB if IDs provided
-    let context: any = { 
-      serviceType: 'transportation', 
-      status: 'active', 
-      role: role || 'user' 
+    let context: any = {
+      serviceType: 'transportation',
+      status: 'active',
+      role: role || 'user'
     };
 
     if (requestId) {

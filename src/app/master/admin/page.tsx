@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import {
     Users, MapPin, Bus, Activity as ActivityIcon,
     Shield, Search, MoreVertical, Radio, Send,
-    AlertTriangle, Clock, Loader2, ToggleLeft, ToggleRight, Mail, ArrowRight, Plus, Trash2,
+    AlertTriangle, Clock, Loader2, ToggleLeft, ToggleRight, Mail, ArrowRight, Plus, Trash2, Flag, CheckCircle2, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,6 +117,27 @@ export default function AdminDashboard() {
 
     // Search
     const [operatorSearch, setOperatorSearch] = useState("");
+
+    // Disputes
+    interface DisputeRecord {
+        id: string;
+        status: string;
+        service_type: string;
+        pickup_fuzzy: string;
+        dropoff_fuzzy: string;
+        start_date: string;
+        created_at: string;
+        dispute_status: string;
+        dispute_note: string | null;
+        dispute_flagged_at: string;
+        dispute_resolved_at: string | null;
+        user?: { full_name: string; email: string };
+    }
+    const [disputes, setDisputes] = useState<DisputeRecord[]>([]);
+    const [loadingDisputes, setLoadingDisputes] = useState(false);
+    const [disputeFilter, setDisputeFilter] = useState<string>("open");
+    const [updatingDisputeId, setUpdatingDisputeId] = useState<string | null>(null);
+    const [disputeNoteInput, setDisputeNoteInput] = useState<Record<string, string>>({});
 
     // ── Fetchers ───────────────────────────────────────────────────────────────
 
@@ -225,6 +246,46 @@ export default function AdminDashboard() {
             console.error('fetchExchanges failed', e);
         } finally {
             setLoadingExchanges(false);
+        }
+    };
+
+    const fetchDisputes = async (filter = "open") => {
+        setLoadingDisputes(true);
+        try {
+            const params = new URLSearchParams({ limit: '50' });
+            if (filter !== 'all') params.set('status', filter);
+            const res = await fetch(`/api/master/admin/disputes?${params}`);
+            if (res.ok) {
+                const { disputes: data } = await res.json();
+                setDisputes(data || []);
+            }
+        } catch (e) {
+            console.error('fetchDisputes failed', e);
+        } finally {
+            setLoadingDisputes(false);
+        }
+    };
+
+    const handleDisputeAction = async (tripId: string, action: string, note?: string) => {
+        setUpdatingDisputeId(tripId);
+        try {
+            const res = await fetch('/api/master/admin/disputes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, tripId, note }),
+            });
+            if (res.ok) {
+                addNotification({ title: 'Dispute updated', message: `Action "${action}" applied.`, type: 'success' });
+                fetchDisputes(disputeFilter);
+            } else {
+                const err = await res.json();
+                addNotification({ title: 'Update failed', message: err.error || 'Unknown error', type: 'error' });
+            }
+        } catch (e) {
+            console.error('handleDisputeAction failed', e);
+            addNotification({ title: 'Network error', message: 'Could not update dispute', type: 'error' });
+        } finally {
+            setUpdatingDisputeId(null);
         }
     };
 
@@ -796,6 +857,13 @@ export default function AdminDashboard() {
                         <TabsTrigger value="team" className="px-5 h-9 rounded font-medium text-sm">
                             Staff
                         </TabsTrigger>
+                        <TabsTrigger
+                            value="disputes"
+                            className="px-5 h-9 rounded font-medium text-sm"
+                            onClick={() => fetchDisputes(disputeFilter)}
+                        >
+                            Disputes
+                        </TabsTrigger>
                     </TabsList>
 
                     {/* ── Live Requests ─────────────────────────────────────── */}
@@ -1164,6 +1232,127 @@ export default function AdminDashboard() {
                                                     ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                    </ScrollArea>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* ── Disputes ──────────────────────────────────────────── */}
+                    <TabsContent value="disputes">
+                        <Card className="border-none shadow-sm bg-white rounded-lg overflow-hidden">
+                            <CardHeader className="p-5 pb-4 border-b border-neutral-50">
+                                <div className="flex items-center justify-between flex-wrap gap-3">
+                                    <div>
+                                        <CardTitle className="text-base font-semibold">Dispute Management</CardTitle>
+                                        <CardDescription className="text-sm mt-0.5">Flag trips for review, add notes, resolve or dismiss disputes.</CardDescription>
+                                    </div>
+                                    <div className="flex gap-1.5">
+                                        {(['open', 'under_review', 'resolved', 'dismissed', 'all'] as const).map((f) => (
+                                            <button
+                                                key={f}
+                                                onClick={() => { setDisputeFilter(f); fetchDisputes(f); }}
+                                                className={cn(
+                                                    "px-3 py-1 text-xs font-semibold rounded transition-colors",
+                                                    disputeFilter === f
+                                                        ? "bg-neutral-900 text-white"
+                                                        : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                                                )}
+                                            >
+                                                {f === 'under_review' ? 'In Review' : f.charAt(0).toUpperCase() + f.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {loadingDisputes ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <Loader2 size={20} className="animate-spin text-neutral-400" />
+                                    </div>
+                                ) : disputes.length === 0 ? (
+                                    <div className="text-center py-12 text-neutral-400 text-sm">
+                                        No disputes in this category.
+                                    </div>
+                                ) : (
+                                    <ScrollArea className="h-[500px]">
+                                        <div className="divide-y divide-neutral-50">
+                                            {disputes.map((d) => {
+                                                const statusColors: Record<string, string> = {
+                                                    open: 'bg-red-50 text-red-600',
+                                                    under_review: 'bg-amber-50 text-amber-600',
+                                                    resolved: 'bg-emerald-50 text-emerald-600',
+                                                    dismissed: 'bg-neutral-100 text-neutral-400',
+                                                };
+                                                const isUpdating = updatingDisputeId === d.id;
+                                                return (
+                                                    <div key={d.id} className="px-5 py-4 hover:bg-neutral-50/60 transition-colors">
+                                                        <div className="flex items-start justify-between gap-4">
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                                    <span className="font-mono text-xs text-neutral-400">#{d.id.slice(0, 8)}</span>
+                                                                    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded', statusColors[d.dispute_status] || 'bg-neutral-100 text-neutral-400')}>
+                                                                        {d.dispute_status.replace('_', ' ')}
+                                                                    </span>
+                                                                    <span className="text-xs text-neutral-500 capitalize">{d.service_type}</span>
+                                                                </div>
+                                                                <p className="text-xs text-neutral-600 truncate">{d.pickup_fuzzy} → {d.dropoff_fuzzy}</p>
+                                                                {d.user && (
+                                                                    <p className="text-[11px] text-neutral-400 mt-0.5">{d.user.full_name} · {d.user.email}</p>
+                                                                )}
+                                                                {d.dispute_note && (
+                                                                    <p className="text-xs text-neutral-500 mt-1 italic">"{d.dispute_note}"</p>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-col gap-2 shrink-0">
+                                                                {/* Note input + quick actions */}
+                                                                <div className="flex gap-1.5 items-center">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Add note…"
+                                                                        value={disputeNoteInput[d.id] || ''}
+                                                                        onChange={(e) => setDisputeNoteInput(prev => ({ ...prev, [d.id]: e.target.value }))}
+                                                                        className="h-7 text-xs border border-neutral-200 rounded px-2 w-36 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex gap-1.5">
+                                                                    {d.dispute_status === 'open' && (
+                                                                        <button
+                                                                            disabled={isUpdating}
+                                                                            onClick={() => handleDisputeAction(d.id, 'update_status', disputeNoteInput[d.id]).then(() => setDisputeNoteInput(prev => ({ ...prev, [d.id]: '' })))}
+                                                                            className="h-7 px-2 text-[10px] font-semibold rounded bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                                                        >
+                                                                            {isUpdating ? <Loader2 size={10} className="animate-spin" /> : <Flag size={10} />}
+                                                                            Review
+                                                                        </button>
+                                                                    )}
+                                                                    {(d.dispute_status === 'open' || d.dispute_status === 'under_review') && (
+                                                                        <>
+                                                                            <button
+                                                                                disabled={isUpdating}
+                                                                                onClick={() => handleDisputeAction(d.id, 'resolve', disputeNoteInput[d.id]).then(() => setDisputeNoteInput(prev => ({ ...prev, [d.id]: '' })))}
+                                                                                className="h-7 px-2 text-[10px] font-semibold rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                                                            >
+                                                                                {isUpdating ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                                                                                Resolve
+                                                                            </button>
+                                                                            <button
+                                                                                disabled={isUpdating}
+                                                                                onClick={() => handleDisputeAction(d.id, 'dismiss', disputeNoteInput[d.id]).then(() => setDisputeNoteInput(prev => ({ ...prev, [d.id]: '' })))}
+                                                                                className="h-7 px-2 text-[10px] font-semibold rounded bg-neutral-100 text-neutral-500 hover:bg-neutral-200 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                                                            >
+                                                                                {isUpdating ? <Loader2 size={10} className="animate-spin" /> : <XCircle size={10} />}
+                                                                                Dismiss
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </ScrollArea>
                                 )}

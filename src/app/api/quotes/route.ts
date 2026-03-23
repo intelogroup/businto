@@ -324,7 +324,6 @@ export async function POST(request: NextRequest) {
             });
           }
         } else {
-          console.log('⚠️ No email found for quote notification - request has no user_id or contact email in metadata_private');
           await logEvent({
             event_type: 'quote.notification_email.skipped',
             actor_type: 'system',

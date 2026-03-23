@@ -21,7 +21,6 @@ export async function GET(
         }
 
         const id = decoded.requestId;
-        console.log(`[Trip API (Token)] Fetching ID: ${id}`);
 
         // Fetch trip details using admin client to bypass user RLS
         const { data: trip, error: tripError } = await supabaseAdmin

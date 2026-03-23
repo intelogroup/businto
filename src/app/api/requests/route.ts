@@ -542,7 +542,7 @@ export async function POST(request: NextRequest) {
             }
 
             if (IS_DEV_PERF) console.log(`  [perf] operator ${operator.company_name} email+notification: ${Date.now() - opStart}ms`);
-            console.log(`✓ Notified operator ${operator.id} via email (Partner: ${operator.is_partner})`)
+            if (IS_DEV_PERF) console.log(`✓ Notified operator ${operator.id} via email (Partner: ${operator.is_partner})`);
 
             // SMS Notification (Fire and forget)
             if (operator.company_phone) {
@@ -557,13 +557,13 @@ export async function POST(request: NextRequest) {
                     claimLink: claimLink
                   })
                 });
-                console.log(`✓ Notified operator via SMS: ${operator.company_name}`);
+                if (IS_DEV_PERF) console.log(`✓ Notified operator via SMS: ${operator.company_name}`);
               } catch (smsErr) {
-                console.error(`Failed to send SMS to ${operator.company_name}:`, smsErr);
+                console.error('Failed to send SMS to operator:', operator.id, smsErr);
               }
             }
           } catch (err) {
-            console.error(`Failed to notify operator ${operator.company_name}:`, err);
+            console.error('Failed to notify operator:', operator.id, err);
           }
         }
 
@@ -578,7 +578,7 @@ export async function POST(request: NextRequest) {
     if (IS_DEV_PERF) {
       mark('req-end');
       const total = measure('req-total', reqStart, 'req-end');
-      console.log(`\n[PERF TRACE] POST /api/requests — total: ${total}ms`, {
+      console.log('[PERF TRACE] POST /api/requests', {
         ...perfTrace,
         total_ms: total,
         note: 'excludes: confirmation email (awaited), Stripe checkout URL'
