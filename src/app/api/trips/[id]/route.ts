@@ -12,7 +12,7 @@ export async function GET(
         const { searchParams } = new URL(request.url);
         const token = searchParams.get('token');
 
-        console.log(`[Trip API] Fetching ID: ${id}, hasToken: ${!!token}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`[Trip API] Fetching ID: ${id}, hasToken: ${!!token}`);
 
         if (!token) {
             await logEvent({

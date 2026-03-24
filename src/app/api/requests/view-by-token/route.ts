@@ -65,7 +65,7 @@ export async function GET(
     }
 
     const id = payload.requestId;
-    console.log(`[Operator View (Token)] Processing request for ID: ${id}`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[Operator View (Token)] Processing request for ID: ${id}`);
 
     // RATE LIMITING: Prevent abuse and scraping
     const clientIP = getClientIP(request);
@@ -98,7 +98,7 @@ export async function GET(
 
     // Fetch only safe fields from the database
     // metadata_private, pickup_address, dropoff_address, user_id are intentionally excluded
-    console.log(`[Operator View] Fetching request ${id}...`);
+    if (process.env.NODE_ENV !== 'production') console.log(`[Operator View] Fetching request ${id}...`);
     const { data, error } = await supabaseAdmin
       .from('transport_requests')
       .select(`

@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
       const isManualDispatch = await getDispatchMode();
 
       if (isManualDispatch) {
-        console.log(`[Manual Dispatch] Mode ON — skipping auto operator notifications for request ${data.id}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`[Manual Dispatch] Mode ON — skipping auto operator notifications for request ${data.id}`);
 
         // Flag request for Safety Valve queue
         await supabaseAdmin
@@ -369,7 +369,7 @@ export async function POST(request: NextRequest) {
 
         // Fallback mechanism: if no operators found for specialized requests, notify admins for manual review
         if (operators.length === 0) {
-          console.log(`⚠️ No matching operators for request ${data.id}. Firing admin fallback notification.`);
+          if (process.env.NODE_ENV !== 'production') console.log(`⚠️ No matching operators for request ${data.id}. Firing admin fallback notification.`);
           try {
             // You can also change the request status or add a flag so admins know it requires review.
             // For now, we update a flag in metadata_private
@@ -447,11 +447,11 @@ export async function POST(request: NextRequest) {
         // ALL new requests go to partners/affiliates FIRST for the duration of priority_window_ends_at.
         const operatorsToNotify = operators.filter(op => op.is_partner);
 
-        console.log('\n🔔 ==========================================');
-        console.log(`🔔 Found ${operators.length} matching operators for request ${data.id}`);
-        console.log(`🔔 Priority Head-Start Active for Affiliates.`);
-        console.log(`🔔 Notifying ${operatorsToNotify.length} unique Affiliate operators initially`);
-        console.log('🔔 ==========================================\n');
+        if (process.env.NODE_ENV !== 'production') console.log('\n🔔 ==========================================');
+        if (process.env.NODE_ENV !== 'production') console.log(`🔔 Found ${operators.length} matching operators for request ${data.id}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔔 Priority Head-Start Active for Affiliates.`);
+        if (process.env.NODE_ENV !== 'production') console.log(`🔔 Notifying ${operatorsToNotify.length} unique Affiliate operators initially`);
+        if (process.env.NODE_ENV !== 'production') console.log('🔔 ==========================================\n');
 
         const serviceTypeMap: Record<string, string> = {
           school: 'School Transportation',
@@ -474,7 +474,7 @@ export async function POST(request: NextRequest) {
               operator.company_email
             );
 
-            console.log(`[API/Requests] Generated claimLink for operator ${operator.id}`);
+            if (process.env.NODE_ENV !== 'production') console.log(`[API/Requests] Generated claimLink for operator ${operator.id}`);
 
             const emailResult = await sendEmail({
               to: operator.company_email,
@@ -538,7 +538,7 @@ export async function POST(request: NextRequest) {
                 }
               });
             } else {
-              console.log(`ℹ️ Skipping in-app notification for operator ${operator.id} (no profile_id)`);
+              if (process.env.NODE_ENV !== 'production') console.log(`ℹ️ Skipping in-app notification for operator ${operator.id} (no profile_id)`);
             }
 
             if (IS_DEV_PERF) console.log(`  [perf] operator ${operator.company_name} email+notification: ${Date.now() - opStart}ms`);
@@ -569,7 +569,7 @@ export async function POST(request: NextRequest) {
 
         mark('operator-loop-end');
         perfTrace.operator_loop_ms = measure('operator-loop', 'operator-loop-start', 'operator-loop-end');
-        console.log(`Operator notification complete for request ${data.id}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`Operator notification complete for request ${data.id}`);
       } // end else (auto dispatch)
     } catch (matchErr) {
       console.error('Failed to match/notify operators:', matchErr);

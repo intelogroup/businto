@@ -64,7 +64,7 @@ export async function GET(req: Request) {
                 for (const operator of freeOperators) {
                     try {
                         const claimLink = await generateOperatorQuoteLink(request.id, operator.id, operator.company_email);
-                        console.log(`[Cron/Leaks] Generated claimLink for operator ${operator.id}`);
+                        if (process.env.NODE_ENV !== 'production') console.log(`[Cron/Leaks] Generated claimLink for operator ${operator.id}`);
 
                         const emailResult = await sendEmail({
                             to: operator.company_email,
@@ -126,10 +126,10 @@ export async function GET(req: Request) {
                         });
 
                     } catch (err) {
-                        console.error(`Failed to notify standard operator ${operator.company_name}:`, err);
+                        console.error('Failed to notify standard operator:', operator.company_name, err);
                     }
                 }
-                console.log(`Notified ${freeOperators.length} standard operators for request ${request.id}.`);
+                if (process.env.NODE_ENV !== 'production') console.log('Notified standard operators:', { count: freeOperators.length, requestId: request.id });
             }
 
             // Mark as notified even if there were 0 free operators to prevent endless looping
@@ -189,7 +189,7 @@ export async function GET(req: Request) {
 
                 alertsSent++;
             } catch (err) {
-                console.error(`Failed to send safety valve alert for ${request.id}:`, err);
+                console.error('Failed to send safety valve alert for request:', request.id, err);
             }
         }
 
