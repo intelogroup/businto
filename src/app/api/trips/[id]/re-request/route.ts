@@ -37,19 +37,27 @@ export async function GET(
       .eq('id', id)
       .single();
 
-    if (tripError || !trip) {
+    if (tripError || !trip || typeof trip === 'string') {
       return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
     }
 
+    // Cast to expected shape after error guard
+    const tripData = trip as {
+      id: string; service_type: string; pickup_address: string; dropoff_address: string;
+      pickup_fuzzy: string; dropoff_fuzzy: string; start_date: string; start_time: string;
+      end_date: string; end_time: string; is_recurring: boolean; recurrence_pattern: string;
+      metadata_safe: Record<string, unknown>; user_id: string;
+    };
+
     // Ownership check: only the trip owner may re-request
-    if (trip.user_id !== user.id) {
+    if (tripData.user_id !== user.id) {
       await logEvent({
         event_type: 're_request.unauthorized',
         status: 'error',
         actor_id: user.id,
         request_id: id,
         message: 'User attempted to re-request a trip they do not own',
-        metadata: { owner_id: trip.user_id, requester_id: user.id },
+        metadata: { owner_id: tripData.user_id, requester_id: user.id },
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
@@ -66,19 +74,19 @@ export async function GET(
     // Return only the fields the form needs to pre-fill
     return NextResponse.json({
       trip: {
-        id: trip.id,
-        service_type: trip.service_type,
-        pickup_address: trip.pickup_address,
-        dropoff_address: trip.dropoff_address,
-        pickup_fuzzy: trip.pickup_fuzzy,
-        dropoff_fuzzy: trip.dropoff_fuzzy,
-        start_date: trip.start_date,
-        start_time: trip.start_time,
-        end_date: trip.end_date,
-        end_time: trip.end_time,
-        is_recurring: trip.is_recurring,
-        recurrence_pattern: trip.recurrence_pattern,
-        metadata_safe: trip.metadata_safe ?? {},
+        id: tripData.id,
+        service_type: tripData.service_type,
+        pickup_address: tripData.pickup_address,
+        dropoff_address: tripData.dropoff_address,
+        pickup_fuzzy: tripData.pickup_fuzzy,
+        dropoff_fuzzy: tripData.dropoff_fuzzy,
+        start_date: tripData.start_date,
+        start_time: tripData.start_time,
+        end_date: tripData.end_date,
+        end_time: tripData.end_time,
+        is_recurring: tripData.is_recurring,
+        recurrence_pattern: tripData.recurrence_pattern,
+        metadata_safe: tripData.metadata_safe ?? {},
       },
     });
   } catch (error) {
