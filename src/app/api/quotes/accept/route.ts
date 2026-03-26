@@ -187,14 +187,15 @@ export async function POST(request: NextRequest) {
         .insert(notifications);
     }
 
-    // Update transport request status to booked and store winning quote
-    const { error: requestUpdateError } = await supabaseAdmin
+    // Update transport request status to booked — atomic guard: .neq('status','booked') means
+    // 0 rows update if a concurrent accept already wrote 'booked', returning null from maybeSingle
+    const { data: bookedRow, error: requestUpdateError } = await supabaseAdmin
       .from('transport_requests')
-      .update({
-        status: 'booked',
-        // Store winning quote_id for reference (optional field)
-      })
-      .eq('id', tripRequestId);
+      .update({ status: 'booked' })
+      .eq('id', tripRequestId)
+      .neq('status', 'booked')
+      .select('id')
+      .maybeSingle();
 
     if (requestUpdateError) {
       await logEvent({
@@ -209,6 +210,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Failed to update request status' },
         { status: 500 }
+      );
+    }
+
+    if (!bookedRow) {
+      // Race condition: a concurrent accept already set status to 'booked' between our read and write
+      await logEvent({
+        event_type: 'quote.accept.race_condition_blocked',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Race condition blocked at transport_request atomic update',
+      });
+      return NextResponse.json(
+        { error: 'Request already fulfilled. Acceptance is final - cannot change operators.', locked: true },
+        { status: 409 }
       );
     }
 
