@@ -97,6 +97,8 @@ export async function POST(request: NextRequest) {
             : paymentMethods.data[0];
 
         // ── 6. Create + confirm off-session PaymentIntent ─────────────────────
+        // IDEMPOTENCY: Use booking ID as idempotency key to prevent double-charging
+        // if the client retries or both seamless + checkout fire concurrently (C3).
         let paymentIntent: import('stripe').Stripe.PaymentIntent;
 
         try {
@@ -113,6 +115,8 @@ export async function POST(request: NextRequest) {
                     type: 'booking_routing_fee',
                     seamless: 'true',
                 },
+            }, {
+                idempotencyKey: `seamless_${bookingId}`,
             });
         } catch (stripeErr: any) {
             // Stripe throws for requires_action and card errors

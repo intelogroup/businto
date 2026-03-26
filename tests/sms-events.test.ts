@@ -21,6 +21,7 @@ vi.mock('../src/lib/supabase-server', () => {
   mock.order = vi.fn(self);
   mock.single = vi.fn();
   mock.maybeSingle = vi.fn();
+  mock.rpc = vi.fn();
   return {
     supabaseAdmin: mock,
     requireUser: vi.fn().mockResolvedValue({ id: 'user-456' }),
@@ -78,6 +79,8 @@ function restoreChain() {
   mock.insert.mockImplementation(self);
   mock.order.mockImplementation(self);
   mock.maybeSingle.mockResolvedValue({ data: null, error: null });
+  // Make insert() return a thenable so .then() calls work (for fire-and-forget notifications)
+  mock.then = vi.fn((resolve: any) => resolve({ data: null, error: null }));
 }
 
 // ── quotes/accept/route.ts ───────────────────────────────────────────────────
@@ -93,18 +96,23 @@ describe('quotes/accept route — SMS wiring', () => {
   });
 
   it('calls sendSMS with quoteAccepted template when user has a phone number', async () => {
+    // Mock the atomic RPC call
+    (supabaseAdmin as any).rpc.mockResolvedValue({
+      data: {
+        success: true,
+        booking_id: 'booking-001',
+        confirmation_code: 'BUS-456',
+        operator_id: 'op-999',
+        total_price: 150,
+        vehicle_type: 'Van',
+        declined_operator_ids: [],
+      },
+      error: null,
+    });
+
+    // Mock post-transaction DB queries for email/SMS sending
     (supabaseAdmin as any).single
-      .mockResolvedValueOnce({ data: { status: 'pending', user_id: 'user-456', metadata_private: {} }, error: null })
-      .mockResolvedValueOnce({
-        data: {
-          id: 'quote-789',
-          operator_id: 'op-999',
-          total_price: 150,
-          vehicle_type: 'Van',
-          operator: { company_name: 'Quick Trans', company_email: 'op@tabronai.com', company_phone: '5559990000' },
-        },
-        error: null,
-      })
+      // transport_requests with userProfile JOIN (for email/SMS)
       .mockResolvedValueOnce({
         data: {
           id: 'req-123',
@@ -116,7 +124,17 @@ describe('quotes/accept route — SMS wiring', () => {
         },
         error: null,
       })
-      .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-456' }, error: null });
+      // quotes with operator JOIN (for email)
+      .mockResolvedValueOnce({
+        data: {
+          id: 'quote-789',
+          operator_id: 'op-999',
+          total_price: 150,
+          vehicle_type: 'Van',
+          operator: { company_name: 'Quick Trans', company_email: 'op@tabronai.com', company_phone: '5559990000' },
+        },
+        error: null,
+      });
 
     const req = new NextRequest('https://businto.com/api/quotes/accept', {
       method: 'POST',
@@ -135,18 +153,23 @@ describe('quotes/accept route — SMS wiring', () => {
   });
 
   it('does not call sendSMS when user profile has no phone number', async () => {
+    // Mock the atomic RPC call
+    (supabaseAdmin as any).rpc.mockResolvedValue({
+      data: {
+        success: true,
+        booking_id: 'booking-002',
+        confirmation_code: 'BUS-789',
+        operator_id: 'op-999',
+        total_price: 150,
+        vehicle_type: 'Van',
+        declined_operator_ids: [],
+      },
+      error: null,
+    });
+
+    // Mock post-transaction DB queries
     (supabaseAdmin as any).single
-      .mockResolvedValueOnce({ data: { status: 'pending', user_id: 'user-456', metadata_private: {} }, error: null })
-      .mockResolvedValueOnce({
-        data: {
-          id: 'quote-789',
-          operator_id: 'op-999',
-          total_price: 150,
-          vehicle_type: 'Van',
-          operator: { company_name: 'Quick Trans', company_email: 'op@tabronai.com', company_phone: null },
-        },
-        error: null,
-      })
+      // transport_requests with userProfile JOIN (phone is null)
       .mockResolvedValueOnce({
         data: {
           id: 'req-123',
@@ -158,7 +181,17 @@ describe('quotes/accept route — SMS wiring', () => {
         },
         error: null,
       })
-      .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-456' }, error: null });
+      // quotes with operator JOIN
+      .mockResolvedValueOnce({
+        data: {
+          id: 'quote-789',
+          operator_id: 'op-999',
+          total_price: 150,
+          vehicle_type: 'Van',
+          operator: { company_name: 'Quick Trans', company_email: 'op@tabronai.com', company_phone: null },
+        },
+        error: null,
+      });
 
     const req = new NextRequest('https://businto.com/api/quotes/accept', {
       method: 'POST',

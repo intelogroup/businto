@@ -53,6 +53,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
+        // IDEMPOTENCY: Prevent creating a checkout session if already paid (C3).
+        // This guards against double-charge when seamless payment succeeded
+        // but the client also triggers the hosted checkout fallback.
+        if (booking.payment_status === 'paid') {
+            const appUrl = getAppBaseUrl();
+            return NextResponse.json({
+                url: `${appUrl}/trips/${booking.request_id}?payment=success`,
+                alreadyPaid: true,
+            });
+        }
+
         const appUrl = getAppBaseUrl();
 
         // ── Stripe Customer: create or reuse ──────────────────────────────────
@@ -115,6 +126,8 @@ export async function POST(request: NextRequest) {
                 booking_id: bookingId,
                 type: 'booking_routing_fee'
             }
+        }, {
+            idempotencyKey: `checkout_${bookingId}`,
         });
 
         return NextResponse.json({

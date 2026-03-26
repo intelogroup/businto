@@ -212,6 +212,44 @@ export async function POST(request: NextRequest) {
       }
       break;
     }
+
+    // H2: Consolidated from /api/webhooks/stripe — handles priority fee checkout completion
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.metadata?.type === 'priority_fee' && session.metadata?.request_id) {
+        const requestId = session.metadata.request_id;
+
+        const { error } = await supabase
+          .from('transport_requests')
+          .update({
+            payment_status: 'paid',
+            payment_intent_id: session.payment_intent as string,
+            priority_until: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+            routing_fee_amount: 1.99
+          })
+          .eq('id', requestId);
+
+        if (error) {
+          await logEvent({
+            event_type: 'webhook.checkout_session.db_error',
+            status: 'error',
+            actor_type: 'system',
+            request_id: requestId,
+            message: 'Failed to update transport request after priority fee payment',
+            metadata: { error: error.message }
+          });
+        } else {
+          await logEvent({
+            event_type: 'webhook.priority_fee.paid',
+            actor_type: 'system',
+            request_id: requestId,
+            metadata: { payment_intent: session.payment_intent }
+          });
+        }
+      }
+      break;
+    }
   }
 
   return NextResponse.json({ received: true });

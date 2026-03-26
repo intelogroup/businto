@@ -53,260 +53,148 @@ export async function POST(request: NextRequest) {
 
     const userId = actualUserId;
 
-    // TRANSACTIONAL ATOMICITY: Check if already fulfilled using a reliable sequence
-    const { data: requestVerification, error: verificationError } = await supabaseAdmin
-      .from('transport_requests')
-      .select('status, user_id, metadata_private')
-      .eq('id', tripRequestId)
-      .single();
+    // Check if manual dispatch mode is active — PERF: use cached setting (60s TTL)
+    const isManualMode = await getDispatchMode();
 
-    if (verificationError || !requestVerification) {
-      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
-    }
-
-    // SECURITY: Verify the authenticated user owns this request
-    if (requestVerification.user_id && requestVerification.user_id !== userId) {
-      await logEvent({
-        event_type: 'quote.accept.ownership_failed',
-        status: 'error',
-        actor_id: userId,
-        request_id: tripRequestId,
-        message: 'User attempted to accept a quote on a request they do not own',
+    // ATOMIC ACCEPTANCE: Use Postgres RPC to accept quote, decline others,
+    // update request status, and create booking in a single transaction.
+    // This prevents race conditions where two users accept different quotes simultaneously.
+    const { data: result, error: rpcError } = await supabaseAdmin
+      .rpc('accept_quote_atomic', {
+        p_quote_id: quoteId,
+        p_request_id: tripRequestId,
+        p_user_id: userId,
+        p_is_manual_mode: isManualMode,
       });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
-    if (requestVerification.status === 'booked') {
+    if (rpcError) {
+      console.error('RPC accept_quote_atomic error:', rpcError);
       await logEvent({
-        event_type: 'quote.accept.conflict',
+        event_type: 'quote.accept.rpc_error',
         status: 'error',
         actor_id: userId,
         request_id: tripRequestId,
         quote_id: quoteId,
-        message: 'Attempted to accept an already fulfilled request (Race Condition blocked)',
-        metadata: { current_status: requestVerification.status }
+        message: rpcError.message,
       });
-      return NextResponse.json(
-        {
-          error: 'Request already fulfilled. Acceptance is final - cannot change operators.',
-          locked: true
-        },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: 'Failed to accept quote' }, { status: 500 });
     }
 
-    // Get the quote details with operator info
-    const { data: quote, error: quoteError } = await supabaseAdmin
-      .from('quotes')
-      .select(`
-        *,
-        operator:operators (
-          id,
-          company_name,
-          company_email,
-          company_phone,
-          profile:operator_profiles!profile_id (
-            full_name,
-            avatar_url
-          )
-        )
-      `)
-      .eq('id', quoteId)
-      .single();
+    // RPC returns a JSONB object with success/error fields
+    if (!result?.success) {
+      const statusCode = result?.code || 500;
+      const errorMsg = result?.error || 'Unknown error';
 
-    if (quoteError || !quote) {
-      return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
-    }
-
-    // QUOTE EXPIRY: Prevent accepting expired quotes
-    if (quote.expires_at && new Date(quote.expires_at) < new Date()) {
-      // Mark the quote as expired in DB if it isn't already
-      if (quote.status !== 'expired') {
-        await supabaseAdmin
-          .from('quotes')
-          .update({ status: 'expired' })
-          .eq('id', quoteId);
-      }
       await logEvent({
-        event_type: 'quote.accept.expired',
+        event_type: statusCode === 409 ? 'quote.accept.conflict' : 'quote.accept.failed',
         status: 'error',
         actor_id: userId,
         request_id: tripRequestId,
         quote_id: quoteId,
-        message: 'Attempted to accept an expired quote',
-        metadata: { expires_at: quote.expires_at }
+        message: errorMsg,
+        metadata: { rpc_result: result }
       });
+
       return NextResponse.json(
-        { error: 'This quote has expired and can no longer be accepted. Please request a new quote.' },
-        { status: 410 }
+        { error: errorMsg, locked: result?.locked || false },
+        { status: statusCode }
       );
     }
 
-    // Get full transport request details including private fields + user profile in ONE query
-    // PERF: Was two sequential DB queries (transport_requests then profiles) — merged to save ~130ms
-    // SECURITY: This data is ONLY used server-side; it is NEVER returned in the HTTP response
-    const { data: transportRequest } = await supabaseAdmin
-      .from('transport_requests')
-      .select('*, userProfile:profiles!user_id(email, full_name, phone)')
-      .eq('id', tripRequestId)
-      .single();
-
-    // Update the accepted quote
-    const { error: updateError } = await supabaseAdmin
-      .from('quotes')
-      .update({ status: 'accepted' })
-      .eq('id', quoteId);
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
-
-    // Permanently decline other quotes for this request
-    // MARKETPLACE INTEGRITY: Once declined, these quotes are permanently closed
-    // They will NOT be resurrected even if parent regrets choice
-    const { data: declinedQuotes } = await supabaseAdmin
-      .from('quotes')
-      .update({ status: 'declined' })
-      .eq('request_id', tripRequestId)
-      .neq('id', quoteId)
-      .select('operator_id');
-
-    // Notify losing operators
-    if (declinedQuotes && declinedQuotes.length > 0) {
-      const notifications = declinedQuotes.map(q => ({
-        user_id: q.operator_id,
-        type: 'quote_declined',
-        title: 'Quote Not Selected',
-        message: 'The customer has chosen another operator for this request.',
-        data: { request_id: tripRequestId }
-      }));
-
-      await supabaseAdmin
-        .from('notifications')
-        .insert(notifications);
-    }
-
-    // Update transport request status to booked and store winning quote
-    const { error: requestUpdateError } = await supabaseAdmin
-      .from('transport_requests')
-      .update({
-        status: 'booked',
-        // Store winning quote_id for reference (optional field)
-      })
-      .eq('id', tripRequestId);
-
-    if (requestUpdateError) {
-      await logEvent({
-        event_type: 'quote.accept.db_error',
-        status: 'error',
-        actor_id: userId,
-        request_id: tripRequestId,
-        quote_id: quoteId,
-        message: 'Failed to update transport_requests status to booked',
-        metadata: { error: requestUpdateError.message }
-      });
-      return NextResponse.json(
-        { error: 'Failed to update request status' },
-        { status: 500 }
-      );
-    }
+    // Extract results from atomic operation
+    const bookingId = result.booking_id;
+    const confirmationCode = result.confirmation_code;
+    const operatorId = result.operator_id;
+    const totalPrice = result.total_price;
+    const declinedOperatorIds: string[] = result.declined_operator_ids || [];
 
     await logEvent({
       event_type: 'quote.accepted',
       actor_type: 'user',
       actor_id: userId,
       user_id: userId,
-      operator_id: quote.operator_id || null,
+      operator_id: operatorId || null,
       request_id: tripRequestId,
       quote_id: quoteId,
+      booking_id: bookingId,
       metadata: {
-        accepted_price: quote.total_price,
+        accepted_price: totalPrice,
+        confirmation_code: confirmationCode,
       },
     });
 
-    // Check if manual dispatch mode is active — PERF: use cached setting (60s TTL)
-    const isManualMode = await getDispatchMode();
+    // ── Post-transaction side effects (notifications, emails) ──
+    // These happen AFTER the atomic transaction succeeds. If they fail,
+    // the booking is still valid — they are fire-and-forget.
 
-    // Create a booking record
-    const { data: booking, error: bookingError } = await supabaseAdmin
-      .from('bookings')
-      .insert({
-        request_id: tripRequestId,
-        quote_id: quoteId,
-        user_id: userId,
-        operator_id: quote.operator_id,
-        amount: quote.total_price,
-        status: 'confirmed',
-        payment_status: 'pending',
-        requires_manual_exchange: isManualMode,
-      })
-      .select()
-      .single();
+    // Notify losing operators
+    if (declinedOperatorIds.length > 0) {
+      const notifications = declinedOperatorIds
+        .filter((id): id is string => id != null)
+        .map(opId => ({
+          user_id: opId,
+          type: 'quote_declined',
+          title: 'Quote Not Selected',
+          message: 'The customer has chosen another operator for this request.',
+          data: { request_id: tripRequestId }
+        }));
 
-    if (bookingError) {
-      console.error('Error creating booking:', bookingError);
-      await logEvent({
-        event_type: 'booking.create.failed',
-        status: 'error',
-        actor_type: 'system',
-        user_id: userId,
-        operator_id: quote.operator_id || null,
-        request_id: tripRequestId,
-        quote_id: quoteId,
-        message: bookingError.message,
-      });
-    } else if (booking) {
-      await logEvent({
-        event_type: 'booking.created',
-        actor_type: 'system',
-        user_id: userId,
-        operator_id: quote.operator_id || null,
-        request_id: tripRequestId,
-        quote_id: quoteId,
-        booking_id: booking.id,
-        metadata: {
-          amount: booking.amount,
-          status: booking.status,
-          payment_status: booking.payment_status,
-        },
-      });
+      if (notifications.length > 0) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert(notifications)
+          .then(() => {}, err => console.error('Failed to notify declined operators:', err));
+      }
     }
 
-    // Create notification for operator
+    // Notify winning operator
     await supabaseAdmin
       .from('notifications')
       .insert({
-        user_id: quote.operator_id,
+        user_id: operatorId,
         type: 'quote_accepted',
         title: 'Quote Accepted!',
-        message: `Your quote for $${quote.total_price} has been accepted.`,
-        data: { quote_id: quoteId, booking_id: booking?.id }
-      });
+        message: `Your quote for $${totalPrice} has been accepted.`,
+        data: { quote_id: quoteId, booking_id: bookingId }
+      })
+      .then(() => {}, err => console.error('Failed to notify winning operator:', err));
 
-    // REDESIGN: PII reveal is now MOVED to the checkout.sessions.completed or payment_intent.succeeded webhook
+    // REDESIGN: PII reveal is MOVED to the checkout.sessions.completed or payment_intent.succeeded webhook.
     // This API only handles the status transition and booking creation.
-    // The operator will receive the detailed order email via the webhook after the $1.99 fee is secured.
 
     // Send booking confirmation email (fire and forget)
-    if (booking?.confirmation_code) {
-      // PERF: Profile data already fetched via JOIN in the transport_request query above
-      // No extra DB round-trip needed here
+    try {
+      // Fetch data needed for email (separate from the atomic transaction)
+      const { data: transportRequest } = await supabaseAdmin
+        .from('transport_requests')
+        .select('*, userProfile:profiles!user_id(email, full_name, phone)')
+        .eq('id', tripRequestId)
+        .single();
+
+      const { data: quote } = await supabaseAdmin
+        .from('quotes')
+        .select(`
+          *,
+          operator:operators (
+            id, company_name, company_email, company_phone,
+            profile:operator_profiles!profile_id (full_name, avatar_url)
+          )
+        `)
+        .eq('id', quoteId)
+        .single();
+
       const joinedProfile = (transportRequest as any)?.userProfile;
-      const profileError = joinedProfile ? null : new Error('Profile not joined');
       const userProfile = joinedProfile || null;
 
-      if (profileError) {
-        console.error('Failed to fetch user for booking email:', profileError);
-      } else if (userProfile?.email && transportRequest) {
-        const operatorName = quote.operator?.company_name || quote.operator?.full_name || 'The operator';
-        let bookingConfirmationSent = false;
+      if (userProfile?.email && transportRequest && quote) {
+        const operatorName = quote.operator?.company_name || 'The operator';
 
         try {
           await sendEmail({
             to: userProfile.email,
             ...emailTemplates.bookingConfirmation({
               userName: userProfile.full_name || 'User',
-              confirmationCode: booking.confirmation_code,
+              confirmationCode,
               operatorName,
               operatorPhone: quote.operator?.company_phone,
               operatorEmail: quote.operator?.company_email,
@@ -315,10 +203,19 @@ export async function POST(request: NextRequest) {
               dropoffAddress: transportRequest.dropoff_fuzzy || transportRequest.dropoff_address,
               date: transportRequest.start_date,
               time: transportRequest.start_time || '08:00',
-              amount: quote.total_price,
+              amount: totalPrice,
             })
           });
-          bookingConfirmationSent = true;
+
+          await logEvent({
+            event_type: 'booking.confirmation_email.sent',
+            actor_type: 'system',
+            request_id: tripRequestId,
+            quote_id: quoteId,
+            booking_id: bookingId,
+            user_id: userId,
+            metadata: { to: userProfile.email },
+          });
         } catch (err) {
           console.error('Failed to send booking confirmation email:', err);
           await logEvent({
@@ -327,21 +224,9 @@ export async function POST(request: NextRequest) {
             actor_type: 'system',
             request_id: tripRequestId,
             quote_id: quoteId,
-            booking_id: booking.id,
+            booking_id: bookingId,
             user_id: userId,
             message: err instanceof Error ? err.message : 'Unknown booking confirmation email error',
-            metadata: { to: userProfile.email },
-          });
-        }
-
-        if (bookingConfirmationSent) {
-          await logEvent({
-            event_type: 'booking.confirmation_email.sent',
-            actor_type: 'system',
-            request_id: tripRequestId,
-            quote_id: quoteId,
-            booking_id: booking.id,
-            user_id: userId,
             metadata: { to: userProfile.email },
           });
         }
@@ -362,22 +247,19 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // PII Release to Operator is removed from here
-        // The detailed operator view containing PII will be sent via `payments/webhook/route.ts`
-        // once the $1.99 Platform Routing Fee payment intent has succeeded.
+        // Manual mode: Notify admin for PII exchange
         if (isManualMode) {
-          // Notify admin to complete PII exchange manually
           const appBaseUrl = getAppBaseUrl();
           await sendEmail({
             to: process.env.ADMIN_EMAIL || 'jimkalinov@gmail.com',
-            subject: `[Businto] Booking Confirmed — PII Exchange Pending #${booking.id.slice(0, 8)}`,
+            subject: `[Businto] Booking Confirmed — PII Exchange Pending #${bookingId.slice(0, 8)}`,
             html: `
               <h2>Booking Confirmed — Manual PII Exchange Required</h2>
               <p>User accepted a quote. Please send their details to the operator from the admin panel.</p>
               <ul>
-                <li><strong>Booking ID:</strong> ${booking.id}</li>
+                <li><strong>Booking ID:</strong> ${bookingId}</li>
                 <li><strong>Operator:</strong> ${operatorName}</li>
-                <li><strong>Amount:</strong> $${quote.total_price}</li>
+                <li><strong>Amount:</strong> $${totalPrice}</li>
               </ul>
               <p><a href="${appBaseUrl}/master/admin">Open Admin Panel → Pending PII Exchange</a></p>
             `,
@@ -388,20 +270,23 @@ export async function POST(request: NextRequest) {
             actor_type: 'system',
             request_id: tripRequestId,
             quote_id: quoteId,
-            booking_id: booking.id,
-            operator_id: quote.operator_id,
+            booking_id: bookingId,
+            operator_id: operatorId,
             metadata: { manual_mode: true },
           });
         }
       }
+    } catch (emailError) {
+      // Email/notification failures should not fail the acceptance
+      console.error('Post-acceptance notification error:', emailError);
     }
 
     return NextResponse.json({
       success: true,
       message: 'Quote accepted successfully',
       quoteId,
-      bookingId: booking?.id,
-      confirmationCode: booking?.confirmation_code
+      bookingId,
+      confirmationCode,
     });
   } catch (error) {
     console.error('Error accepting quote:', error);

@@ -16,6 +16,7 @@ vi.mock('../src/lib/supabase-server', () => {
     maybeSingle: vi.fn(),
     single: vi.fn(),
     order: vi.fn().mockReturnThis(),
+    rpc: vi.fn(),
   };
 
   mock.from.mockReturnValue(mock);
@@ -25,6 +26,8 @@ vi.mock('../src/lib/supabase-server', () => {
   mock.update.mockReturnValue(mock);
   mock.insert.mockReturnValue(mock);
   mock.order.mockReturnValue(mock);
+  // Make mock thenable so .then() calls work (for fire-and-forget notifications)
+  mock.then = vi.fn((resolve: any) => resolve({ data: null, error: null }));
 
   return { supabaseAdmin: mock };
 });
@@ -77,28 +80,28 @@ describe('Quote Acceptance - Operator Email Verification', () => {
   it('should send an email with PII to the operator when quote is accepted', async () => {
     const mockQuoteId = 'quote-789';
     const mockRequestId = 'req-123';
-    const mockUserId = 'user-456';
     const mockOperatorEmail = 'operator@test.com';
 
-    // 2. Define specific responses for each call in the sequence
     // Using the imported supabaseAdmin which is actually our mock
     const mockSupabase = supabaseAdmin as any;
 
+    // Mock the atomic RPC call — returns success with booking details
+    mockSupabase.rpc.mockResolvedValue({
+      data: {
+        success: true,
+        booking_id: 'booking-001',
+        confirmation_code: 'BUS-123',
+        operator_id: 'op-999',
+        total_price: 100,
+        vehicle_type: 'Van',
+        declined_operator_ids: [],
+      },
+      error: null,
+    });
+
+    // Mock post-transaction DB queries for email sending
     mockSupabase.single
-      // 1. transport_requests — status verification (requestVerification)
-      .mockResolvedValueOnce({ data: { id: mockRequestId, status: 'pending', user_id: mockUserId }, error: null })
-      // 2. quotes — quote details with operator join
-      .mockResolvedValueOnce({
-        data: {
-          id: mockQuoteId,
-          operator_id: 'op-999',
-          total_price: 100,
-          vehicle_type: 'Van',
-          operator: { company_email: mockOperatorEmail, company_name: 'Fast Trans' }
-        },
-        error: null
-      })
-      // 3. transport_requests — full request with userProfile JOIN (PERF: merged, no separate profiles call)
+      // 1. transport_requests — full request with userProfile JOIN (for email)
       .mockResolvedValueOnce({
         data: {
           id: mockRequestId,
@@ -108,18 +111,25 @@ describe('Quote Acceptance - Operator Email Verification', () => {
           start_date: '2026-03-01',
           start_time: '08:00',
           metadata_private: { parent_name: 'Parent Name' },
-          // Joined profile data (replaces the old separate profiles query)
           userProfile: { email: 'parent@test.com', full_name: 'Parent Name', phone: '555-0000' }
         },
         error: null
       })
-      // 4. bookings — booking insert result
-      .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-123' }, error: null });
+      // 2. quotes — quote details with operator join (for email)
+      .mockResolvedValueOnce({
+        data: {
+          id: mockQuoteId,
+          operator_id: 'op-999',
+          total_price: 100,
+          vehicle_type: 'Van',
+          operator: { company_email: mockOperatorEmail, company_name: 'Fast Trans' }
+        },
+        error: null
+      });
 
-    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null }); // no existing accepted quote / no dispatch setting
+    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
 
     // 3. Execute the API Route handler
-    // Note: userId is NOT sent in body — route uses session auth (mocked above)
     const request = new NextRequest('https://businto.com/api/quotes/accept', {
       method: 'POST',
       body: JSON.stringify({
@@ -134,9 +144,18 @@ describe('Quote Acceptance - Operator Email Verification', () => {
     // 4. Assertions
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+    expect(body.bookingId).toBe('booking-001');
+    expect(body.confirmationCode).toBe('BUS-123');
+
+    // VERIFICATION: RPC was called with correct parameters
+    expect(mockSupabase.rpc).toHaveBeenCalledWith('accept_quote_atomic', {
+      p_quote_id: mockQuoteId,
+      p_request_id: mockRequestId,
+      p_user_id: 'user-456',
+      p_is_manual_mode: false,
+    });
 
     // VERIFICATION: Did the user receive the booking confirmation?
-    // Note: Operator reveal email is now moved to Stripe webhook, so it won't be called here.
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "parent@test.com",

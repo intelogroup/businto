@@ -32,6 +32,36 @@ export async function POST(request: NextRequest) {
     tokenVerifiedOperatorId = decoded.operatorId || null;
     tokenVerifiedRequestId = decoded.requestId || null;
 
+    // SECURITY (H7): Validate token purpose — only 'quote' tokens can submit quotes.
+    // A 'view' token should not grant quote submission rights.
+    if (decoded.purpose !== 'quote') {
+      await logEvent({
+        event_type: 'quote.submission.wrong_purpose',
+        status: 'error',
+        message: `Token purpose is '${decoded.purpose}', expected 'quote'`,
+        metadata: { request_id: tokenVerifiedRequestId, operator_id: decoded.operatorId }
+      });
+      return NextResponse.json(
+        { error: 'This link is for viewing only, not for submitting quotes' },
+        { status: 403 }
+      );
+    }
+
+    // SECURITY (C4): Require a valid operatorId in the token. Tokens without an
+    // operatorId bypass the duplicate-quote check, allowing unlimited anonymous quotes.
+    if (!tokenVerifiedOperatorId) {
+      await logEvent({
+        event_type: 'quote.submission.missing_operator',
+        status: 'error',
+        message: 'Token missing operatorId — rejected to prevent anonymous quote spam',
+        metadata: { request_id: tokenVerifiedRequestId }
+      });
+      return NextResponse.json(
+        { error: 'Invalid operator token: missing operator identity' },
+        { status: 403 }
+      );
+    }
+
     // Cross-check: token must be for the same request being quoted
     if (tokenVerifiedRequestId && quoteBody.request_id && tokenVerifiedRequestId !== quoteBody.request_id) {
       await logEvent({
