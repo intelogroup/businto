@@ -6,6 +6,7 @@ import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
 import { verifyUserTripToken } from '@/lib/tokens';
 import { getDispatchMode } from '@/lib/app-settings';
+import { nanoid } from 'nanoid';
 
 
 export async function POST(request: NextRequest) {
@@ -239,6 +240,7 @@ export async function POST(request: NextRequest) {
         status: 'confirmed',
         payment_status: 'pending',
         requires_manual_exchange: isManualMode,
+        confirmation_code: nanoid(8).toUpperCase(),
       })
       .select()
       .single();
