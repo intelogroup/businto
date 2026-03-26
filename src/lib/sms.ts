@@ -1,6 +1,7 @@
 /**
  * Simple SMS utility for Businto using Brevo Transactional SMS API.
  */
+import { checkRateLimit } from './rate-limit';
 
 // Helper to get env vars safely
 function getEnv(name: string): string | undefined {
@@ -43,6 +44,13 @@ export async function sendSMS({ to, content, tag }: SMSOptions) {
   const apiKey = getEnv('BREVO_API_KEY') || getEnv('BREVO_SMTP_KEY');
   const senderId = getEnv('SMS_SENDER_ID') || 'Businto';
   const recipient = formatPhoneNumber(to);
+
+  // H4: Per-recipient rate limit — max 5 SMS per phone per hour.
+  // Prevents cost overruns and spam once Brevo SMS credits are active.
+  if (!checkRateLimit(`sms:${recipient}`, 5)) {
+    console.warn(`[SMS] Rate limited: too many SMS to ${recipient}`);
+    return { success: false, error: 'rate_limited' };
+  }
 
   // Fallback for local testing or missing config
   if (!apiKey || apiKey === 'your-brevo-api-key') {

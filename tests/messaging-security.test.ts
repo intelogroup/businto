@@ -53,18 +53,26 @@ describe("Messaging API Security", () => {
     const mockMessage = { id: "msg-123", sender_id: "real-user-id", recipient_id: "victim-id" };
     
     (supabase.from as any).mockImplementation((table: string) => {
+      if (table === "transport_requests") {
+        // H6: Participant validation — return request owned by the sender
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { user_id: "real-user-id" }, error: null }),
+        };
+      }
       if (table === "messages") {
-        return { 
-          insert: vi.fn().mockReturnThis(), 
-          select: vi.fn().mockReturnThis(), 
-          single: vi.fn().mockResolvedValue({ data: mockMessage, error: null }) 
+        return {
+          insert: vi.fn().mockReturnThis(),
+          select: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: mockMessage, error: null })
         };
       }
       if (table === "unified_profiles") {
-        return { 
-          select: vi.fn().mockReturnThis(), 
-          eq: vi.fn().mockReturnThis(), 
-          single: vi.fn().mockResolvedValue({ data: { id: "real-user-id", full_name: "Real User" }, error: null }) 
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { id: "real-user-id", full_name: "Real User" }, error: null })
         };
       }
       return { insert: vi.fn().mockResolvedValue({ error: null }) };

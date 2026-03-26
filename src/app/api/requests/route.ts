@@ -11,6 +11,7 @@ import { generateOperatorQuoteLink, generateTripViewLink } from '@/lib/email-hel
 import { logEvent } from '@/lib/event-logger';
 import { calculateRoute, geocodeToCoords } from '@/lib/routing';
 import { getDispatchMode } from '@/lib/app-settings';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
 // ─── Dev-only perf timing helper ─────────────────────────────────────────────
 const IS_DEV_PERF = process.env.NODE_ENV !== 'production' || process.env.ENABLE_PERF_TRACE === '1';
@@ -38,6 +39,25 @@ export async function POST(request: NextRequest) {
     mark('auth-end');
     perfTrace.auth_ms = measure('auth', 'auth-start', 'auth-end');
     // ─────────────────────────────────────────────────────────────────────
+
+    // RATE LIMITING (C5): Prevent request spam — 5 requests per user per hour,
+    // or 10 per IP per hour for unauthenticated users.
+    const ip = getClientIP(request);
+    const rateLimitKey = user_id ? `request:user:${user_id}` : `request:ip:${ip}`;
+    const rateLimitMax = user_id ? 5 : 10;
+    if (!checkRateLimit(rateLimitKey, rateLimitMax)) {
+      await logEvent({
+        event_type: 'request.rate_limited',
+        status: 'error',
+        actor_id: user_id,
+        message: 'Too many transport requests',
+        metadata: { ip, user_id }
+      });
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before submitting another request.' },
+        { status: 429 }
+      );
+    }
 
     // Use helper for consistent base URL logic (handles production domain forcing)
     const appBaseUrl = getAppBaseUrl(process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin);

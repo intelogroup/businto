@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { redeemClaimCode } from '@/lib/claim-codes';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { getAppBaseUrl } from '@/lib/email';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { createClient } from '@/lib/supabase/server';
@@ -30,6 +31,27 @@ export async function GET(
     'unknown';
 
   if (process.env.NODE_ENV !== 'production') console.log('[Claim] Attempting to redeem code');
+
+  // H5: Rate limit per IP per code — max 5 redemptions per IP per 5 minutes.
+  // Prevents brute-force guessing and replay abuse of leaked codes.
+  if (!checkRateLimit(`claim:${ip}:${code}`, 5, 5 * 60 * 1000)) {
+    console.warn(`[Claim] Rate limited: too many attempts from ${ip} for code ${code}`);
+    return NextResponse.redirect(
+      `${baseUrl}/?error=rate_limited&message=${encodeURIComponent(
+        'Too many attempts. Please wait a few minutes and try again.'
+      )}`
+    );
+  }
+
+  // Also rate limit per IP globally — max 20 claim attempts per hour per IP
+  if (!checkRateLimit(`claim:ip:${ip}`, 20)) {
+    console.warn(`[Claim] Rate limited: too many claim attempts from ${ip}`);
+    return NextResponse.redirect(
+      `${baseUrl}/?error=rate_limited&message=${encodeURIComponent(
+        'Too many attempts. Please wait before trying again.'
+      )}`
+    );
+  }
 
   // Redeem the claim code
   const redemption = await redeemClaimCode(code, ip);
