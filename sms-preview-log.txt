@@ -1,1 +1,4 @@
 2026-02-28T02:43:29.975Z | TO: +18574261739 | CONTENT: [Businto] This is a test message to verify Brevo SMS integration. Welcome to the platform!
+2026-03-26T23:07:50.887Z | TO: 15551234567 | CONTENT: Test message
+2026-03-26T23:08:28.684Z | TO: 15551234567 | CONTENT: Test message
+2026-03-26T23:11:00.552Z | TO: 15551234567 | CONTENT: Test message
