@@ -1,70 +1,32 @@
+// H2: This webhook handler has been consolidated into /api/payments/webhook/route.ts
+// to prevent duplicate event processing.
+//
+// If your Stripe Dashboard still points to this endpoint, update it to:
+//   /api/payments/webhook
+//
+// This stub forwards any events it receives to the canonical handler.
+
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
-import { supabaseAdmin as supabase } from '@/lib/supabase-server';
-import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
-    const payload = await request.text();
-    const sig = request.headers.get('stripe-signature');
+  // Forward to the canonical webhook handler
+  const url = new URL('/api/payments/webhook', request.url);
+  const body = await request.text();
 
-    let event: Stripe.Event;
+  const response = await fetch(url.toString(), {
+    method: 'POST',
+    headers: {
+      'stripe-signature': request.headers.get('stripe-signature') || '',
+      'content-type': 'text/plain',
+    },
+    body,
+  });
 
-    try {
-        if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-            throw new Error('Missing stripe-signature or webhook secret');
-        }
-        event = stripe.webhooks.constructEvent(payload, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err: any) {
-        console.error('Webhook signature verification failed:', err.message);
-        return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-    }
-
-    // Idempotency check
-    const { data: processedEvent } = await supabase
-        .from('webhook_events')
-        .select('id')
-        .eq('stripe_event_id', event.id)
-        .single();
-
-    if (processedEvent) {
-        console.log(`Event ${event.id} already processed, skipping`);
-        return NextResponse.json({ received: true, duplicate: true });
-    }
-
-    // Record event processing
-    await supabase
-        .from('webhook_events')
-        .insert({
-            stripe_event_id: event.id,
-            event_type: event.type,
-            processed_at: new Date().toISOString()
-        });
-
-    // Handle the event
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as Stripe.Checkout.Session;
-
-        if (session.metadata?.type === 'priority_fee' && session.metadata?.request_id) {
-            const requestId = session.metadata.request_id;
-
-            // Update the transport request
-            const { error } = await supabase
-                .from('transport_requests')
-                .update({
-                    payment_status: 'paid',
-                    payment_intent_id: session.payment_intent as string,
-                    priority_until: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-                    routing_fee_amount: 1.99
-                })
-                .eq('id', requestId);
-
-            if (error) {
-                console.error('Failed to update transport request after payment:', error);
-            } else {
-                console.log(`✓ Updated transport request ${requestId} to PAID status with 30-min priority.`);
-            }
-        }
-    }
-
-    return NextResponse.json({ received: true });
+  const text = await response.text();
+  try {
+    const data = JSON.parse(text);
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return new Response(text, { status: response.status });
+  }
 }

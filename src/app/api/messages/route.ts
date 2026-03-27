@@ -30,6 +30,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // H6: Validate recipient is a participant in the request/booking.
+    // Prevents users from messaging arbitrary user IDs.
+    if (booking_id) {
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('user_id, operator_id')
+        .eq('id', booking_id)
+        .single();
+      if (!booking || (booking.user_id !== recipient_id && booking.operator_id !== recipient_id)) {
+        return NextResponse.json(
+          { error: 'Recipient is not a participant in this booking' },
+          { status: 403 }
+        );
+      }
+      // Also verify sender is a participant
+      if (booking.user_id !== user.id && booking.operator_id !== user.id) {
+        return NextResponse.json(
+          { error: 'You are not a participant in this booking' },
+          { status: 403 }
+        );
+      }
+    } else if (request_id) {
+      // For request-based messages, verify the sender owns the request
+      // or has a quote on it (is an operator participant)
+      const { data: req } = await supabase
+        .from('transport_requests')
+        .select('user_id')
+        .eq('id', request_id)
+        .single();
+      if (!req) {
+        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+      }
+      const isRequestOwner = req.user_id === user.id;
+      if (!isRequestOwner) {
+        // Check if sender is an operator with a quote on this request.
+        // user.id is a profile ID — look up the operator record first, then check quotes.
+        const { data: operator } = await supabase
+          .from('operators')
+          .select('id')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+
+        if (!operator) {
+          return NextResponse.json(
+            { error: 'You are not a participant in this request' },
+            { status: 403 }
+          );
+        }
+
+        const { data: quote } = await supabase
+          .from('quotes')
+          .select('operator_id')
+          .eq('request_id', request_id)
+          .eq('operator_id', operator.id)
+          .maybeSingle();
+        if (!quote) {
+          return NextResponse.json(
+            { error: 'You are not a participant in this request' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('messages')
       .insert({

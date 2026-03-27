@@ -32,6 +32,36 @@ export async function POST(request: NextRequest) {
     tokenVerifiedOperatorId = decoded.operatorId || null;
     tokenVerifiedRequestId = decoded.requestId || null;
 
+    // SECURITY (H7): Validate token purpose — only 'quote' tokens can submit quotes.
+    // A 'view' token should not grant quote submission rights.
+    if (decoded.purpose !== 'quote') {
+      await logEvent({
+        event_type: 'quote.submission.wrong_purpose',
+        status: 'error',
+        message: `Token purpose is '${decoded.purpose}', expected 'quote'`,
+        metadata: { request_id: tokenVerifiedRequestId, operator_id: decoded.operatorId }
+      });
+      return NextResponse.json(
+        { error: 'This link is for viewing only, not for submitting quotes' },
+        { status: 403 }
+      );
+    }
+
+    // SECURITY (C4): Require a valid operatorId in the token. Tokens without an
+    // operatorId bypass the duplicate-quote check, allowing unlimited anonymous quotes.
+    if (!tokenVerifiedOperatorId) {
+      await logEvent({
+        event_type: 'quote.submission.missing_operator',
+        status: 'error',
+        message: 'Token missing operatorId — rejected to prevent anonymous quote spam',
+        metadata: { request_id: tokenVerifiedRequestId }
+      });
+      return NextResponse.json(
+        { error: 'Invalid operator token: missing operator identity' },
+        { status: 403 }
+      );
+    }
+
     // Cross-check: token must be for the same request being quoted
     if (tokenVerifiedRequestId && quoteBody.request_id && tokenVerifiedRequestId !== quoteBody.request_id) {
       await logEvent({
@@ -112,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (operator_id) {
       const { data: existingQuote } = await supabaseAdmin
         .from('quotes')
-        .select('id, status')
+        .select('id, status, updated_at')
         .eq('request_id', request_id)
         .eq('operator_id', operator_id)
         .maybeSingle();
@@ -133,11 +163,19 @@ export async function POST(request: NextRequest) {
             { status: 409 }
           );
         }
-        // If previous quote was withdrawn, allow resubmission but delete the old one
-        await supabaseAdmin
-          .from('quotes')
-          .delete()
-          .eq('id', existingQuote.id);
+        // If previous quote was withdrawn, allow resubmission after a cooldown period.
+        // This prevents operators from rapidly withdrawing/resubmitting to bump their quote.
+        const RESUBMIT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+        const updatedAt = new Date(existingQuote.updated_at).getTime();
+        if (Date.now() - updatedAt < RESUBMIT_COOLDOWN_MS) {
+          return NextResponse.json(
+            { error: 'Please wait at least 1 hour after withdrawing before resubmitting a quote.' },
+            { status: 429 }
+          );
+        }
+        // NOTE: Don't delete the withdrawn quote here — wait until all
+        // validation gates (onboarding check etc.) pass so we never leave
+        // the operator with zero quote rows if a later gate rejects them.
       }
     }
 
@@ -173,6 +211,31 @@ export async function POST(request: NextRequest) {
           submitted_by = null;
         }
       }
+    }
+
+    // M7: Verify operator has minimum onboarding fields before allowing quotes.
+    // Operators without a company name or phone can't be presented to users.
+    if (company_id) {
+      const { data: opInfo } = await supabaseAdmin
+        .from('operators')
+        .select('company_name, company_phone')
+        .eq('id', company_id)
+        .maybeSingle();
+
+      if (!opInfo?.company_name || !opInfo?.company_phone) {
+        return NextResponse.json(
+          { error: 'Please complete your company profile (name and phone) before submitting quotes.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Delete the old withdrawn quote (if any) now that all gates have passed
+    if (existingQuote?.status === 'withdrawn') {
+      await supabaseAdmin
+        .from('quotes')
+        .delete()
+        .eq('id', existingQuote.id);
     }
 
     const { data, error } = await supabaseAdmin

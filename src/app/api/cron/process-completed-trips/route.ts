@@ -8,10 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
     try {
         const authHeader = req.headers.get('authorization');
-        // SECURITY: Require the cron secret whenever it is configured, regardless of
-        // environment. The old check (VERCEL_ENV === 'production' &&) made this a no-op
-        // in dev/staging, leaving the endpoint publicly accessible.
-        if (authHeader !== `Bearer ${process.env.VERCEL_CRON_SECRET}`) {
+        const cronSecret = process.env.VERCEL_CRON_SECRET;
+        if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -64,7 +62,20 @@ export async function GET(req: Request) {
                 console.log(`Processing completed trip follow-up for booking ${booking.id}...`);
 
                 try {
-                    // 1. Send the follow-up email to the user
+                    // 1. Update statuses FIRST to prevent duplicate emails on retry.
+                    // If the cron re-runs before email sends, the status change ensures
+                    // this booking won't be picked up again.
+                    await supabaseAdmin
+                        .from('bookings')
+                        .update({ status: 'completed' })
+                        .eq('id', booking.id);
+
+                    await supabaseAdmin
+                        .from('transport_requests')
+                        .update({ status: 'completed' })
+                        .eq('id', request.id);
+
+                    // 2. Send follow-up email (after status update for idempotency)
                     await sendEmail({
                         to: user.email,
                         ...emailTemplates.tripCompletedFollowUp({
@@ -80,19 +91,7 @@ export async function GET(req: Request) {
                         })
                     });
 
-                    // 2. Update booking status to 'completed'
-                    await supabaseAdmin
-                        .from('bookings')
-                        .update({ status: 'completed' })
-                        .eq('id', booking.id);
-
-                    // 3. Update transport request status to 'completed'
-                    await supabaseAdmin
-                        .from('transport_requests')
-                        .update({ status: 'completed' })
-                        .eq('id', request.id);
-
-                    // 4. Log event
+                    // 3. Log event
                     await logEvent({
                         event_type: 'booking.follow_up.sent',
                         actor_type: 'system',
@@ -120,7 +119,7 @@ export async function GET(req: Request) {
 
         const { data: expiredRequests, error: expiredErr } = await supabaseAdmin
             .from('transport_requests')
-            .select('id, service_type, user_id, created_at, start_date, profiles!transport_requests_user_id_fkey(email, full_name)')
+            .select('id, service_type, user_id, created_at, start_date, metadata_private, profiles!transport_requests_user_id_fkey(email, full_name)')
             .in('status', ['pending', 'quoted'])
             .or(`start_date.lte.${yesterday},created_at.lte.${fourteenDaysAgo}`);
 
@@ -139,7 +138,15 @@ export async function GET(req: Request) {
         const appBaseUrl = getAppBaseUrl();
 
         for (const req of expiredRequests || []) {
+            // M3: Skip requests flagged for manual allocation — admin needs to
+            // handle these directly. Auto-cancelling defeats the safety valve.
+            if (req.metadata_private?.requires_manual_allocation) {
+                continue;
+            }
+
             try {
+                // Update status FIRST for idempotency — prevents duplicate
+                // expiration emails if cron re-runs before email completes.
                 await supabaseAdmin
                     .from('transport_requests')
                     .update({ status: 'cancelled' })

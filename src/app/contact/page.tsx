@@ -9,7 +9,7 @@ export default function ContactPage() {
       title="Contact Us" 
       subtitle="How can we help optimize your transportation network?"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
         <div className="space-y-10">
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-neutral-900">Get in Touch</h2>

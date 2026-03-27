@@ -7,6 +7,7 @@ import {
   logLinkValidation,
   type EmailSendLog,
 } from './email-logger';
+import { checkRateLimit } from './rate-limit';
 
 function env(name: string): string | undefined {
   const value = process.env[name];
@@ -76,6 +77,14 @@ interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: EmailOptions & { forceSmtp?: boolean }) {
+  // H4: Per-recipient rate limit — max 10 emails per recipient per hour.
+  // Prevents spam if a user triggers repeated requests or notifications.
+  if (!checkRateLimit(`email:${to.toLowerCase()}`, 10)) {
+    const masked = to.replace(/^(.{2})[^@]*(@.*)$/, '$1***$2');
+    console.warn(`[Email] Rate limited: too many emails to ${masked}`);
+    return { id: undefined, previewUrl: null, rateLimited: true };
+  }
+
   const linkMatches = html.match(/href="([^"]+)"/g) || [];
   const claimLinkFound = linkMatches.some(link => link.includes('/claim/'));
 

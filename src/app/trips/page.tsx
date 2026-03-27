@@ -45,8 +45,12 @@ export default function TripsPage() {
   const router = useRouter();
   const [trips, setTrips] = useState<TransportRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'school' | 'medical' | 'wedding'>('all');
   const [reRequestingId, setReRequestingId] = useState<string | null>(null);
+  const PAGE_SIZE = 20;
 
   const handleReRequest = async (tripId: string, e: React.MouseEvent) => {
     e.preventDefault(); // prevent the parent Link from navigating
@@ -110,10 +114,15 @@ export default function TripsPage() {
     }
   };
 
-  const fetchTrips = async () => {
-    setLoading(true);
+  const fetchTrips = async (append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     const supabase = createClient();
     try {
+      const from = append ? trips.length : 0;
       let query = supabase
         .from('transport_requests')
         .select(`
@@ -126,7 +135,8 @@ export default function TripsPage() {
             operator:operators!bookings_operator_id_fkey(company_name)
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
 
       if (filter !== 'all') {
         query = query.eq('service_type', filter);
@@ -134,11 +144,19 @@ export default function TripsPage() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setTrips(data || []);
-    } catch (error) {
-      console.error('Error fetching trips:', error);
+      const newTrips = data || [];
+      setHasMore(newTrips.length === PAGE_SIZE);
+      if (append) {
+        setTrips(prev => [...prev, ...newTrips]);
+      } else {
+        setTrips(newTrips);
+      }
+    } catch (err) {
+      console.error('Error fetching trips:', err);
+      if (!append) setError('Unable to load your trips. Please try again.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -296,7 +314,7 @@ export default function TripsPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 mb-1">My Trips</h1>
             <p className="text-sm text-neutral-500">Transportation requests and incoming quotes.</p>
           </div>
-          <Tabs defaultValue="all" onValueChange={(value) => setFilter(value as any)}>
+          <Tabs defaultValue="all" onValueChange={(value) => { setFilter(value as any); setHasMore(true); }}>
             <TabsList className="grid w-full sm:w-auto grid-cols-4 p-1 bg-white border border-neutral-200 shadow-sm rounded-lg">
               <TabsTrigger value="all"     className="rounded-lg text-[13px] font-semibold">All</TabsTrigger>
               <TabsTrigger value="school"  className="rounded-lg text-[13px] font-semibold">School</TabsTrigger>
@@ -313,8 +331,18 @@ export default function TripsPage() {
           </div>
         )}
 
+        {/* Error */}
+        {!loading && error && (
+          <div className="py-24 text-center">
+            <p className="text-sm text-red-500 mb-4">{error}</p>
+            <Button variant="outline" className="rounded-lg" onClick={() => { setError(null); fetchTrips(); }}>
+              Try Again
+            </Button>
+          </div>
+        )}
+
         {/* Empty — no trips at all */}
-        {!loading && trips.length === 0 && (
+        {!loading && !error && trips.length === 0 && (
           <div className="py-24 text-center">
             <p className="text-sm text-neutral-500 mb-4">No transportation requests yet.</p>
             <Link href="/">
@@ -346,6 +374,22 @@ export default function TripsPage() {
                 <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wide">Past</h2>
                 <TripGrid items={filteredPast} emptyMessage="No past trips." showReRequest />
               </section>
+            )}
+
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  className="rounded-lg"
+                  onClick={() => fetchTrips(true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Load More
+                </Button>
+              </div>
             )}
           </div>
         )}
