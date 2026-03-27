@@ -117,6 +117,8 @@ describe('quotes/accept route — SMS wiring', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-456' }, error: null });
+    // Atomic guard: simulate successful status update (not a race condition)
+    (supabaseAdmin as any).maybeSingle.mockResolvedValueOnce({ data: { id: 'req-123' }, error: null });
 
     const req = new NextRequest('https://businto.com/api/quotes/accept', {
       method: 'POST',
@@ -159,6 +161,8 @@ describe('quotes/accept route — SMS wiring', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-456' }, error: null });
+    // Atomic guard: simulate successful status update (not a race condition)
+    (supabaseAdmin as any).maybeSingle.mockResolvedValueOnce({ data: { id: 'req-123' }, error: null });
 
     const req = new NextRequest('https://businto.com/api/quotes/accept', {
       method: 'POST',

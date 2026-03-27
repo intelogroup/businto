@@ -116,7 +116,7 @@ describe('Quote Acceptance - Operator Email Verification', () => {
       // 4. bookings — booking insert result
       .mockResolvedValueOnce({ data: { id: 'booking-001', confirmation_code: 'BUS-123' }, error: null });
 
-    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null }); // no existing accepted quote / no dispatch setting
+    mockSupabase.maybeSingle.mockResolvedValue({ data: { id: mockRequestId }, error: null }); // simulate successful atomic status update (not a race condition)
 
     // 3. Execute the API Route handler
     // Note: userId is NOT sent in body — route uses session auth (mocked above)
