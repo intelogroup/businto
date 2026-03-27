@@ -314,7 +314,7 @@ export default function TripsPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-neutral-950 mb-1">My Trips</h1>
             <p className="text-sm text-neutral-500">Transportation requests and incoming quotes.</p>
           </div>
-          <Tabs defaultValue="all" onValueChange={(value) => setFilter(value as any)}>
+          <Tabs defaultValue="all" onValueChange={(value) => { setFilter(value as any); setHasMore(true); }}>
             <TabsList className="grid w-full sm:w-auto grid-cols-4 p-1 bg-white border border-neutral-200 shadow-sm rounded-lg">
               <TabsTrigger value="all"     className="rounded-lg text-[13px] font-semibold">All</TabsTrigger>
               <TabsTrigger value="school"  className="rounded-lg text-[13px] font-semibold">School</TabsTrigger>

@@ -149,15 +149,15 @@ export async function POST(request: NextRequest) {
         }));
 
       if (notifications.length > 0) {
-        await supabaseAdmin
+        const { error: declinedErr } = await supabaseAdmin
           .from('notifications')
-          .insert(notifications)
-          .then(() => {}, err => console.error('Failed to notify declined operators:', err));
+          .insert(notifications);
+        if (declinedErr) console.error('Failed to notify declined operators:', declinedErr);
       }
     }
 
     // Notify winning operator
-    await supabaseAdmin
+    const { error: winnerErr } = await supabaseAdmin
       .from('notifications')
       .insert({
         user_id: operatorId,
@@ -165,8 +165,8 @@ export async function POST(request: NextRequest) {
         title: 'Quote Accepted!',
         message: `Your quote for $${totalPrice} has been accepted.`,
         data: { quote_id: quoteId, booking_id: bookingId }
-      })
-      .then(() => {}, err => console.error('Failed to notify winning operator:', err));
+      });
+    if (winnerErr) console.error('Failed to notify winning operator:', winnerErr);
 
     // REDESIGN: PII reveal is MOVED to the checkout.sessions.completed or payment_intent.succeeded webhook.
     // This API only handles the status transition and booking creation.
@@ -205,8 +205,6 @@ export async function POST(request: NextRequest) {
               userName: userProfile.full_name || 'User',
               confirmationCode,
               operatorName,
-              operatorPhone: quote.operator?.company_phone,
-              operatorEmail: quote.operator?.company_email,
               vehicleType: quote.vehicle_type,
               pickupAddress: transportRequest.pickup_fuzzy || transportRequest.pickup_address,
               dropoffAddress: transportRequest.dropoff_fuzzy || transportRequest.dropoff_address,

@@ -64,12 +64,26 @@ export async function POST(request: NextRequest) {
       }
       const isRequestOwner = req.user_id === user.id;
       if (!isRequestOwner) {
-        // Check if sender is an operator with a quote on this request
+        // Check if sender is an operator with a quote on this request.
+        // user.id is a profile ID — look up the operator record first, then check quotes.
+        const { data: operator } = await supabase
+          .from('operators')
+          .select('id')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+
+        if (!operator) {
+          return NextResponse.json(
+            { error: 'You are not a participant in this request' },
+            { status: 403 }
+          );
+        }
+
         const { data: quote } = await supabase
           .from('quotes')
           .select('operator_id')
           .eq('request_id', request_id)
-          .eq('operator_id', user.id)
+          .eq('operator_id', operator.id)
           .maybeSingle();
         if (!quote) {
           return NextResponse.json(

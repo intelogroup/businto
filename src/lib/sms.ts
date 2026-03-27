@@ -48,7 +48,8 @@ export async function sendSMS({ to, content, tag }: SMSOptions) {
   // H4: Per-recipient rate limit — max 5 SMS per phone per hour.
   // Prevents cost overruns and spam once Brevo SMS credits are active.
   if (!checkRateLimit(`sms:${recipient}`, 5)) {
-    console.warn(`[SMS] Rate limited: too many SMS to ${recipient}`);
+    const masked = recipient.length > 4 ? '***' + recipient.slice(-4) : '***';
+    console.warn(`[SMS] Rate limited: too many SMS to ${masked}`);
     return { success: false, error: 'rate_limited' };
   }
 

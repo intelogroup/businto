@@ -173,10 +173,9 @@ export async function POST(request: NextRequest) {
             { status: 429 }
           );
         }
-        await supabaseAdmin
-          .from('quotes')
-          .delete()
-          .eq('id', existingQuote.id);
+        // NOTE: Don't delete the withdrawn quote here — wait until all
+        // validation gates (onboarding check etc.) pass so we never leave
+        // the operator with zero quote rows if a later gate rejects them.
       }
     }
 
@@ -229,6 +228,14 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         );
       }
+    }
+
+    // Delete the old withdrawn quote (if any) now that all gates have passed
+    if (existingQuote?.status === 'withdrawn') {
+      await supabaseAdmin
+        .from('quotes')
+        .delete()
+        .eq('id', existingQuote.id);
     }
 
     const { data, error } = await supabaseAdmin

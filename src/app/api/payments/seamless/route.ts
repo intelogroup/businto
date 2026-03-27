@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
                     seamless: 'true',
                 },
             }, {
-                idempotencyKey: `seamless_${bookingId}`,
+                idempotencyKey: `seamless_${bookingId}_${paymentMethod.id}`,
             });
         } catch (stripeErr: any) {
             // Stripe throws for requires_action and card errors

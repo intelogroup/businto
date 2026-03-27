@@ -587,7 +587,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
                       {/* Section: Locations */}
                       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Pickup Address</label>
                           <LocationInput
                             placeholder="Your home address..."
@@ -596,7 +596,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
-                        <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">School Name & Campus</label>
                           <LocationInput
                             placeholder="e.g. Malden Catholic, Main Entrance..."
@@ -697,7 +697,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             )}
                           />
                         </div>
-                        <div className="col-span-2 sm:col-span-2 md:col-span-2 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">AM/PM</label>
                           <Select value={scheduleType} onValueChange={setScheduleType}>
                             <SelectTrigger className="h-10 w-full rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium transition-colors duration-150">
@@ -886,7 +886,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                     <div className="space-y-6">
                       {/* Row 1: Locations */}
                       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                        <div className="col-span-3 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Pickup Location</label>
                           <LocationInput
                             placeholder="Home, hospice, etc..."
@@ -895,7 +895,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
-                        <div className="col-span-3 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Dropoff Location</label>
                           <LocationInput
                             placeholder="Hospital or clinic..."
@@ -935,7 +935,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-2 sm:col-span-2 md:col-span-2 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Facility (Room/Suite)</label>
                           <Input
                             placeholder="Room #, Suite, Wing..."
@@ -1267,7 +1267,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
 
                       {/* Row 2: Locations */}
                       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                        <div className="col-span-3 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Pickup (e.g. Hotel)</label>
                           <LocationInput
                             placeholder="Hotel or starting point..."
@@ -1276,7 +1276,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                             className="h-10 rounded-md bg-white border border-neutral-200  px-3 text-sm text-neutral-900 font-medium placeholder:text-neutral-400 transition-colors duration-150"
                           />
                         </div>
-                        <div className="col-span-3 space-y-1.5">
+                        <div className="col-span-1 min-[400px]:col-span-2 sm:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Venue Location</label>
                           <LocationInput
                             placeholder="Event venue..."

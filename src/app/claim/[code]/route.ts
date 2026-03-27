@@ -26,9 +26,7 @@ export async function GET(
   const baseUrl = getAppBaseUrl(new URL(request.url).origin);
 
   // Get client IP for audit logging
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown';
+  const ip = getClientIP(request);
 
   if (process.env.NODE_ENV !== 'production') console.log('[Claim] Attempting to redeem code');
 

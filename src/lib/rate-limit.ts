@@ -56,7 +56,7 @@ export function getClientIP(request: Request): string {
   }
 
   if (realIP) {
-    return realIP;
+    return realIP.trim();
   }
 
   return 'unknown';

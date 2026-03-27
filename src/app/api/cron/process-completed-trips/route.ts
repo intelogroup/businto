@@ -8,10 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
     try {
         const authHeader = req.headers.get('authorization');
-        // SECURITY: Require the cron secret whenever it is configured, regardless of
-        // environment. The old check (VERCEL_ENV === 'production' &&) made this a no-op
-        // in dev/staging, leaving the endpoint publicly accessible.
-        if (authHeader !== `Bearer ${process.env.VERCEL_CRON_SECRET}`) {
+        const cronSecret = process.env.VERCEL_CRON_SECRET;
+        if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
