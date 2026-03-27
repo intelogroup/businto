@@ -214,6 +214,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // M7: Verify operator has minimum onboarding fields before allowing quotes.
+    // Operators without a company name or phone can't be presented to users.
+    if (company_id) {
+      const { data: opInfo } = await supabaseAdmin
+        .from('operators')
+        .select('company_name, company_phone')
+        .eq('id', company_id)
+        .maybeSingle();
+
+      if (!opInfo?.company_name || !opInfo?.company_phone) {
+        return NextResponse.json(
+          { error: 'Please complete your company profile (name and phone) before submitting quotes.' },
+          { status: 403 }
+        );
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('quotes')
       .insert({

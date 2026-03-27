@@ -21,6 +21,15 @@ export async function POST(request: NextRequest) {
     const { data: { user: sessionUser } } = await supabase.auth.getUser();
     if (sessionUser) {
       actualUserId = sessionUser.id;
+
+      // M10: Require verified email before accepting quotes.
+      // Unverified users can't receive booking confirmations or PII exchange emails.
+      if (!sessionUser.email_confirmed_at) {
+        return NextResponse.json(
+          { error: 'Please verify your email address before accepting a quote.' },
+          { status: 403 }
+        );
+      }
     }
 
     // 2. Fall back to signed token (anonymous / magic-link users)

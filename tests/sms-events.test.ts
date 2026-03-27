@@ -62,7 +62,7 @@ vi.mock('@/lib/app-settings', () => ({
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-456' } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-456', email_confirmed_at: '2025-01-01T00:00:00Z' } } }),
     },
   }),
 }));

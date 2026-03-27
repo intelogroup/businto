@@ -97,6 +97,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // M8: Deduplication window — reject identical requests within 5 minutes
+    // to prevent accidental double-submits (e.g., user clicks submit twice).
+    if (user_id) {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentDup } = await supabaseAdmin
+        .from('transport_requests')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('service_type', service_type)
+        .eq('pickup_address', pickup_address)
+        .eq('dropoff_address', dropoff_address)
+        .eq('start_date', start_date)
+        .gte('created_at', fiveMinAgo)
+        .maybeSingle();
+
+      if (recentDup) {
+        return NextResponse.json(
+          { error: 'A similar request was submitted recently. Please wait a few minutes before resubmitting.' },
+          { status: 409 }
+        );
+      }
+    }
+
     // CRITICAL: Split and validate metadata with fail-closed approach
     let metadata_safe = {};
     let metadata_private = {};

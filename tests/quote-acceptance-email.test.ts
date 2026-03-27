@@ -67,7 +67,7 @@ vi.mock('../src/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({
     auth: {
       // Inline literal — vi.mock factories are hoisted and cannot reference outer consts
-      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-456' } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-456', email_confirmed_at: '2025-01-01T00:00:00Z' } } }),
     },
   }),
 }));
