@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
     body,
   });
 
-  const data = await response.json();
-  return NextResponse.json(data, { status: response.status });
+  const text = await response.text();
+  try {
+    const data = JSON.parse(text);
+    return NextResponse.json(data, { status: response.status });
+  } catch {
+    return new Response(text, { status: response.status });
+  }
 }

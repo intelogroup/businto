@@ -54,9 +54,26 @@ export async function POST(request: NextRequest) {
         }
 
         // IDEMPOTENCY: Prevent creating a checkout session if already paid (C3).
-        // This guards against double-charge when seamless payment succeeded
-        // but the client also triggers the hosted checkout fallback.
         if (booking.payment_status === 'paid') {
+            const appUrl = getAppBaseUrl();
+            return NextResponse.json({
+                url: `${appUrl}/trips/${booking.request_id}?payment=success`,
+                alreadyPaid: true,
+            });
+        }
+
+        // Atomic CAS: claim this booking for checkout by setting payment_status
+        // to 'processing'. If another payment path (seamless) already claimed it,
+        // the WHERE clause won't match and we get zero updated rows.
+        const { data: claimed, error: claimErr } = await supabase
+            .from('bookings')
+            .update({ payment_status: 'processing' })
+            .eq('id', bookingId)
+            .in('payment_status', ['unpaid', 'pending'])
+            .select('id');
+
+        if (claimErr || !claimed || claimed.length === 0) {
+            // Another payment path is already in-flight or completed
             const appUrl = getAppBaseUrl();
             return NextResponse.json({
                 url: `${appUrl}/trips/${booking.request_id}?payment=success`,
@@ -135,6 +152,10 @@ export async function POST(request: NextRequest) {
             sessionId: session.id
         });
     } catch (error: any) {
+        // Revert processing lock so the user can retry
+        if (bookingId) {
+            await supabase.from('bookings').update({ payment_status: 'unpaid' }).eq('id', bookingId).catch(() => {});
+        }
         await logEvent({
             event_type: 'payment.booking_checkout.error',
             status: 'error',

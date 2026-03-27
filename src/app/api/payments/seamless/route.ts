@@ -68,6 +68,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ status: 'success' });
         }
 
+        // Atomic CAS: claim this booking for seamless payment by setting
+        // payment_status to 'processing'. If checkout already claimed it,
+        // the WHERE clause won't match and we get zero updated rows.
+        const { data: claimed, error: claimErr } = await supabase
+            .from('bookings')
+            .update({ payment_status: 'processing' })
+            .eq('id', bookingId)
+            .in('payment_status', ['unpaid', 'pending'])
+            .select('id');
+
+        if (claimErr || !claimed || claimed.length === 0) {
+            return NextResponse.json({ status: 'success' });
+        }
+
         const stripeCustomerId: string | null = (booking.user as any)?.stripe_customer_id ?? null;
 
         // ── 4. No saved card → fall back immediately ──────────────────────────
@@ -128,6 +142,8 @@ export async function POST(request: NextRequest) {
                 }
             }
             // Any other Stripe error (declined, insufficient funds, expired, etc.)
+            // Revert processing lock so checkout fallback can proceed
+            await supabase.from('bookings').update({ payment_status: 'unpaid' }).eq('id', bookingId);
             await logEvent({
                 event_type: 'payment.seamless.stripe_error',
                 status: 'error',
