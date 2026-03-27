@@ -30,7 +30,7 @@ export async function GET(
     const { data: trip, error: tripError } = await supabaseAdmin
       .from('transport_requests')
       .select(
-        'id, service_type, pickup_address, dropoff_address, pickup_fuzzy, dropoff_fuzzy, ' +
+        'id, status, service_type, pickup_address, dropoff_address, pickup_fuzzy, dropoff_fuzzy, ' +
         'start_date, start_time, end_date, end_time, is_recurring, recurrence_pattern, ' +
         'metadata_safe, user_id'
       )
@@ -43,11 +43,21 @@ export async function GET(
 
     // Cast to expected shape after error guard
     const tripData = trip as {
-      id: string; service_type: string; pickup_address: string; dropoff_address: string;
+      id: string; status: string; service_type: string; pickup_address: string; dropoff_address: string;
       pickup_fuzzy: string; dropoff_fuzzy: string; start_date: string; start_time: string;
       end_date: string; end_time: string; is_recurring: boolean; recurrence_pattern: string;
       metadata_safe: Record<string, unknown>; user_id: string;
     };
+
+    // M9: Only completed or cancelled trips can be re-requested.
+    // Prevents users from duplicating active/pending requests.
+    const RE_REQUESTABLE_STATUSES = ['completed', 'cancelled'];
+    if (!RE_REQUESTABLE_STATUSES.includes(tripData.status)) {
+      return NextResponse.json(
+        { error: 'Only completed or cancelled trips can be re-requested' },
+        { status: 400 }
+      );
+    }
 
     // Ownership check: only the trip owner may re-request
     if (tripData.user_id !== user.id) {

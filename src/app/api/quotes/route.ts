@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (operator_id) {
       const { data: existingQuote } = await supabaseAdmin
         .from('quotes')
-        .select('id, status')
+        .select('id, status, updated_at')
         .eq('request_id', request_id)
         .eq('operator_id', operator_id)
         .maybeSingle();
@@ -163,7 +163,16 @@ export async function POST(request: NextRequest) {
             { status: 409 }
           );
         }
-        // If previous quote was withdrawn, allow resubmission but delete the old one
+        // If previous quote was withdrawn, allow resubmission after a cooldown period.
+        // This prevents operators from rapidly withdrawing/resubmitting to bump their quote.
+        const RESUBMIT_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+        const updatedAt = new Date(existingQuote.updated_at).getTime();
+        if (Date.now() - updatedAt < RESUBMIT_COOLDOWN_MS) {
+          return NextResponse.json(
+            { error: 'Please wait at least 1 hour after withdrawing before resubmitting a quote.' },
+            { status: 429 }
+          );
+        }
         await supabaseAdmin
           .from('quotes')
           .delete()
