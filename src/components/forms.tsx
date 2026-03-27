@@ -586,7 +586,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                     <div className="space-y-6">
 
                       {/* Section: Locations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-2 sm:col-span-2 md:col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Pickup Address</label>
                           <LocationInput
@@ -608,7 +608,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Section: Student Details */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Grade Level</label>
                           <Select value={gradeLevel} onValueChange={setGradeLevel}>
@@ -662,7 +662,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Section: Schedule */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-2 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Frequency</label>
                           <Select
@@ -717,7 +717,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       {effectiveSchoolSteps >= 2 && (
                       <motion.div key="school-step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       {/* Times */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         {(scheduleType === 'round-trip' || scheduleType === 'am-only') && (
                           <div className="col-span-1 sm:col-span-2 md:col-span-3 space-y-1.5">
                             <label className="text-xs font-medium text-neutral-500 ml-1">Bell Time</label>
@@ -775,7 +775,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       )}
 
                       {/* End date + early dismissal notes */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                         {schoolRecurring === 'recurring' && (
                           <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                             <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-[0.2em] mb-1.5 ml-1 flex items-center">
@@ -793,7 +793,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         )}
                       </div>
                       {/* Guardian & Contact */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
 
                         <div className="col-span-1 sm:col-span-2 md:col-span-4 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">
@@ -885,7 +885,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                   {activeTab === "medical" && (
                     <div className="space-y-6">
                       {/* Row 1: Locations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Pickup Location</label>
                           <LocationInput
@@ -907,7 +907,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
                       {/* Row 2: Mobility & Service Details */}
                       <div className="bg-white border border-neutral-200 rounded-lg p-4 space-y-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-1 sm:col-span-1 md:col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Access Type</label>
                           <Select value={mobilityLevel} onValueChange={setMobilityLevel}>
@@ -952,7 +952,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       {effectiveMedicalSteps >= 2 && (
                       <motion.div key="medical-step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3, ease: "easeOut" }}>
                       {/* Trip Details */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Trip Type</label>
                           <Select value={tripType} onValueChange={setTripType}>
@@ -1086,7 +1086,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                         </label>
                       </div>
                       {/* Times & Dates */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 pt-2">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4 pt-2">
                         <div className="col-span-1 sm:col-span-1 md:col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Appt Time</label>
                           <Input
@@ -1221,7 +1221,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                   {activeTab === "wedding" && (
                     <div className="space-y-6">
                       {/* Row 1: Category & Basic Info */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-2 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Event Category</label>
                           <Select value={eventCategory} onValueChange={setEventCategory}>
@@ -1266,7 +1266,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Row 2: Locations */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                         <div className="col-span-3 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Pickup (e.g. Hotel)</label>
                           <LocationInput
@@ -1350,7 +1350,7 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
                       </div>
 
                       {/* Row 3b: Departs + Ceremony */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="col-span-1 space-y-1.5">
                           <label className="text-xs font-medium text-neutral-500 ml-1">Departs</label>
                           <Input

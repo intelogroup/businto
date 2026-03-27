@@ -18,6 +18,7 @@ import Link from 'next/link';
 function DashboardContent() {
     const { user, isLoading: authLoading } = useAuth();
     const [recentTrips, setRecentTrips] = useState<any[]>([]);
+    const [tripsLoaded, setTripsLoaded] = useState(false);
 
     useEffect(() => {
         const fetchRecentTrips = async () => {
@@ -33,6 +34,8 @@ function DashboardContent() {
                 }
             } catch (error) {
                 console.error('Error fetching recent trips:', error);
+            } finally {
+                setTripsLoaded(true);
             }
         };
         fetchRecentTrips();
@@ -44,6 +47,13 @@ function DashboardContent() {
 
             {/* Full hero form — identical to landing page */}
             <Forms hideRecentTrips={true} />
+
+            {/* Recent Trips — empty state */}
+            {tripsLoaded && user && recentTrips.length === 0 && (
+                <div className="container mx-auto max-w-[1600px] px-4 sm:px-8 md:px-12 lg:px-16 pb-20 text-center">
+                    <p className="text-sm text-neutral-500">No trips yet. Submit your first request above to get started.</p>
+                </div>
+            )}
 
             {/* Recent Trips Section */}
             {recentTrips.length > 0 && (

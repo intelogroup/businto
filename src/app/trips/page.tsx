@@ -47,6 +47,7 @@ export default function TripsPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'school' | 'medical' | 'wedding'>('all');
   const [reRequestingId, setReRequestingId] = useState<string | null>(null);
   const PAGE_SIZE = 20;
@@ -150,8 +151,9 @@ export default function TripsPage() {
       } else {
         setTrips(newTrips);
       }
-    } catch (error) {
-      console.error('Error fetching trips:', error);
+    } catch (err) {
+      console.error('Error fetching trips:', err);
+      if (!append) setError('Unable to load your trips. Please try again.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -329,8 +331,18 @@ export default function TripsPage() {
           </div>
         )}
 
+        {/* Error */}
+        {!loading && error && (
+          <div className="py-24 text-center">
+            <p className="text-sm text-red-500 mb-4">{error}</p>
+            <Button variant="outline" className="rounded-lg" onClick={() => { setError(null); fetchTrips(); }}>
+              Try Again
+            </Button>
+          </div>
+        )}
+
         {/* Empty — no trips at all */}
-        {!loading && trips.length === 0 && (
+        {!loading && !error && trips.length === 0 && (
           <div className="py-24 text-center">
             <p className="text-sm text-neutral-500 mb-4">No transportation requests yet.</p>
             <Link href="/">
