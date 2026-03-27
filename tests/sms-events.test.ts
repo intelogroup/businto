@@ -184,6 +184,8 @@ describe('messages route — SMS wiring', () => {
 
   it('calls sendSMS with newMessage template when recipient has a phone number', async () => {
     (supabaseAdmin as any).single
+      // transport_requests participant check → sender is request owner
+      .mockResolvedValueOnce({ data: { user_id: 'user-456' }, error: null })
       // messages.insert().select().single() → inserted row
       .mockResolvedValueOnce({
         data: {
@@ -228,6 +230,8 @@ describe('messages route — SMS wiring', () => {
 
   it('does not call sendSMS when recipient has no phone number', async () => {
     (supabaseAdmin as any).single
+      // transport_requests participant check → sender is request owner
+      .mockResolvedValueOnce({ data: { user_id: 'user-456' }, error: null })
       .mockResolvedValueOnce({
         data: {
           id: 'msg-002',
