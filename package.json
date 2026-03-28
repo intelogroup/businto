@@ -54,7 +54,7 @@
     "lucide-react": "^0.562.0",
     "nanoid": "^5.1.6",
     "next": "^16.1.6",
-    "nodemailer": "^7.0.12",
+    "nodemailer": "^8.0.4",
     "react": "19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",
