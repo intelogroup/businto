@@ -38,7 +38,7 @@ export async function requireAdmin() {
   if (!user) return null;
 
   const { data: profile } = await supabaseAdmin
-    .from('profiles')
+    .from('unified_profiles')
     .select('role')
     .eq('id', user.id)
     .single();

@@ -41,3 +41,18 @@ You are a senior engineer who prioritizes structural simplicity over quick fixes
 i know some of the real features will need real device /network ,real email to test effectivelly, but we need to test with vitest or scripts node maximum possible to ensure that in real life the system will work.
 ---
 *Updated: March 2026*
+
+## Deploy Configuration (configured by /setup-deploy)
+- Platform: Vercel
+- Production URL: https://businto.com
+- Deploy workflow: auto-deploy on push to main (or `vercel --prod` for manual)
+- Deploy status command: `vercel ls --prod`
+- Merge method: merge
+- Project type: web app (Next.js)
+- Post-deploy health check: https://businto.com
+
+### Custom deploy hooks
+- Pre-merge: none
+- Deploy trigger: `vercel --prod`
+- Deploy status: `vercel ls --prod`
+- Health check: https://businto.com

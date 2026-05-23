@@ -288,7 +288,7 @@ export async function POST(request: NextRequest) {
 
         if (user_id) {
           const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
+            .from('unified_profiles')
             .select('email, full_name')
             .eq('id', user_id)
             .single();
