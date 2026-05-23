@@ -253,7 +253,7 @@ export function AIChatPanel() {
     const showChips = messages.length === 1 && messages[0]?.id === 'initial-1';
 
     return (
-        <Card className="flex flex-col h-[640px] border border-neutral-200 bg-white rounded-xl overflow-hidden relative">
+        <Card className="flex flex-col h-[640px] border border-neutral-200 bg-white rounded-lg overflow-hidden relative">
             <div className="flex-1 relative overflow-hidden flex flex-col h-full">
                 {/* Header */}
                 <CardHeader className="absolute top-0 w-full bg-white px-5 py-3 flex flex-row items-center justify-between z-30 border-b border-neutral-200">

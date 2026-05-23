@@ -99,7 +99,7 @@ export function ReviewForm({
             onClick={() => setRating(star)}
             onMouseEnter={() => setHoverRating(star)}
             onMouseLeave={() => setHoverRating(0)}
-            className="p-1 transition-transform hover:scale-110"
+            className="p-1 transition-colors duration-150 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2"
           >
             <Star
               className={cn(

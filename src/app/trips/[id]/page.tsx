@@ -420,8 +420,8 @@ function TripDetailContent() {
 
             {/* ── Seamless Payment Overlay ─────────────────────────────────── */}
             {seamlessState !== 'idle' && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm mx-4 text-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-sm mx-4 text-center">
                         {seamlessState === 'processing' && (
                             <>
                                 <Loader2 className="h-10 w-10 animate-spin text-neutral-900 mx-auto mb-4" />

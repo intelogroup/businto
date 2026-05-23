@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar";
 
 function CardSkeleton() {
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 animate-pulse">
+    <div className="rounded-lg border border-neutral-200 p-4 animate-pulse">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-neutral-200" />

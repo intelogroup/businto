@@ -131,16 +131,16 @@ export function LocationInput({
             )}
 
             {isOpen && predictions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-lg animate-in fade-in zoom-in-95">
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-lg">
                     {predictions.map((prediction) => (
                         <div
-                            key={prediction.place_id}
-                            // onMouseDown fires BEFORE the input's onBlur, ensuring the selection lands first
-                            onMouseDown={(e) => {
-                                e.preventDefault(); // prevent input from losing focus before selection
-                                handleSelect(prediction);
-                            }}
-                            className="relative flex cursor-pointer select-none items-start rounded-md px-3 py-2.5 text-xs outline-none hover:bg-white transition-colors"
+                             key={prediction.place_id}
+                             // onMouseDown fires BEFORE the input's onBlur, ensuring the selection lands first
+                             onMouseDown={(e) => {
+                                 e.preventDefault(); // prevent input from losing focus before selection
+                                 handleSelect(prediction);
+                             }}
+                             className="relative flex cursor-pointer select-none items-start rounded-md px-3 py-2.5 text-xs outline-none hover:bg-neutral-100 transition-colors"
                         >
                             <MapPin className="mr-2 mt-0.5 h-3.5 w-3.5 text-neutral-400 shrink-0" />
                             <span className="leading-snug text-neutral-700 font-medium">{prediction.display_name}</span>

@@ -65,7 +65,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Change password */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+        <div className="bg-white rounded-lg border border-neutral-200 p-6 mb-4">
           <h2 className="text-sm font-semibold text-neutral-900 mb-1">Change password</h2>
           <p className="text-xs text-neutral-400 mb-5">Choose a strong password of at least 8 characters.</p>
 
@@ -116,7 +116,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Sign out */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-6">
+        <div className="bg-white rounded-lg border border-neutral-200 p-6">
           <h2 className="text-sm font-semibold text-neutral-900 mb-1">Sign out</h2>
           <p className="text-xs text-neutral-400 mb-4">Sign out from all devices.</p>
           <Button

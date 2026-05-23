@@ -29,7 +29,7 @@ export default function PricingPage() {
     >
       <div className="space-y-16">
         {/* Main Fee Section */}
-        <section className="relative p-10 border border-neutral-200 rounded-2xl bg-white shadow-sm overflow-hidden">
+        <section className="relative p-10 border border-neutral-200 rounded-lg bg-white shadow-sm overflow-hidden">
           <div className="absolute top-0 right-0 p-4">
             <CreditCard className="w-24 h-24 text-neutral-50/50 -rotate-12 translate-x-8 -translate-y-8" />
           </div>
@@ -88,10 +88,10 @@ export default function PricingPage() {
             </div>
           </div>
           
-          <div className="bg-white p-8 rounded-2xl border border-neutral-100">
+          <div className="bg-white p-8 rounded-lg border border-neutral-100">
             <h3 className="text-sm font-bold uppercase tracking-widest text-neutral-400 mb-6 text-center">Price Estimations</h3>
             <div className="space-y-4">
-              <div className="p-4 bg-white rounded-xl border border-neutral-200 flex justify-between items-center shadow-sm">
+              <div className="p-4 bg-white rounded-lg border border-neutral-200 flex justify-between items-center shadow-sm">
                 <div>
                   <span className="block text-xs font-bold text-neutral-400 uppercase">School Runs</span>
                   <span className="font-medium text-neutral-900">Consistent Commutes</span>
@@ -101,7 +101,7 @@ export default function PricingPage() {
                   <span className="text-[10px] text-neutral-400 font-bold uppercase">per trip</span>
                 </div>
               </div>
-              <div className="p-4 bg-white rounded-xl border border-neutral-200 flex justify-between items-center shadow-sm">
+              <div className="p-4 bg-white rounded-lg border border-neutral-200 flex justify-between items-center shadow-sm">
                 <div>
                   <span className="block text-xs font-bold text-neutral-400 uppercase">Care Rides</span>
                   <span className="font-medium text-neutral-900">Medical Transport</span>
@@ -111,7 +111,7 @@ export default function PricingPage() {
                   <span className="text-[10px] text-neutral-400 font-bold uppercase">per trip</span>
                 </div>
               </div>
-              <div className="p-4 bg-white rounded-xl border border-neutral-200 flex justify-between items-center shadow-sm">
+              <div className="p-4 bg-white rounded-lg border border-neutral-200 flex justify-between items-center shadow-sm">
                 <div>
                   <span className="block text-xs font-bold text-neutral-400 uppercase">Events</span>
                   <span className="font-medium text-neutral-900">Group Shuttles</span>
@@ -129,7 +129,7 @@ export default function PricingPage() {
         </section>
 
         {/* Enterprise / High Volume */}
-        <section className="bg-neutral-900 text-white p-12 rounded-2xl text-center space-y-6">
+        <section className="bg-neutral-900 text-white p-12 rounded-lg text-center space-y-6">
           <h2 className="text-2xl font-semibold">Managing high-volume transport?</h2>
           <p className="text-neutral-400 text-base max-w-xl mx-auto leading-relaxed">
             We offer specialized billing and platform solutions for hospital networks, school districts, and 

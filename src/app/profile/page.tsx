@@ -152,7 +152,7 @@ export default function ProfilePage() {
 
         <form onSubmit={handleSave}>
           {/* Identity Card */}
-          <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 mb-4">
             <div className="flex items-center gap-4 mb-6">
               <img
                 src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
@@ -212,7 +212,7 @@ export default function ProfilePage() {
           </div>
 
           {/* SMS Notifications */}
-          <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 mb-4">
             <h2 className="text-base font-semibold text-neutral-900 mb-1">
               SMS Notifications
             </h2>
@@ -250,7 +250,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Medical Transport Preferences */}
-          <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-4">
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 mb-4">
             <h2 className="text-base font-semibold text-neutral-900 mb-1">
               Medical Transport Preferences
             </h2>

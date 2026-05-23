@@ -47,7 +47,7 @@ export default function AboutPage() {
         <section className="space-y-10">
           <h2 className="text-2xl font-semibold text-neutral-900 tracking-tight">Our Core Pillars</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <div className="p-6 rounded-xl border border-neutral-100 bg-neutral-50/50 space-y-3">
+            <div className="p-6 rounded-lg border border-neutral-100 bg-neutral-50/50 space-y-3">
               <ShieldCheck className="w-6 h-6 text-green-600" />
               <h3 className="font-semibold text-neutral-900 text-lg">Uncompromising Safety</h3>
               <p className="text-sm leading-relaxed">
@@ -55,7 +55,7 @@ export default function AboutPage() {
                 check licenses; we verify service history and safety standards.
               </p>
             </div>
-            <div className="p-6 rounded-xl border border-neutral-100 bg-neutral-50/50 space-y-3">
+            <div className="p-6 rounded-lg border border-neutral-100 bg-neutral-50/50 space-y-3">
               <Compass className="w-6 h-6 text-indigo-600" />
               <h3 className="font-semibold text-neutral-900 text-lg">Intelligent Routing</h3>
               <p className="text-sm leading-relaxed">
@@ -63,7 +63,7 @@ export default function AboutPage() {
                 reducing deadhead miles and environmental impact.
               </p>
             </div>
-            <div className="p-6 rounded-xl border border-neutral-100 bg-neutral-50/50 space-y-3">
+            <div className="p-6 rounded-lg border border-neutral-100 bg-neutral-50/50 space-y-3">
               <Users className="w-6 h-6 text-amber-600" />
               <h3 className="font-semibold text-neutral-900 text-lg">Community Centric</h3>
               <p className="text-sm leading-relaxed">
@@ -71,7 +71,7 @@ export default function AboutPage() {
                 they need to compete with global giants.
               </p>
             </div>
-            <div className="p-6 rounded-xl border border-neutral-100 bg-neutral-50/50 space-y-3">
+            <div className="p-6 rounded-lg border border-neutral-100 bg-neutral-50/50 space-y-3">
               <Gem className="w-6 h-6 text-neutral-900" />
               <h3 className="font-semibold text-neutral-900 text-lg">Premium Service</h3>
               <p className="text-sm leading-relaxed">
@@ -99,7 +99,7 @@ export default function AboutPage() {
         </section>
 
         {/* Contact/Location */}
-        <section className="bg-neutral-950 text-white p-10 rounded-2xl relative overflow-hidden">
+        <section className="bg-neutral-950 text-white p-10 rounded-lg relative overflow-hidden">
           <div className="relative z-10 space-y-4 max-w-lg">
             <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-widest text-xs">
               <MapPin className="w-3 h-3" /> Headquarters

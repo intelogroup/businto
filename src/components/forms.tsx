@@ -110,9 +110,9 @@ export function Forms({ hideRecentTrips = false }: { hideRecentTrips?: boolean }
         {/* 2-col grid — form (left) sizes to content, chat (right) independent */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           {/* Left Column - Form card */}
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
-            <div className="animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300 fill-mode-both">
-              <div className="bg-white rounded-xl p-7 md:p-10 border border-neutral-200 relative animate-in fade-in zoom-in-95 duration-500">
+          <div>
+            <div>
+              <div className="bg-white rounded-lg p-7 md:p-10 border border-neutral-200 relative">
                 <ServiceSwitcher activeTab={activeTab} onTabChange={(id) => {
                   setActiveTab(id);
                   // Preserve tab in sessionStorage draft context
