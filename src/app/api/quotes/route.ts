@@ -139,13 +139,15 @@ export async function POST(request: NextRequest) {
     }
 
     // QUOTE ABUSE PREVENTION: Check if operator already submitted quote for this request
+    let existingQuote: { id: string; status: string; updated_at: string } | null = null;
     if (operator_id) {
-      const { data: existingQuote } = await supabaseAdmin
+      const { data } = await supabaseAdmin
         .from('quotes')
         .select('id, status, updated_at')
         .eq('request_id', request_id)
         .eq('operator_id', operator_id)
         .maybeSingle();
+      existingQuote = data;
 
       if (existingQuote) {
         // If they have an existing quote that's not withdrawn, reject

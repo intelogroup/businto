@@ -9,6 +9,7 @@ import { logEvent } from '@/lib/event-logger';
 const ROUTING_FEE = 1.99;
 
 export async function POST(request: NextRequest) {
+    let bookingId: string | undefined;
     try {
         // ── Auth gate ───────────────────────────────────────────────────────
         const cookieStore = await cookies();
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { bookingId } = await request.json();
+        ({ bookingId } = await request.json());
 
         if (!bookingId) {
             return NextResponse.json(
@@ -154,7 +155,13 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         // Revert processing lock so the user can retry
         if (bookingId) {
-            await supabase.from('bookings').update({ payment_status: 'unpaid' }).eq('id', bookingId).catch(() => {});
+            const { error: revertError } = await supabase
+                .from('bookings')
+                .update({ payment_status: 'unpaid' })
+                .eq('id', bookingId);
+            if (revertError) {
+                console.error('Failed to revert payment processing lock:', revertError);
+            }
         }
         await logEvent({
             event_type: 'payment.booking_checkout.error',
