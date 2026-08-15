@@ -78,7 +78,9 @@ function restoreChain() {
   mock.update.mockImplementation(self);
   mock.insert.mockImplementation(self);
   mock.order.mockImplementation(self);
-  mock.maybeSingle.mockResolvedValue({ data: null, error: null });
+  // quotes/accept's request-ownership lookup — defaults to the session user (user-456)
+  // owning the request, matching the createClient mock above.
+  mock.maybeSingle.mockResolvedValue({ data: { user_id: 'user-456' }, error: null });
   // Make insert() return a thenable so .then() calls work (for fire-and-forget notifications)
   mock.then = vi.fn((resolve: any) => resolve({ data: null, error: null }));
 }

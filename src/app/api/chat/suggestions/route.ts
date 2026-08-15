@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch context from DB if IDs provided
-    let context: any = {
+    const context: any = {
       serviceType: 'transportation',
       status: 'active',
       role: role || 'user'

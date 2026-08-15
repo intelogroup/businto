@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const quotedRequestIds = (existingQuotes || []).map((q: any) => q.request_id);
 
     // Fetch open requests (pending or quoted, not expired)
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from('transport_requests')
       .select('id, service_type, pickup_fuzzy, dropoff_fuzzy, start_date, start_time, end_date, end_time, is_recurring, recurrence_pattern, metadata_safe, status, created_at')
       .in('status', ['pending', 'quoted'])

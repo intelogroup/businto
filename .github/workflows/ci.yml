@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Build-time-only placeholder values. These let `next build` and modules that
+# construct clients at import time (Supabase, JWT) run in CI without real
+# secrets — they are never used to talk to a real service. Actual deploy-time
+# configuration lives in Vercel's project env vars, not here.
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+  SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+  JWT_SECRET: placeholder-jwt-secret-for-ci-checks-only
+  STRIPE_SECRET_KEY: sk_test_placeholder
+  STRIPE_WEBHOOK_SECRET: whsec_placeholder
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+  NEXT_PUBLIC_APP_URL: https://businto.com
+  RESEND_API_KEY: re_placeholder
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: placeholder
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (also type-checks the app)
+        run: npm run build
+
+      - name: Unit tests
+        # A handful of suites need a real Supabase project / live network and are
+        # intentionally out of scope here — they're what `npm run test:production`
+        # is for, against a real environment with real secrets, not this job.
+        run: >
+          npx vitest run
+          --exclude "tests/claim-codes.test.ts"
+          --exclude "tests/database-security.test.ts"
+          --exclude "tests/production-claim.test.ts"
+          --exclude "tests/sentry-integration.test.ts"

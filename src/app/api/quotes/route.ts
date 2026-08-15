@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
           const operatorName = data.operator?.company_name || data.operator?.full_name || 'An operator';
 
           // NEW: Create a Magic Link for Auto Sign-in if we have a userEmail
-          let autoSignInLink = null;
+          const autoSignInLink = null;
           // Generate tracking-resistant claim link for user dashboard access
           const claimLink = await generateTripViewLink(request_id, transportRequest.user_id || null, userEmail, data.operator_id);
 

@@ -127,7 +127,8 @@ describe('Quote Acceptance - Operator Email Verification', () => {
         error: null
       });
 
-    mockSupabase.maybeSingle.mockResolvedValue({ data: null, error: null });
+    // Ownership lookup: this request belongs to the session user (user-456).
+    mockSupabase.maybeSingle.mockResolvedValue({ data: { user_id: 'user-456' }, error: null });
 
     // 3. Execute the API Route handler
     const request = new NextRequest('https://businto.com/api/quotes/accept', {

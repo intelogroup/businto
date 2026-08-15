@@ -10,7 +10,10 @@ const EXPIRY_DAYS = 7;
 export async function GET(req: Request) {
   try {
     const authHeader = req.headers.get('authorization');
-    const cronSecret = process.env.VERCEL_CRON_SECRET;
+    // Vercel Cron only auto-injects the bearer token for a var literally named
+    // CRON_SECRET; VERCEL_CRON_SECRET is kept as a fallback in case that's what's
+    // actually configured in the live project.
+    const cronSecret = process.env.CRON_SECRET || process.env.VERCEL_CRON_SECRET;
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

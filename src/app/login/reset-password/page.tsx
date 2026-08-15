@@ -102,12 +102,12 @@ function ResetPasswordContent() {
 
             <div className="w-full max-w-[440px] z-10">
                 <div className="mb-10 text-center">
-                    <a href="/" className="inline-flex items-center gap-3 group">
+                    <Link href="/" className="inline-flex items-center gap-3 group">
                         <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center transition-colors duration-150 duration-200 group- shadow-sm">
                             <img src="/brand-mark.svg" alt="Businto" className="w-8 h-8" />
                         </div>
                         <h1 className="text-3xl font-semibold text-neutral-950 tracking-tight">Businto</h1>
-                    </a>
+                    </Link>
                 </div>
 
                 <Card className="border-none shadow-sm bg-white">

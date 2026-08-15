@@ -12,41 +12,6 @@ export async function POST(request: NextRequest) {
   try {
     const { quoteId, tripRequestId, token } = await request.json();
 
-    // SECURITY: Resolve identity from session (preferred) or verified token (magic link).
-    // Never trust userId from the request body — it is ignored entirely.
-    let actualUserId: string | null = null;
-
-    // 1. Try session first (authenticated users)
-    const supabase = await createClient();
-    const { data: { user: sessionUser } } = await supabase.auth.getUser();
-    if (sessionUser) {
-      actualUserId = sessionUser.id;
-
-      // M10: Require verified email before accepting quotes.
-      // Unverified users can't receive booking confirmations or PII exchange emails.
-      if (!sessionUser.email_confirmed_at) {
-        return NextResponse.json(
-          { error: 'Please verify your email address before accepting a quote.' },
-          { status: 403 }
-        );
-      }
-    }
-
-    // 2. Fall back to signed token (anonymous / magic-link users)
-    if (!actualUserId && token) {
-      const decoded = await verifyUserTripToken(token);
-      if (decoded && decoded.requestId === tripRequestId) {
-        actualUserId = decoded.userId || null;
-      } else {
-        return NextResponse.json({ error: 'Invalid or mismatched token' }, { status: 403 });
-      }
-    }
-
-    // 3. No valid identity — reject
-    if (!actualUserId) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
     if (!quoteId || !tripRequestId) {
       await logEvent({
         event_type: 'quote.accept.validation_failed',
@@ -58,6 +23,62 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields: quoteId, tripRequestId' },
         { status: 400 }
       );
+    }
+
+    // SECURITY: Look up who actually owns this request BEFORE trusting any identity
+    // source. Guest/anonymous requests have user_id = NULL — for those, a bare
+    // session proves nothing (anyone logged in could otherwise hijack the booking),
+    // so only a signed token scoped to this exact request counts as proof. For
+    // owned requests, the session must belong to the actual owner.
+    const { data: requestOwner, error: requestOwnerError } = await supabaseAdmin
+      .from('transport_requests')
+      .select('user_id')
+      .eq('id', tripRequestId)
+      .maybeSingle();
+
+    if (requestOwnerError || !requestOwner) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // Never trust userId from the request body — it is ignored entirely.
+    let actualUserId: string | null = null;
+
+    const supabase = await createClient();
+    const { data: { user: sessionUser } } = await supabase.auth.getUser();
+
+    if (requestOwner.user_id) {
+      // Owned request: the session must belong to the actual owner.
+      if (sessionUser && sessionUser.id === requestOwner.user_id) {
+        // M10: Require verified email before accepting quotes.
+        // Unverified users can't receive booking confirmations or PII exchange emails.
+        if (!sessionUser.email_confirmed_at) {
+          return NextResponse.json(
+            { error: 'Please verify your email address before accepting a quote.' },
+            { status: 403 }
+          );
+        }
+        actualUserId = sessionUser.id;
+      } else if (token) {
+        const decoded = await verifyUserTripToken(token);
+        if (decoded && decoded.requestId === tripRequestId && decoded.userId === requestOwner.user_id) {
+          actualUserId = decoded.userId ?? null;
+        } else {
+          return NextResponse.json({ error: 'Invalid or mismatched token' }, { status: 403 });
+        }
+      }
+    } else if (token) {
+      // Guest request: no owner to match a session against — the signed,
+      // request-scoped token is the only valid proof of identity.
+      const decoded = await verifyUserTripToken(token);
+      if (decoded && decoded.requestId === tripRequestId) {
+        actualUserId = decoded.userId || null;
+      } else {
+        return NextResponse.json({ error: 'Invalid or mismatched token' }, { status: 403 });
+      }
+    }
+
+    if (!actualUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const userId = actualUserId;

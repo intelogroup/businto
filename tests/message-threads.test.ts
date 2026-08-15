@@ -79,7 +79,7 @@ describe('Message Threads API', () => {
       { id: 'operator-1', full_name: 'Test Operator', avatar_url: null, role: 'operator' },
     ];
 
-    let callCount = 0;
+    const callCount = 0;
     (supabaseAdmin.from as any).mockImplementation((table: string) => {
       if (table === 'messages') {
         return {

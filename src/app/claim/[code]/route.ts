@@ -90,7 +90,7 @@ export async function GET(
         7 // 7 days
       );
 
-      let destination = `/quotes/submit?request_id=${redemption.resourceId}&token=${token}`;
+      const destination = `/quotes/submit?request_id=${redemption.resourceId}&token=${token}`;
 
       // RETURNING USER: Check for existing active session first (no magic link needed)
       try {

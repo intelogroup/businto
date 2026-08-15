@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const monthParam = searchParams.get('month');
 
     // Fetch all completed bookings for this operator
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from('bookings')
       .select(`
         id, confirmation_code, status, payment_status, amount, created_at,
