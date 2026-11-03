@@ -60,9 +60,12 @@ describe('POST /api/email/send', () => {
     expect(res.status).toBe(400);
   });
 
-  it('accepts userEmail nested in data as recipient', async () => {
+  it('accepts userEmail nested in data as recipient when it is the caller own address', async () => {
     const { sendEmail } = await import('@/lib/email');
-    (requireUser as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'user-1' });
+    // BUS-EMAIL-SPOOF-001: recipients are bound to the authenticated user, so
+    // the nested format is accepted for the caller's own address (a real
+    // auth user always carries an email).
+    (requireUser as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'user-1', email: 'nested@example.com' });
     const res = await POST(makeRequest({
       type: 'request_confirmation',
       data: { userEmail: 'nested@example.com', name: 'Test' },
@@ -71,5 +74,16 @@ describe('POST /api/email/send', () => {
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({ to: 'nested@example.com' })
     );
+  });
+
+  it('returns 403 when the recipient is not the caller own address', async () => {
+    const { sendEmail } = await import('@/lib/email');
+    (requireUser as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'user-1', email: 'me@example.com' });
+    const res = await POST(makeRequest({
+      type: 'request_confirmation',
+      data: { userEmail: 'someone-else@example.com', name: 'Test' },
+    }));
+    expect(res.status).toBe(403);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

@@ -90,14 +90,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check 48-hour rule for automatic refunds
+    // Check 48-hour rule for refunds.
+    // SECURITY (BUS-REFUND-GATE-001): eligibility is server-decided from the
+    // booking's state and age alone. The client-supplied `reason` is a label
+    // recorded in metadata/notifications — it must never gate or bypass this
+    // check. Previously the gate applied only when reason === 'No operator
+    // response', so any other wording refunded a minutes-old booking.
     const bookingCreatedAt = new Date(booking.created_at);
     const now = new Date();
     const hoursSinceCreation = (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
 
-    if (reason === 'No operator response' && hoursSinceCreation < 48) {
+    if (hoursSinceCreation < 48) {
       return NextResponse.json(
-        { error: 'Cannot auto-refund before 48 hours' },
+        { error: 'Cannot refund before 48 hours' },
         { status: 400 }
       );
     }

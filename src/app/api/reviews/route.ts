@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
 
     const { booking_id, operator_id, rating, comment } = await request.json();
 
-    if (!booking_id || !operator_id || !rating) {
+    if (!booking_id || !rating) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     // SECURITY: Verify this booking belongs to the authenticated user
     const { data: booking } = await supabase
       .from('bookings')
-      .select('id')
+      .select('id, operator_id')
       .eq('id', booking_id)
       .eq('user_id', user_id)
       .single();
@@ -38,6 +38,25 @@ export async function POST(request: NextRequest) {
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found or access denied' }, { status: 403 });
     }
+
+    // SECURITY (BUS-REVIEW-OPERATOR-001): the review's operator is derived
+    // from the booking server-side — never trusted from the request body.
+    // Previously a rider could name any operator_id and plant a review (and
+    // a notification) on an operator who never served their booking.
+    const bookingOperatorId = (booking as any).operator_id;
+    if (!bookingOperatorId) {
+      return NextResponse.json(
+        { error: 'Booking has no operator to review' },
+        { status: 400 }
+      );
+    }
+    if (operator_id && operator_id !== bookingOperatorId) {
+      return NextResponse.json(
+        { error: 'operator_id does not match the booking operator' },
+        { status: 403 }
+      );
+    }
+    const reviewOperatorId = bookingOperatorId;
 
     // Check if review already exists
     const { data: existing } = await supabase
@@ -58,7 +77,7 @@ export async function POST(request: NextRequest) {
       .insert({
         booking_id,
         user_id,
-        operator_id,
+        operator_id: reviewOperatorId,
         rating,
         comment
       })
@@ -70,11 +89,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Notify operator
+    // Notify operator (the booking's actual operator, derived above)
     await supabase
       .from('notifications')
       .insert({
-        user_id: operator_id,
+        user_id: reviewOperatorId,
         type: 'review_received',
         title: 'New Review',
         message: `You received a ${rating}-star review!`,
