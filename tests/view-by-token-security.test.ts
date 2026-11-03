@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 
 /**
  * View-By-Token Route Security Tests
@@ -198,5 +199,159 @@ describe('View-By-Token Routes - Security Invariants', () => {
       expect(safeLogEntry).not.toHaveProperty('full_address');
       console.log('✅ Log entries contain no PII');
     });
+  });
+});
+
+// ============================================================================
+// Route execution — BUS-VIEW-TOKEN-DISCLOSURE-001 regression
+//
+// The trip view endpoints used to fetch transport_requests with select('*')
+// and return the row whole, exposing metadata_private and the exact street
+// addresses to any bearer of the rider's forwardable 30-day magic link.
+// These tests execute the real route handlers against a mocked admin client
+// whose row carries marker PII in every private field, and pin the
+// sanitized UserTripView projection the endpoints must now return.
+// ============================================================================
+
+const FULL_TRIP_ROW = {
+  id: 'req-view-1',
+  user_id: 'user-1',
+  service_type: 'medical',
+  status: 'open',
+  pickup_address: '123 Exact Home Street, Everett, MA',
+  dropoff_address: '456 Exact Clinic Avenue, Boston, MA',
+  pickup_fuzzy: 'Everett, MA',
+  dropoff_fuzzy: 'Boston, MA',
+  pickup_lat: 42.4084,
+  pickup_lng: -71.0537,
+  dropoff_lat: 42.3601,
+  dropoff_lng: -71.0589,
+  start_date: '2026-11-10',
+  start_time: '09:30:00',
+  end_date: '2026-11-10',
+  end_time: '11:00:00',
+  is_recurring: false,
+  recurrence_pattern: null,
+  metadata_safe: { mobility_level: 'wheelchair', service_level: 'door-to-door' },
+  metadata_private: {
+    patient_name: 'PRIVATE-PATIENT-MARKER',
+    contact_email: 'private-contact-marker@example.com',
+    phone: '555-0199',
+    guardian_name: 'PRIVATE-GUARDIAN-MARKER',
+  },
+  // Legacy combined bucket — may hold pre-split private fields
+  metadata: { patient_name: 'LEGACY-PRIVATE-MARKER' },
+  created_at: '2026-11-01T12:00:00Z',
+  updated_at: '2026-11-02T12:00:00Z',
+};
+
+function viewChain(table: string) {
+  const c: Record<string, any> = {};
+  c.select = () => c;
+  c.eq = () => c;
+  c.order = async () => ({ data: [], error: null });
+  c.single = async () =>
+    table === 'transport_requests'
+      ? { data: FULL_TRIP_ROW, error: null }
+      : { data: null, error: null };
+  return c;
+}
+
+vi.mock('@/lib/supabase-server', () => ({
+  supabaseAdmin: { from: (table: string) => viewChain(table) },
+}));
+
+vi.mock('@/lib/tokens', () => ({
+  verifyUserTripToken: async () => ({ requestId: 'req-view-1', userId: 'user-1' }),
+}));
+
+vi.mock('@/lib/event-logger', () => ({ logEvent: async () => {} }));
+
+import { GET as getTripByToken } from '@/app/api/trips/view-by-token/route';
+import { GET as getTripById } from '@/app/api/trips/[id]/route';
+
+const TRIP_VIEW_KEYS = [
+  'created_at',
+  'dropoff_fuzzy',
+  'end_date',
+  'end_time',
+  'id',
+  'is_recurring',
+  'metadata_safe',
+  'pickup_fuzzy',
+  'recurrence_pattern',
+  'service_type',
+  'start_date',
+  'start_time',
+  'status',
+];
+
+function expectSanitizedTrip(body: any) {
+  const trip = body.trip;
+  expect(trip).toBeTruthy();
+  // Exactly the whitelisted projection — nothing else from the row
+  expect(Object.keys(trip).sort()).toEqual(TRIP_VIEW_KEYS);
+  // Privacy fields are gone, in shape and in serialized content
+  expect(trip).not.toHaveProperty('metadata_private');
+  expect(trip).not.toHaveProperty('metadata');
+  expect(trip).not.toHaveProperty('user_id');
+  const raw = JSON.stringify(body);
+  expect(raw).not.toContain('PRIVATE-PATIENT-MARKER');
+  expect(raw).not.toContain('PRIVATE-GUARDIAN-MARKER');
+  expect(raw).not.toContain('private-contact-marker@example.com');
+  expect(raw).not.toContain('LEGACY-PRIVATE-MARKER');
+  // Legitimate rider-view content survives
+  expect(trip.id).toBe('req-view-1');
+  expect(trip.service_type).toBe('medical');
+  expect(trip.status).toBe('open');
+  expect(trip.start_date).toBe('2026-11-10');
+  expect(trip.start_time).toBe('09:30:00');
+  expect(trip.pickup_fuzzy).toBe('Everett, MA');
+  expect(trip.dropoff_fuzzy).toBe('Boston, MA');
+  expect(trip.metadata_safe.mobility_level).toBe('wheelchair');
+  expect(Array.isArray(body.quotes)).toBe(true);
+}
+
+describe('Trip view endpoints — sanitized projection (route execution)', () => {
+  it('view-by-token: metadata_private never reaches a token bearer', async () => {
+    const req = new NextRequest('http://localhost/api/trips/view-by-token?token=valid-token');
+    const res = await getTripByToken(req);
+    expect(res.status).toBe(200);
+    expectSanitizedTrip(await res.json());
+  });
+
+  it('view-by-token: exact street addresses and coordinates are not exposed', async () => {
+    const req = new NextRequest('http://localhost/api/trips/view-by-token?token=valid-token');
+    const res = await getTripByToken(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.trip).not.toHaveProperty('pickup_address');
+    expect(body.trip).not.toHaveProperty('dropoff_address');
+    expect(body.trip).not.toHaveProperty('pickup_lat');
+    expect(body.trip).not.toHaveProperty('pickup_lng');
+    expect(body.trip).not.toHaveProperty('dropoff_lat');
+    expect(body.trip).not.toHaveProperty('dropoff_lng');
+    const raw = JSON.stringify(body);
+    expect(raw).not.toContain('123 Exact Home Street');
+    expect(raw).not.toContain('456 Exact Clinic Avenue');
+  });
+
+  it('trips/[id]: metadata_private never reaches a token bearer', async () => {
+    const req = new NextRequest('http://localhost/api/trips/req-view-1?token=valid-token');
+    const res = await getTripById(req, { params: Promise.resolve({ id: 'req-view-1' }) });
+    expect(res.status).toBe(200);
+    expectSanitizedTrip(await res.json());
+  });
+
+  it('trips/[id]: exact street addresses are not exposed', async () => {
+    const req = new NextRequest('http://localhost/api/trips/req-view-1?token=valid-token');
+    const res = await getTripById(req, { params: Promise.resolve({ id: 'req-view-1' }) });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.trip).not.toHaveProperty('pickup_address');
+    expect(body.trip).not.toHaveProperty('dropoff_address');
+    const raw = JSON.stringify(body);
+    expect(raw).not.toContain('123 Exact Home Street');
+    expect(raw).not.toContain('456 Exact Clinic Avenue');
   });
 });
