@@ -97,6 +97,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the quote details with operator info
+    // SECURITY (BUS-ACCEPT-BINDING-001): the fetch is bound to the request —
+    // a quote is only visible here if it belongs to tripRequestId, exactly
+    // like the accept_quote_atomic RPC's WHERE clause (migration
+    // 20260326000001). The checks are enforced at this route layer rather
+    // than by calling the RPC: this codebase has no RPC call sites (every
+    // route uses the query builder), and the RPC does not return the
+    // operator contact / request fields the notification flow below needs.
     const { data: quote, error: quoteError } = await supabaseAdmin
       .from('quotes')
       .select(`
@@ -113,6 +120,7 @@ export async function POST(request: NextRequest) {
         )
       `)
       .eq('id', quoteId)
+      .eq('request_id', tripRequestId)
       .single();
 
     if (quoteError || !quote) {
@@ -143,6 +151,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY (BUS-ACCEPT-BINDING-001): Only a pending quote may be
+    // accepted — a declined, accepted, or expired quote must never be
+    // resurrected into a booking (the accept_quote_atomic contract).
+    if (quote.status !== 'pending') {
+      await logEvent({
+        event_type: 'quote.accept.not_pending',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Attempted to accept a non-pending quote',
+        metadata: { quote_status: quote.status }
+      });
+      return NextResponse.json(
+        { error: `This quote is ${quote.status} and can no longer be accepted.` },
+        { status: 409 }
+      );
+    }
+
     // Get full transport request details including private fields + user profile in ONE query
     // PERF: Was two sequential DB queries (transport_requests then profiles) — merged to save ~130ms
     // SECURITY: This data is ONLY used server-side; it is NEVER returned in the HTTP response
@@ -152,11 +179,13 @@ export async function POST(request: NextRequest) {
       .eq('id', tripRequestId)
       .single();
 
-    // Update the accepted quote
+    // Update the accepted quote — the status predicate keeps the write
+    // itself fail-closed if the quote left 'pending' after the check above
     const { error: updateError } = await supabaseAdmin
       .from('quotes')
       .update({ status: 'accepted' })
-      .eq('id', quoteId);
+      .eq('id', quoteId)
+      .eq('status', 'pending');
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });

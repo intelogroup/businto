@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
  * CRITICAL: Marketplace Integrity Tests
@@ -245,5 +245,154 @@ describe('Marketplace Integrity - Final Acceptance', () => {
       expect(operatorMessage).toContain('Request closed');
       expect(operatorMessage).toContain('already accepted');
     });
+  });
+});
+
+/**
+ * Regression (real route): BUS-ACCEPT-BINDING-001
+ *
+ * A quote may be accepted only for the transport request it belongs to,
+ * and only while pending (the accept_quote_atomic contract, migration
+ * 20260326000001). Proven against the real POST /api/quotes/accept handler
+ * on an in-memory Supabase harness (the repo's stripe-webhooks mocking
+ * pattern). Originally a loop probe, cycle 2026-11-02-1552.
+ */
+import { NextRequest } from 'next/server';
+
+const acceptHarness = vi.hoisted(() => {
+  type Row = Record<string, any>;
+  const store: Record<string, Row[]> = {
+    transport_requests: [],
+    quotes: [],
+    bookings: [],
+    notifications: [],
+  };
+  let seq = 0;
+
+  class QB {
+    table: string;
+    op: string = 'select';
+    filters: Array<[string, string, any]> = [];
+    payload: any = null;
+    constructor(table: string) { this.table = table; }
+    select(_cols?: any) { return this; }
+    eq(k: string, v: any) { this.filters.push(['eq', k, v]); return this; }
+    neq(k: string, v: any) { this.filters.push(['neq', k, v]); return this; }
+    update(p: any) { this.op = 'update'; this.payload = p; return this; }
+    insert(p: any) { this.op = 'insert'; this.payload = p; return this; }
+    match(row: Row) {
+      return this.filters.every(([t, k, v]) => (t === 'eq' ? row[k] === v : row[k] !== v));
+    }
+    exec() {
+      const rows = store[this.table];
+      if (this.op === 'insert') {
+        const items = Array.isArray(this.payload) ? this.payload : [this.payload];
+        return items.map((it) => {
+          const row = { id: `row-${++seq}`, ...it };
+          rows.push(row);
+          return row;
+        });
+      }
+      const matched = rows.filter((r) => this.match(r));
+      if (this.op === 'update') {
+        matched.forEach((r) => Object.assign(r, this.payload));
+        return matched;
+      }
+      return matched;
+    }
+    async single() {
+      const rows = this.exec();
+      if (rows.length === 0) return { data: null, error: { message: 'Row not found' } };
+      return { data: rows[0], error: null };
+    }
+    async maybeSingle() {
+      const rows = this.exec();
+      return { data: rows.length ? rows[0] : null, error: null };
+    }
+    then(resolve: any, reject: any) {
+      try {
+        resolve({ data: this.exec(), error: null });
+      } catch (e) { reject(e); }
+    }
+  }
+
+  return { store, QB };
+});
+
+vi.mock('@/lib/supabase-server', () => ({
+  supabaseAdmin: { from: (t: string) => new acceptHarness.QB(t) },
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: async () => ({
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1' } } }) },
+  }),
+}));
+
+vi.mock('@/lib/email', () => ({
+  sendEmail: vi.fn(async () => ({ id: 'mock-email' })),
+  emailTemplates: { bookingConfirmation: () => ({ subject: 's', html: 'h' }) },
+  getAppBaseUrl: () => 'http://localhost:3000',
+}));
+
+vi.mock('@/lib/sms', () => ({
+  sendSMS: vi.fn(async () => ({})),
+  smsTemplates: { quoteAccepted: () => ({ body: 'x' }) },
+}));
+
+vi.mock('@/lib/event-logger', () => ({ logEvent: vi.fn(async () => {}) }));
+vi.mock('@/lib/app-settings', () => ({ getDispatchMode: vi.fn(async () => false) }));
+
+import { POST as acceptPOST } from '@/app/api/quotes/accept/route';
+
+const ACCEPT_OP_A = { id: 'op-A', company_name: 'Op A', company_email: 'a@example.com', company_phone: '555', profile: null };
+const ACCEPT_OP_B = { id: 'op-B', company_name: 'Op B', company_email: 'b@example.com', company_phone: '555', profile: null };
+
+function seedAcceptHarness() {
+  acceptHarness.store.transport_requests = [
+    { id: 'req-A', status: 'quoted', user_id: 'user-1', metadata_private: {}, userProfile: null },
+    { id: 'req-B', status: 'quoted', user_id: 'user-2', metadata_private: {}, userProfile: null },
+  ];
+  acceptHarness.store.quotes = [
+    { id: 'quote-A1', request_id: 'req-A', operator_id: 'op-A', status: 'pending', total_price: 100, expires_at: null, operator: ACCEPT_OP_A },
+    { id: 'quote-A2', request_id: 'req-A', operator_id: 'op-A', status: 'declined', total_price: 80, expires_at: null, operator: ACCEPT_OP_A },
+    { id: 'quote-B1', request_id: 'req-B', operator_id: 'op-B', status: 'pending', total_price: 999, expires_at: null, operator: ACCEPT_OP_B },
+  ];
+  acceptHarness.store.bookings = [];
+  acceptHarness.store.notifications = [];
+}
+
+function postAccept(quoteId: string, tripRequestId: string) {
+  const req = new NextRequest('http://localhost:3000/api/quotes/accept', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ quoteId, tripRequestId }),
+  });
+  return acceptPOST(req);
+}
+
+describe('Quote acceptance binding (BUS-ACCEPT-BINDING-001 regression)', () => {
+  beforeEach(() => seedAcceptHarness());
+
+  it('owner accepts own pending quote for own request', async () => {
+    const res = await postAccept('quote-A1', 'req-A');
+    expect(res.status).toBe(200);
+    expect(acceptHarness.store.bookings).toHaveLength(1);
+    expect(acceptHarness.store.bookings[0].amount).toBe(100);
+  });
+
+  it('rejects a quote belonging to another request', async () => {
+    const res = await postAccept('quote-B1', 'req-A');
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(acceptHarness.store.bookings).toHaveLength(0);
+    expect(acceptHarness.store.quotes.find((q) => q.id === 'quote-B1')!.status).toBe('pending');
+    expect(acceptHarness.store.transport_requests.find((r) => r.id === 'req-A')!.status).toBe('quoted');
+  });
+
+  it('rejects a declined (non-pending) quote — no resurrection', async () => {
+    const res = await postAccept('quote-A2', 'req-A');
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(acceptHarness.store.bookings).toHaveLength(0);
+    expect(acceptHarness.store.quotes.find((q) => q.id === 'quote-A2')!.status).toBe('declined');
   });
 });
