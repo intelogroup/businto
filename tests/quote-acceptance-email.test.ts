@@ -94,6 +94,7 @@ describe('Quote Acceptance - Operator Email Verification', () => {
           operator_id: 'op-999',
           total_price: 100,
           vehicle_type: 'Van',
+          status: 'pending',
           operator: { company_email: mockOperatorEmail, company_name: 'Fast Trans' }
         },
         error: null
