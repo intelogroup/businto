@@ -89,6 +89,31 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // SECURITY (BUS-BOOKING-STATUS-001): setting 'cancelled' is a state
+    // transition, not a field write — legal only from a live booking.
+    // Bookings are created 'confirmed' and end 'completed' (cron) or
+    // 'cancelled'; a terminal booking must refuse cancellation instead of
+    // having its final state rewritten.
+    if (status === 'cancelled') {
+      const CANCELLABLE_BOOKING_STATUSES = ['confirmed'];
+      const { data: current } = await supabase
+        .from('bookings')
+        .select('status')
+        .eq('id', bookingId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!current) {
+        return NextResponse.json({ error: 'Booking not found or access denied' }, { status: 404 });
+      }
+      if (!CANCELLABLE_BOOKING_STATUSES.includes(current.status)) {
+        return NextResponse.json(
+          { error: `A ${current.status} booking cannot be cancelled` },
+          { status: 409 }
+        );
+      }
+    }
+
     const updateData: any = {};
     if (status !== undefined) updateData.status = status;
     if (special_instructions !== undefined) updateData.special_instructions = special_instructions;
