@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { verifyUserTripToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
+import { USER_TRIP_VIEW_SELECT, toUserTripView } from '@/lib/trip-view';
 
 export async function GET(
     request: NextRequest,
@@ -47,10 +48,14 @@ export async function GET(
             return NextResponse.json({ error: 'Invalid or expired token' }, { status: 403 });
         }
 
-        // Fetch trip details using admin client to bypass user RLS
+        // Fetch trip details using admin client to bypass user RLS.
+        // Sanitized field list only (BUS-VIEW-TOKEN-DISCLOSURE-001): the
+        // bearer of this forwardable link must never receive the full row —
+        // no metadata_private, no exact addresses. user_id is selected for
+        // the server-side ownership check below and is never returned.
         const { data: trip, error: tripError } = await supabaseAdmin
             .from('transport_requests')
-            .select('*')
+            .select(USER_TRIP_VIEW_SELECT)
             .eq('id', id)
             .single();
 
@@ -98,7 +103,7 @@ export async function GET(
             return NextResponse.json({ error: 'Failed to fetch quotes' }, { status: 500 });
         }
 
-        return NextResponse.json({ trip, quotes });
+        return NextResponse.json({ trip: toUserTripView(trip), quotes });
     } catch (error) {
         console.error('Error in tokenized trip fetch:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

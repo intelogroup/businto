@@ -147,6 +147,41 @@ export interface OperatorRequestView {
 }
 
 // ============================================================================
+// USER TRIP VIEW DTO - What a trip view-token bearer can see
+// ============================================================================
+
+/**
+ * The rider's emailed magic-link view of their own trip
+ * (/api/trips/view-by-token, /api/trips/[id] with a view token).
+ *
+ * The link is forwardable and lives 30 days, so the bearer is treated as
+ * untrusted even when they are the legitimate rider: this projection is
+ * the ONLY trip shape those endpoints may return. It intentionally
+ * excludes:
+ * - metadata_private (PII bucket — never returned to any client)
+ * - metadata (legacy combined bucket — may hold pre-split private fields)
+ * - pickup_address / dropoff_address (exact streets — released to the
+ *   winning operator post-acceptance via the email manifest only)
+ * - pickup/dropoff coordinates (equivalent precision to exact addresses)
+ * - user_id (account identifier)
+ */
+export interface UserTripView {
+  id: string;
+  service_type: ServiceType;
+  pickup_fuzzy: string;
+  dropoff_fuzzy: string;
+  start_date: string;
+  start_time?: string;
+  end_date?: string;
+  end_time?: string;
+  is_recurring: boolean;
+  recurrence_pattern?: string;
+  metadata_safe: SafeMetadata;
+  status: string;
+  created_at: string;
+}
+
+// ============================================================================
 // FULL REQUEST - Server-side only
 // ============================================================================
 
