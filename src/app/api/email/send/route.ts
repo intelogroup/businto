@@ -25,6 +25,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY (BUS-EMAIL-SPOOF-001): this route renders platform-branded
+    // templates, so the recipient must be the authenticated caller's own
+    // email address — in either format (top-level `to` or nested
+    // `data.userEmail`). Previously any signed-in account could send
+    // platform mail with caller-chosen content to arbitrary recipients.
+    const callerEmail = typeof user.email === 'string' ? user.email.trim().toLowerCase() : '';
+    if (!callerEmail || String(to).trim().toLowerCase() !== callerEmail) {
+      return NextResponse.json(
+        { error: 'Recipient must be your own email address' },
+        { status: 403 }
+      );
+    }
+
     let template;
     // Support both underscore and hyphen formats
     const normalizedType = type.replace(/-/g, '_');
