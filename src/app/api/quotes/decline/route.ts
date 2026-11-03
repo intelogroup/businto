@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Get quote with its associated request to verify ownership
     const { data: quote } = await supabase
       .from('quotes')
-      .select('operator_id, total_price, request_id')
+      .select('operator_id, total_price, request_id, status')
       .eq('id', quoteId)
       .single();
 
@@ -42,11 +42,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Update quote status
+    // SECURITY: Only a pending quote may be declined — an accepted quote
+    // is a live booking commitment and must not be flipped to declined
+    // after the fact (same status guard as quote acceptance).
+    if (quote.status !== 'pending') {
+      return NextResponse.json(
+        { error: `This quote is ${quote.status} and can no longer be declined.` },
+        { status: 409 }
+      );
+    }
+
+    // Update quote status — the status predicate keeps the write
+    // fail-closed if the quote left 'pending' after the check above
     const { error } = await supabase
       .from('quotes')
       .update({ status: 'declined' })
-      .eq('id', quoteId);
+      .eq('id', quoteId)
+      .eq('status', 'pending');
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

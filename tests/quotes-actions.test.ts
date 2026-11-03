@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
  * Quotes Actions Tests
@@ -76,4 +76,95 @@ describe('Quotes Sub-Actions', () => {
             expect(latestQuote.total_price).toBe(200);
         });
     });
+});
+
+/**
+ * Regression (real route): decline status guard.
+ *
+ * POST /api/quotes/decline updated the quote unconditionally — an
+ * already-accepted quote could be flipped to 'declined'. Only a pending
+ * quote may be declined. Fixed by inspection alongside
+ * BUS-ACCEPT-BINDING-001 (same missing status check); proven here
+ * against the real handler on an in-memory mocked supabaseAdmin.
+ * Originally a Tier-1 scout candidate, queued 2026-11-02.
+ */
+import { NextRequest } from 'next/server';
+
+const declineHarness = vi.hoisted(() => {
+  type Row = Record<string, any>;
+  const store: Record<string, Row[]> = {
+    quotes: [],
+    transport_requests: [],
+    notifications: [],
+  };
+  let seq = 0;
+  class QB {
+    table: string; op = 'select'; filters: Array<[string, any]> = []; payload: any = null;
+    constructor(t: string) { this.table = t; }
+    select() { return this; }
+    eq(k: string, v: any) { this.filters.push([k, v]); return this; }
+    update(p: any) { this.op = 'update'; this.payload = p; return this; }
+    insert(p: any) { this.op = 'insert'; this.payload = p; return this; }
+    match(r: Row) { return this.filters.every(([k, v]) => r[k] === v); }
+    exec() {
+      const rows = store[this.table];
+      if (this.op === 'insert') {
+        const items = Array.isArray(this.payload) ? this.payload : [this.payload];
+        return items.map((it) => { const row = { id: `row-${++seq}`, ...it }; rows.push(row); return row; });
+      }
+      const matched = rows.filter((r) => this.match(r));
+      if (this.op === 'update') { matched.forEach((r) => Object.assign(r, this.payload)); return matched; }
+      return matched;
+    }
+    async single() { const rows = this.exec(); return rows.length ? { data: rows[0], error: null } : { data: null, error: { message: 'not found' } }; }
+    then(res: any, rej: any) { try { res({ data: this.exec(), error: null }); } catch (e) { rej(e); } }
+  }
+  return { store, QB };
+});
+
+vi.mock('@/lib/supabase-server', () => ({
+  supabaseAdmin: { from: (t: string) => new declineHarness.QB(t) },
+}));
+
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: async () => ({
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1' } }, error: null }) },
+  }),
+}));
+
+import { POST as declinePOST } from '@/app/api/quotes/decline/route';
+
+function seedDecline() {
+  declineHarness.store.transport_requests = [
+    { id: 'req-A', user_id: 'user-1' },
+  ];
+  declineHarness.store.quotes = [
+    { id: 'quote-pending', request_id: 'req-A', operator_id: 'op-A', status: 'pending', total_price: 100 },
+    { id: 'quote-accepted', request_id: 'req-A', operator_id: 'op-A', status: 'accepted', total_price: 120 },
+  ];
+  declineHarness.store.notifications = [];
+}
+
+async function postDecline(quoteId: string) {
+  const req = new NextRequest('http://localhost/api/quotes/decline', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ quoteId }),
+  });
+  return declinePOST(req);
+}
+
+describe('Quote decline status guard (regression)', () => {
+  beforeEach(seedDecline);
+
+  it('pending quote can be declined', async () => {
+    const res = await postDecline('quote-pending');
+    expect(res.status).toBe(200);
+    expect(declineHarness.store.quotes.find(q => q.id === 'quote-pending')!.status).toBe('declined');
+  });
+
+  it('accepted quote cannot be declined', async () => {
+    const res = await postDecline('quote-accepted');
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(declineHarness.store.quotes.find(q => q.id === 'quote-accepted')!.status).toBe('accepted');
+  });
 });
