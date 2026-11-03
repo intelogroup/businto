@@ -94,6 +94,31 @@ describe('Link Redirection & Session Integrity', () => {
         });
     });
 
+    describe('Cross-Type Token Confusion (BUS-TOKEN-TYPE-001 regression)', () => {
+        it('rejects a user trip token at the operator verifier', async () => {
+            // Trip tokens are emailed to riders (30-day expiry) and share the
+            // HMAC secret and claim shape with operator tokens — they must
+            // never satisfy verifyOperatorViewToken.
+            const tripToken = await generateUserTripToken(requestId, userId, operatorId);
+            const payload = await verifyOperatorViewToken(tripToken);
+
+            expect(payload).toBeNull();
+        });
+
+        it('still accepts genuine operator view and quote tokens', async () => {
+            const viewToken = await generateOperatorViewToken(requestId, operatorId, 'view');
+            const quoteToken = await generateOperatorViewToken(requestId, operatorId, 'quote');
+
+            expect((await verifyOperatorViewToken(viewToken))?.purpose).toBe('view');
+            expect((await verifyOperatorViewToken(quoteToken))?.purpose).toBe('quote');
+        });
+
+        it('still rejects an operator token at the user trip verifier', async () => {
+            const opToken = await generateOperatorViewToken(requestId, operatorId, 'view');
+            expect(await verifyUserTripToken(opToken)).toBeNull();
+        });
+    });
+
     describe('PII Reveal Link (Post-Payment)', () => {
         it('routes operator to dashboard/bookings for order details', () => {
             // Note: operatorOrderDetails doesn't use a token link, it's a direct route

@@ -135,10 +135,22 @@ export async function verifyOperatorViewToken(
 ): Promise<OperatorViewTokenPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
+
+    // SECURITY: This verifier must accept operator tokens only. Operator
+    // tokens carry the short purpose claim `p` ('view' | 'quote'); user trip
+    // tokens carry the long-form purpose 'view_trip' and no `p` claim, and
+    // must never satisfy this verifier (BUS-TOKEN-TYPE-001). This mirrors
+    // verifyUserTripToken, which enforces its own purpose.
+    const purpose = (payload.p ?? payload.purpose) as string | undefined;
+    if (purpose !== 'view' && purpose !== 'quote') return null;
+    // A conflicting long-form purpose (e.g. 'view_trip' alongside a forged
+    // short claim) also disqualifies the token.
+    if (payload.purpose !== undefined && payload.purpose !== purpose) return null;
+
     return {
       requestId: fromShortId(payload.rid as string)!,
       operatorId: fromShortId(payload.oid as string | undefined),
-      purpose: payload.p as 'view' | 'quote',
+      purpose: purpose as 'view' | 'quote',
       exp: payload.exp as number,
     };
   } catch (err) {
