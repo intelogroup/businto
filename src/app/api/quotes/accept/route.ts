@@ -5,6 +5,7 @@ import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
 import { verifyUserTripToken } from '@/lib/tokens';
+import { isOpenRequestStatus } from '@/lib/request-status';
 import { getDispatchMode } from '@/lib/app-settings';
 import { nanoid } from 'nanoid';
 
@@ -92,6 +93,29 @@ export async function POST(request: NextRequest) {
           error: 'Request already fulfilled. Acceptance is final - cannot change operators.',
           locked: true
         },
+        { status: 409 }
+      );
+    }
+
+    // LIFECYCLE GUARD (BUS-ACCEPT-CLOSED-REQUEST-001): a quote may only be
+    // accepted on an OPEN request (pending/quoted). A cancelled or
+    // completed request must never be resurrected to booked. Shared
+    // predicate: src/lib/request-status.ts — applied by every
+    // quote-family route. ('booked' is handled by the dedicated check
+    // above; the booked write below keeps its .neq('status','booked')
+    // predicate as the race guard.)
+    if (!isOpenRequestStatus(requestVerification.status)) {
+      await logEvent({
+        event_type: 'quote.accept.closed_request',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Attempted to accept a quote on a closed request',
+        metadata: { current_status: requestVerification.status }
+      });
+      return NextResponse.json(
+        { error: 'This request is no longer open and cannot be booked.' },
         { status: 409 }
       );
     }

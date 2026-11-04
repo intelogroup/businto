@@ -79,7 +79,8 @@ export async function POST(request: NextRequest) {
       recurrence_pattern,
       metadata,
       end_time,
-      payment_method_id, // New field for serious lead payment
+      // NOTE: payment_method_id is deliberately NOT read from the body.
+      // Payment state is server-decided (see below) — never client-asserted.
     } = body;
 
     if (!service_type || !pickup_address || !dropoff_address || !start_date) {
@@ -202,12 +203,14 @@ export async function POST(request: NextRequest) {
     const priorityMinutes = service_type === 'medical' ? 15 : 60;
     const priority_window_ends_at = new Date(Date.now() + priorityMinutes * 60 * 1000).toISOString();
 
-    // User Priority and Payment Logic
-    // If the user provided a payment method (even a mock one for testing), 
-    // we activate the 30-minute priority window.
-    const hasPaid = !!payment_method_id;
-    const priority_until = hasPaid ? new Date(Date.now() + 30 * 60 * 1000).toISOString() : null;
-    const payment_status = hasPaid ? 'paid' : 'pending';
+    // Payment state is SERVER-DECIDED (BUS-FORGED-PRIORITY-PAYMENT-001):
+    // a request is always created unpaid ('pending', no priority window).
+    // Only the verified Stripe payments webhook may set 'paid' and
+    // priority_until, once the $1.99 Serious Lead Priority checkout is
+    // confirmed. A client-supplied payment_method_id is never trusted —
+    // it is ignored here entirely.
+    const priority_until: string | null = null;
+    const payment_status = 'pending';
 
     mark('db-insert-request-start');
     const { data, error } = await supabaseAdmin
