@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { verifyOperatorViewToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
+import { isOpenRequestStatus } from '@/lib/request-status';
 
 /**
  * POST /api/quotes/pass
@@ -35,7 +36,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
   }
 
-  if (request.status === 'booked' || request.status === 'cancelled') {
+  // LIFECYCLE GUARD (BUS-PASS-CLOSED-REQUEST-001): a pass is only valid
+  // on an OPEN request (pending/quoted). The previous booked/cancelled
+  // check omitted 'completed', flagging finished trips for re-dispatch.
+  // Shared predicate: src/lib/request-status.ts — applied by every
+  // quote-family route.
+  if (!isOpenRequestStatus(request.status)) {
     return NextResponse.json({ error: 'Request is no longer active' }, { status: 409 });
   }
 

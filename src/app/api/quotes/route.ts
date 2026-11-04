@@ -5,6 +5,7 @@ import { generateOperatorViewToken, generateUserTripToken, verifyOperatorViewTok
 import { generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
+import { fetchRequestStatus, isOpenRequestStatus } from '@/lib/request-status';
 
 
 export async function POST(request: NextRequest) {
@@ -114,6 +115,28 @@ export async function POST(request: NextRequest) {
 
     // SECURITY: Always use the token-verified operator_id. Body operator_id is ignored.
     const operator_id = tokenVerifiedOperatorId;
+
+    // LIFECYCLE GUARD (BUS-QUOTE-CLOSED-REQUEST-001): quotes may only be
+    // submitted on an OPEN request (pending/quoted). Shared predicate:
+    // src/lib/request-status.ts — applied by every quote-family route.
+    const requestStatus = await fetchRequestStatus(request_id);
+    if (requestStatus === null) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+    if (!isOpenRequestStatus(requestStatus)) {
+      await logEvent({
+        event_type: 'quote.submission.closed_request',
+        status: 'error',
+        operator_id: operator_id || null,
+        request_id: request_id,
+        message: 'Attempted to quote on a closed request',
+        metadata: { request_status: requestStatus }
+      });
+      return NextResponse.json(
+        { error: 'This request is no longer open for quotes.' },
+        { status: 409 }
+      );
+    }
 
     // MARKETPLACE INTEGRITY: Request is locked once a quote is accepted
     const { data: acceptedQuote } = await supabaseAdmin

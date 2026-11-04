@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase-server';
 import { validateQuote } from '@/lib/quote-validation';
+import { fetchRequestStatus, isOpenRequestStatus } from '@/lib/request-status';
 import { logEvent } from '@/lib/event-logger';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateTripViewLink } from '@/lib/email-helpers';
@@ -62,6 +63,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid quote data', details: validation.error.format() },
         { status: 400 }
+      );
+    }
+
+    // LIFECYCLE GUARD (BUS-DASH-QUOTE-CLOSED-REQUEST-001): quotes may only
+    // be submitted on an OPEN request (pending/quoted). Shared predicate:
+    // src/lib/request-status.ts — applied by every quote-family route.
+    const requestStatus = await fetchRequestStatus(request_id);
+    if (requestStatus === null) {
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+    if (!isOpenRequestStatus(requestStatus)) {
+      await logEvent({
+        event_type: 'quote.submission.closed_request',
+        status: 'error',
+        operator_id: operatorId,
+        request_id,
+        message: 'Attempted to quote on a closed request via dashboard',
+        metadata: { request_status: requestStatus, source: 'dashboard' },
+      });
+      return NextResponse.json(
+        { error: 'This request is no longer open for quotes.' },
+        { status: 409 }
       );
     }
 
