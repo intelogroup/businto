@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 
+// An operator participates in a request when their operator record (looked up
+// by profile ID) holds a quote on that request.
+async function hasQuoteOnRequest(profileId: string, requestId: string): Promise<boolean> {
+  const { data: operator } = await supabase
+    .from('operators')
+    .select('id')
+    .eq('profile_id', profileId)
+    .maybeSingle();
+  if (!operator) return false;
+
+  const { data: quote } = await supabase
+    .from('quotes')
+    .select('operator_id')
+    .eq('request_id', requestId)
+    .eq('operator_id', operator.id)
+    .maybeSingle();
+  return !!quote;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireUser();
@@ -66,31 +85,23 @@ export async function POST(request: NextRequest) {
       if (!isRequestOwner) {
         // Check if sender is an operator with a quote on this request.
         // user.id is a profile ID — look up the operator record first, then check quotes.
-        const { data: operator } = await supabase
-          .from('operators')
-          .select('id')
-          .eq('profile_id', user.id)
-          .maybeSingle();
-
-        if (!operator) {
+        if (!(await hasQuoteOnRequest(user.id, request_id))) {
           return NextResponse.json(
             { error: 'You are not a participant in this request' },
             { status: 403 }
           );
         }
+      }
 
-        const { data: quote } = await supabase
-          .from('quotes')
-          .select('operator_id')
-          .eq('request_id', request_id)
-          .eq('operator_id', operator.id)
-          .maybeSingle();
-        if (!quote) {
-          return NextResponse.json(
-            { error: 'You are not a participant in this request' },
-            { status: 403 }
-          );
-        }
+      // H6: The recipient must also be a participant in this request — the
+      // request owner, or an operator with a quote on it. Without this check
+      // any participant could push messages, in-app notifications, and SMS
+      // to arbitrary registered users under this request's cover.
+      if (recipient_id !== req.user_id && !(await hasQuoteOnRequest(recipient_id, request_id))) {
+        return NextResponse.json(
+          { error: 'Recipient is not a participant in this request' },
+          { status: 403 }
+        );
       }
     }
 

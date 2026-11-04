@@ -207,6 +207,11 @@ describe('messages route — SMS wiring', () => {
       })
       // unified_profiles → recipient phone
       .mockResolvedValueOnce({ data: { phone: '5559876543' }, error: null });
+    // BUS-MSG-RECIPIENT-001: the recipient must participate in the request —
+    // 'op-999' is an operator with a quote on it (operators lookup, then quotes)
+    (supabaseAdmin as any).maybeSingle
+      .mockResolvedValueOnce({ data: { id: 'op-999' }, error: null })
+      .mockResolvedValueOnce({ data: { operator_id: 'op-999' }, error: null });
 
     const req = new NextRequest('https://businto.com/api/messages', {
       method: 'POST',
@@ -250,6 +255,10 @@ describe('messages route — SMS wiring', () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: { phone: null }, error: null });
+    // BUS-MSG-RECIPIENT-001: recipient 'op-999' participates via a quote on the request
+    (supabaseAdmin as any).maybeSingle
+      .mockResolvedValueOnce({ data: { id: 'op-999' }, error: null })
+      .mockResolvedValueOnce({ data: { operator_id: 'op-999' }, error: null });
 
     const req = new NextRequest('https://businto.com/api/messages', {
       method: 'POST',

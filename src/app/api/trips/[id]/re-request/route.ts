@@ -49,17 +49,10 @@ export async function GET(
       metadata_safe: Record<string, unknown>; user_id: string;
     };
 
-    // M9: Only completed or cancelled trips can be re-requested.
-    // Prevents users from duplicating active/pending requests.
-    const RE_REQUESTABLE_STATUSES = ['completed', 'cancelled'];
-    if (!RE_REQUESTABLE_STATUSES.includes(tripData.status)) {
-      return NextResponse.json(
-        { error: 'Only completed or cancelled trips can be re-requested' },
-        { status: 400 }
-      );
-    }
-
-    // Ownership check: only the trip owner may re-request
+    // Ownership check FIRST: only the trip owner may re-request. This must
+    // run before the status gate — otherwise the differing status codes
+    // (403 here vs 400 below) leak a foreign trip's status class to
+    // non-owners, who must get one uniform response for any trip.
     if (tripData.user_id !== user.id) {
       await logEvent({
         event_type: 're_request.unauthorized',
@@ -70,6 +63,16 @@ export async function GET(
         metadata: { owner_id: tripData.user_id, requester_id: user.id },
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // M9: Only completed or cancelled trips can be re-requested.
+    // Prevents users from duplicating active/pending requests.
+    const RE_REQUESTABLE_STATUSES = ['completed', 'cancelled'];
+    if (!RE_REQUESTABLE_STATUSES.includes(tripData.status)) {
+      return NextResponse.json(
+        { error: 'Only completed or cancelled trips can be re-requested' },
+        { status: 400 }
+      );
     }
 
     await logEvent({
