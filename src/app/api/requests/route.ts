@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { stripe } from '@/lib/stripe';
+import { createPriorityFeeCheckoutSession } from '@/lib/payments';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
@@ -637,28 +637,9 @@ export async function POST(request: NextRequest) {
     if (payment_status === 'pending' && matchedOperatorsCount > 0) {
       try {
         const appUrl = getAppBaseUrl();
-        const session = await stripe.checkout.sessions.create({
-          payment_method_types: ['card'],
-          line_items: [
-            {
-              price_data: {
-                currency: 'usd',
-                product_data: {
-                  name: 'Serious Lead Priority',
-                  description: 'Notify partners immediately and get 30-minute priority.',
-                },
-                unit_amount: 199,
-              },
-              quantity: 1,
-            },
-          ],
-          mode: 'payment',
-          success_url: `${appUrl}/?request_id=${data.id}&payment_success=true`,
-          cancel_url: `${appUrl}/?request_id=${data.id}&payment_cancelled=true`,
-          metadata: {
-            request_id: data.id,
-            type: 'priority_fee'
-          }
+        const session = await createPriorityFeeCheckoutSession({
+          requestId: data.id,
+          appUrl,
         });
         paymentUrl = session.url ?? undefined;
       } catch (stripeErr) {
