@@ -54,6 +54,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
+    // ── State gate (BUS-CREATE-INTENT-STATE-001) ───────────────────────
+    // A routing-fee intent may be created only for a live, unpaid
+    // booking — the contract the sibling payment routes already state:
+    // booking-checkout refuses payment_status 'paid' outright and
+    // CAS-claims only 'unpaid'/'pending'; seamless does the same; the
+    // refund route treats 'refunded' as the fee's terminal state and
+    // refunds against the stored stripe_payment_intent_id, which this
+    // route must never overwrite once the fee has been collected.
+    // Refuse BEFORE any Stripe call and before touching the stored
+    // intent id when:
+    //   - the booking itself is terminal: status 'cancelled' or
+    //     'completed' (a trip that will not run, or already ran), or
+    //   - the fee is settled or already claimed by another payment
+    //     path: payment_status 'paid', 'refunded', or 'processing'.
+    // Still allowed, exactly as before (the PaymentModal flow):
+    // payment_status 'unpaid' or 'pending', and 'failed' — the
+    // webhook's payment_failed state, whose designed recovery is
+    // re-entering this route from the payment modal.
+    if (
+      booking.status === 'cancelled' ||
+      booking.status === 'completed' ||
+      booking.payment_status === 'paid' ||
+      booking.payment_status === 'refunded' ||
+      booking.payment_status === 'processing'
+    ) {
+      return NextResponse.json(
+        { error: 'Booking is not payable in its current state' },
+        { status: 409 }
+      );
+    }
+
     // Create payment intent for routing fee only
     // Note: booking.amount contains operator's quote but they're paid separately
     const paymentIntent = await stripe.paymentIntents.create({
