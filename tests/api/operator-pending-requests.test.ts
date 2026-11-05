@@ -11,7 +11,7 @@ import { NextRequest } from "next/server";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn() },
   requireUser: vi.fn(),
 }));
@@ -48,7 +48,7 @@ describe("GET /api/operator/pending-requests", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/operator/pending-requests/route");
@@ -57,7 +57,7 @@ describe("GET /api/operator/pending-requests", () => {
   });
 
   it("returns 403 when user is not an operator", async () => {
-    const { requireUser, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireUser, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     // Both profile lookups return null — not an operator
@@ -71,7 +71,7 @@ describe("GET /api/operator/pending-requests", () => {
   });
 
   it("returns 200 with requests array when authenticated operator", async () => {
-    const { requireUser, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireUser, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "op-user-1" });
 
     const REQUESTS = [
@@ -115,7 +115,7 @@ describe("GET /api/operator/pending-requests", () => {
   it("route select statement does NOT include metadata_private (PII guard)", async () => {
     // The route explicitly selects only safe fields from transport_requests.
     // This test verifies the select string by intercepting the from().select() call.
-    const { requireUser, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireUser, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "op-user-1" });
 
     let capturedSelect = "";

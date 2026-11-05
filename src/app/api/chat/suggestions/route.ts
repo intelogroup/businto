@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSmartReplies } from '@/lib/ai';
-import { supabaseAdmin, requireUser } from '@/lib/supabase-server';
+import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
 
 export async function POST(req: NextRequest) {
   try {

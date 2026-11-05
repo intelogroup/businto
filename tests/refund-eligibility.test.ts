@@ -34,7 +34,7 @@ const h = vi.hoisted(() => {
   return { store, QB, stripeCalls };
 });
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (t: string) => new h.QB(t) },
 }));
 vi.mock('@/lib/stripe', () => ({

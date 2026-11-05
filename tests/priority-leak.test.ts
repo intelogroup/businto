@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "@/app/api/cron/process-priority-leaks/route";
-import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 import { findMatchingOperators } from "@/lib/operator-matching";
 import { sendEmail } from "@/lib/email";
 
 // Mock supabaseAdmin
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: {
     from: vi.fn(),
   },

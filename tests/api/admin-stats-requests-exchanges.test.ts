@@ -17,7 +17,7 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn() },
   requireAdmin: vi.fn(),
 }));
@@ -72,7 +72,7 @@ describe("GET /api/master/admin/stats", () => {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } }, error: null }) },
     });
 
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     const mockFrom = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -91,7 +91,7 @@ describe("GET /api/master/admin/stats", () => {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "admin-1" } }, error: null }) },
     });
 
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     let callCount = 0;
     (supabaseAdmin as any).from = vi.fn().mockImplementation(() => {
       callCount++;
@@ -139,7 +139,7 @@ describe("GET /api/master/admin/requests", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 403 when not admin", async () => {
-    const { requireAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/master/admin/requests/route");
@@ -148,7 +148,7 @@ describe("GET /api/master/admin/requests", () => {
   });
 
   it("returns paginated requests when admin", async () => {
-    const { requireAdmin, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue({ id: "admin-1" });
 
     const chainMock = {
@@ -174,7 +174,7 @@ describe("GET /api/master/admin/exchanges", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 403 when not admin", async () => {
-    const { requireAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/master/admin/exchanges/route");
@@ -183,7 +183,7 @@ describe("GET /api/master/admin/exchanges", () => {
   });
 
   it("returns pending exchanges when admin", async () => {
-    const { requireAdmin, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue({ id: "admin-1" });
 
     (supabaseAdmin as any).from = vi.fn().mockReturnValue({
@@ -207,7 +207,7 @@ describe("GET /api/master/admin/exchanges (data shape)", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("exchanges response contains exchanges array key", async () => {
-    const { requireAdmin, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue({ id: "admin-1" });
 
     (supabaseAdmin as any).from = vi.fn().mockReturnValue({

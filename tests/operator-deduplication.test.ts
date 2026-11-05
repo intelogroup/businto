@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { findMatchingOperators } from "@/lib/operator-matching";
-import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 
 // Mock supabaseAdmin
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: {
     from: vi.fn(),
   },

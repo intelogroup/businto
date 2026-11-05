@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "@/app/api/messages/route";
 import { NextRequest } from "next/server";
-import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 
 // Mock supabaseAdmin and helpers
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: {
     from: vi.fn(),
   },
@@ -26,7 +26,7 @@ describe("Messaging API Security", () => {
   });
 
   it("should block messaging attempts where sender_id does not match authenticated user", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "real-user-id" });
 
     const req = new NextRequest("http://localhost:3000/api/messages", {
@@ -47,7 +47,7 @@ describe("Messaging API Security", () => {
   });
 
   it("should allow messaging where sender_id matches authenticated user", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "real-user-id" });
 
     // H6: the recipient must be a participant too — here an operator who
@@ -189,7 +189,7 @@ describe("Messaging API — request recipient binding (BUS-MSG-RECIPIENT-001)", 
   }
 
   async function post(sender: string, recipient: string) {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: sender });
     const req = new NextRequest("http://localhost:3000/api/messages", {
       method: "POST",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 
 /**
  * GET /api/messages/threads

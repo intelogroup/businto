@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase-server';
+import { supabaseAdmin } from './supabase/admin';
 import { customAlphabet } from 'nanoid';
 
 /**

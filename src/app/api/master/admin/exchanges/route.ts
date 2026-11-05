@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, requireAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin, requireAdmin } from '@/lib/supabase/admin';
 
 // GET — return bookings pending manual PII exchange
 export async function GET(req: NextRequest) {

@@ -91,7 +91,7 @@ const bookingHarness = vi.hoisted(() => {
   return { store, QB };
 });
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (t: string) => new bookingHarness.QB(t) },
   requireUser: async () => ({ id: 'user-1' }),
 }));

@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockRequireUser = vi.fn();
 
-vi.mock('@/lib/supabase-server', () => {
+vi.mock('@/lib/supabase/admin', () => {
   const chainMock = () => {
     const chain: any = {
       select: vi.fn().mockReturnValue(chain),

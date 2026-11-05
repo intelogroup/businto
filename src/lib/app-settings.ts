@@ -8,7 +8,7 @@
  * TTL: 60 seconds — settings changes propagate within 1 minute.
  */
 
-import { supabaseAdmin } from './supabase-server';
+import { supabaseAdmin } from './supabase/admin';
 
 interface SettingsCache {
     manual_dispatch_mode: boolean;

@@ -59,7 +59,7 @@ vi.mock('@/lib/supabase/server', () => ({
     from: (t: string) => new h.QB(t),
   })),
 }));
-vi.mock('@/lib/supabase-server', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
+vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
 vi.mock('@/lib/stripe', () => ({
   stripe: { checkout: { sessions: { create: vi.fn(async (a: any) => { h.stripeCalls.push(a); return { url: 'https://checkout.synthetic/x' }; }) } } },
 }));

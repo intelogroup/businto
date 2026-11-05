@@ -54,7 +54,7 @@ const h = vi.hoisted(() => {
   return { store, QB, sendEmail };
 });
 
-vi.mock('@/lib/supabase-server', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
+vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
 vi.mock('@/lib/event-logger', () => ({ logEvent: vi.fn().mockResolvedValue(undefined) }));
 vi.mock('@/lib/email', () => ({
   sendEmail: h.sendEmail,

@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   requireUser: vi.fn(),
 }));
 
@@ -19,7 +19,7 @@ vi.mock('@/lib/email', () => ({
 }));
 
 import { POST } from '../src/app/api/email/send/route';
-import { requireUser } from '@/lib/supabase-server';
+import { requireUser } from '@/lib/supabase/admin';
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/email/send', {

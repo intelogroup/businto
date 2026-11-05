@@ -319,7 +319,7 @@ const acceptHarness = vi.hoisted(() => {
   return { store, QB };
 });
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (t: string) => new acceptHarness.QB(t) },
 }));
 

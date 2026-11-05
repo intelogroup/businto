@@ -1,4 +1,4 @@
-import { supabaseAdmin as supabase } from './supabase-server';
+import { supabaseAdmin as supabase } from './supabase/admin';
 
 // ─── Dev perf tracing ──────────────────────────────────────────────────────────────────────────
 const IS_DEV_PERF = process.env.NODE_ENV !== 'production' || process.env.ENABLE_PERF_TRACE === '1';

@@ -13,7 +13,7 @@ import { NextRequest } from "next/server";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn() },
   requireUser: vi.fn(),
 }));
@@ -93,7 +93,7 @@ describe("POST /api/messages", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/messages/route");
@@ -106,7 +106,7 @@ describe("POST /api/messages", () => {
   });
 
   it("returns 403 when sender_id does not match authenticated user", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     const { POST } = await import("@/app/api/messages/route");
@@ -120,7 +120,7 @@ describe("POST /api/messages", () => {
   });
 
   it("returns 400 when recipient_id or content is missing", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     const { POST } = await import("@/app/api/messages/route");
@@ -133,7 +133,7 @@ describe("POST /api/messages", () => {
   });
 
   it("returns 400 when neither request_id nor booking_id provided", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     const { POST } = await import("@/app/api/messages/route");
@@ -147,7 +147,7 @@ describe("POST /api/messages", () => {
   });
 
   it("returns 200 when authenticated and all required fields present", async () => {
-    const { requireUser, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireUser, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(
@@ -172,7 +172,7 @@ describe("GET /api/messages", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue(null);
 
     const { GET } = await import("@/app/api/messages/route");
@@ -181,7 +181,7 @@ describe("GET /api/messages", () => {
   });
 
   it("returns 200 with messages array when authenticated", async () => {
-    const { requireUser, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireUser, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     // Messages GET uses: .select().order().eq().or() — all must be chainable
@@ -214,7 +214,7 @@ describe("GET /api/requests", () => {
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
     });
 
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(
       mockChain({ data: [], error: null })
     );
@@ -235,7 +235,7 @@ describe("POST /api/requests (intentionally public — allows anonymous submissi
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
     });
 
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(mockChain({ data: null, error: null }));
 
     const { POST } = await import("@/app/api/requests/route");

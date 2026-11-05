@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { verifyOperatorViewToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 import { isOpenRequestStatus } from '@/lib/request-status';

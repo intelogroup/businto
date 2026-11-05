@@ -9,7 +9,7 @@ import { NextRequest } from "next/server";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn() },
   requireUser: vi.fn(),
 }));
@@ -47,7 +47,7 @@ describe("POST /api/chat/suggestions", () => {
   beforeEach(() => vi.resetAllMocks());
 
   it("returns 401 when unauthenticated", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue(null);
 
     const { POST } = await import("@/app/api/chat/suggestions/route");
@@ -56,7 +56,7 @@ describe("POST /api/chat/suggestions", () => {
   });
 
   it("returns empty suggestions when messages array is empty", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     const { POST } = await import("@/app/api/chat/suggestions/route");
@@ -67,7 +67,7 @@ describe("POST /api/chat/suggestions", () => {
   });
 
   it("returns 401 (not 500) for unauthenticated requests — never generates suggestions", async () => {
-    const { requireUser } = await import("@/lib/supabase-server");
+    const { requireUser } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue(null);
 
     const { generateSmartReplies } = await import("@/lib/ai");
@@ -80,7 +80,7 @@ describe("POST /api/chat/suggestions", () => {
   });
 
   it("returns suggestions when authenticated with valid messages", async () => {
-    const { requireUser, supabaseAdmin } = await import("@/lib/supabase-server");
+    const { requireUser, supabaseAdmin } = await import("@/lib/supabase/admin");
     (requireUser as any).mockResolvedValue({ id: "user-1" });
 
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(

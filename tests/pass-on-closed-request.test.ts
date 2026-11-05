@@ -37,7 +37,7 @@ const h = vi.hoisted(() => {
   return { store, QB };
 });
 
-vi.mock('@/lib/supabase-server', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
+vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
 vi.mock('@/lib/tokens', () => ({
   verifyOperatorViewToken: vi.fn(async (token: string) => {
     // token format: tok-<requestId>

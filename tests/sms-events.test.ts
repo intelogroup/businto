@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { supabaseAdmin } from '../src/lib/supabase-server';
+import { supabaseAdmin } from '../src/lib/supabase/admin';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 
 // ---------------------------------------------------------------------------
@@ -9,7 +9,7 @@ import { sendSMS, smsTemplates } from '@/lib/sms';
 // messages/route.ts       → smsTemplates.newMessage    (called when recipient has phone)
 // ---------------------------------------------------------------------------
 
-vi.mock('../src/lib/supabase-server', () => {
+vi.mock('../src/lib/supabase/admin', () => {
   const mock: any = {};
   const self = () => mock;
   mock.from = vi.fn(self);

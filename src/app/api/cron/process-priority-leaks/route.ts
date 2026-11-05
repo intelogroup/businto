@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { findMatchingOperators, extractRequirements } from '@/lib/operator-matching';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorViewToken } from '@/lib/tokens';

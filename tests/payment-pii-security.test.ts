@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "@/app/api/payments/webhook/route";
 import { NextRequest } from "next/server";
-import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 
 // Mock dependencies
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
     supabaseAdmin: {
         from: vi.fn(),
     },

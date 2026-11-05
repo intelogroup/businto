@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET } from "@/app/api/master/admin/requests/route";
 import { NextRequest } from "next/server";
-import { supabaseAdmin as supabase } from "@/lib/supabase-server";
+import { supabaseAdmin as supabase } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 // Mock supabase server client
@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 // Mock supabaseAdmin and helpers
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: {
     from: vi.fn(),
   },
@@ -24,7 +24,7 @@ describe("Admin API Security", () => {
   });
 
   it("should block non-admin users from accessing admin requests", async () => {
-    const { requireAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue(null);
 
     const req = new NextRequest("http://localhost:3000/api/master/admin/requests", {
@@ -39,7 +39,7 @@ describe("Admin API Security", () => {
   });
 
   it("should allow admin users to access admin requests", async () => {
-    const { requireAdmin } = await import("@/lib/supabase-server");
+    const { requireAdmin } = await import("@/lib/supabase/admin");
     (requireAdmin as any).mockResolvedValue({ id: "admin-id" });
 
     const mockRequests = [{ id: "req-1" }];

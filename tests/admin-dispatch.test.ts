@@ -14,11 +14,11 @@ import {
   POST as dispatchPOST,
 } from "@/app/api/master/admin/dispatch/route";
 import { GET as exchangesGET } from "@/app/api/master/admin/exchanges/route";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn(), auth: { admin: { createUser: vi.fn() } } },
   requireAdmin: vi.fn(),
 }));
@@ -49,7 +49,7 @@ vi.mock("@/lib/event-logger", () => ({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const { requireAdmin } = await import("@/lib/supabase-server");
+const { requireAdmin } = await import("@/lib/supabase/admin");
 
 const ADMIN = { id: "admin-uuid" };
 

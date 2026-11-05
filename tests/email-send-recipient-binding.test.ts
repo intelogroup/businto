@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server';
 
 const h = vi.hoisted(() => ({ sent: [] as Array<Record<string, any>> }));
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   requireUser: async () => ({ id: 'user-1', email: 'rider@example.com' }),
 }));
 
