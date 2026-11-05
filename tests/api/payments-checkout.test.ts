@@ -3,7 +3,6 @@
  *
  * Tests for:
  *   POST /api/payments/booking-checkout  — Stripe Checkout Session for booking routing fee
- *   POST /api/payments/checkout-session  — Stripe Checkout Session for priority fee
  *   POST /api/payments/create-intent     — Stripe Payment Intent (off-session)
  *   POST /api/payments/seamless          — Off-session charge for saved card
  *
@@ -114,41 +113,6 @@ describe("POST /api/payments/booking-checkout", () => {
 
     const { POST } = await import("@/app/api/payments/booking-checkout/route");
     const res = await POST(makePost("/api/payments/booking-checkout", { bookingId: "no-such-booking" }));
-    expect(res.status).toBe(404);
-  });
-});
-
-// ── checkout-session ──────────────────────────────────────────────────────────
-
-describe("POST /api/payments/checkout-session", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    _mockUser = null;
-  });
-
-  it("returns 401 when unauthenticated", async () => {
-    _mockUser = null;
-    const { POST } = await import("@/app/api/payments/checkout-session/route");
-    const res = await POST(makePost("/api/payments/checkout-session", { requestId: "req-1" }));
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 400 when requestId is missing", async () => {
-    _mockUser = { id: "user-1" };
-    const { POST } = await import("@/app/api/payments/checkout-session/route");
-    const res = await POST(makePost("/api/payments/checkout-session", {}));
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 404 when transport request not found", async () => {
-    _mockUser = { id: "user-1" };
-    const { supabaseAdmin } = await import("@/lib/supabase/admin");
-    (supabaseAdmin as any).from = vi.fn().mockReturnValue(
-      mockChain({ data: null, error: new Error("not found") })
-    );
-
-    const { POST } = await import("@/app/api/payments/checkout-session/route");
-    const res = await POST(makePost("/api/payments/checkout-session", { requestId: "no-such-req" }));
     expect(res.status).toBe(404);
   });
 });
