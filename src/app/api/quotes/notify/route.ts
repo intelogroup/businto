@@ -4,6 +4,7 @@ import { sendEmail, emailTemplates } from '@/lib/email';
 import { generateUserTripToken } from '@/lib/tokens';
 import { generateTripViewLink } from '@/lib/email-helpers';
 import { sendSMS, smsTemplates } from '@/lib/sms';
+import { isOpenRequestStatus } from '@/lib/request-status';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { data: tripRequest, error: requestError } = await supabase
       .from('transport_requests')
       .select(`
-         id, service_type, pickup_fuzzy, dropoff_fuzzy, start_date,
+         id, status, service_type, pickup_fuzzy, dropoff_fuzzy, start_date,
          quotes (
            id, total_price, vehicle_type,
            operator:operators!quotes_operator_id_fkey (
@@ -63,6 +64,13 @@ export async function POST(request: NextRequest) {
 
     if (requestError || !tripRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // LIFECYCLE GUARD (BUS-NOTIFY-CLOSED-REQUEST-001): a quote notification
+    // may fire only for an OPEN request (pending/quoted). Shared predicate:
+    // src/lib/request-status.ts — applied by every quote-family route.
+    if (!isOpenRequestStatus((tripRequest as any).status)) {
+      return NextResponse.json({ error: 'Request is no longer active' }, { status: 409 });
     }
 
     // Use the most recent quote for the email template

@@ -30,7 +30,7 @@ const h = vi.hoisted(() => {
   return { store, QB };
 });
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (t: string) => new h.QB(t) },
   requireUser: async () => ({ id: 'user-1' }),
 }));
@@ -38,7 +38,10 @@ vi.mock('@/lib/supabase-server', () => ({
 import { POST } from '@/app/api/reviews/route';
 
 function seed(bookingOperator: string | null = 'op-real') {
-  h.store.bookings = [{ id: 'bk-1', user_id: 'user-1', operator_id: bookingOperator }];
+  // status added 2026-11-05: POST /api/reviews now refuses non-completed
+  // bookings (BUS-REVIEW-CANCELLED-001); a booking under review here is a
+  // completed one. Real booking rows always carry a status.
+  h.store.bookings = [{ id: 'bk-1', user_id: 'user-1', operator_id: bookingOperator, status: 'completed' }];
   h.store.reviews = [];
   h.store.notifications = [];
 }

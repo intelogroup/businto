@@ -122,7 +122,7 @@ const declineHarness = vi.hoisted(() => {
   return { store, QB };
 });
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (t: string) => new declineHarness.QB(t) },
 }));
 
@@ -136,7 +136,11 @@ import { POST as declinePOST } from '@/app/api/quotes/decline/route';
 
 function seedDecline() {
   declineHarness.store.transport_requests = [
-    { id: 'req-A', user_id: 'user-1' },
+    // status added 2026-11-05: the decline route now applies the shared
+    // open-request guard (BUS-DECLINE-CLOSED-REQUEST-001); a request
+    // holding a pending quote is 'quoted' (open). Real rows always carry
+    // a status — the previous status-less fixture modeled an impossible row.
+    { id: 'req-A', user_id: 'user-1', status: 'quoted' },
   ];
   declineHarness.store.quotes = [
     { id: 'quote-pending', request_id: 'req-A', operator_id: 'op-A', status: 'pending', total_price: 100 },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { isOpenRequestStatus } from '@/lib/request-status';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,12 +35,19 @@ export async function POST(request: NextRequest) {
     // SECURITY: Verify the authenticated user owns the transport request this quote belongs to
     const { data: transportRequest } = await supabase
       .from('transport_requests')
-      .select('user_id')
+      .select('user_id, status')
       .eq('id', quote.request_id)
       .single();
 
     if (!transportRequest || transportRequest.user_id !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // LIFECYCLE GUARD (BUS-DECLINE-CLOSED-REQUEST-001): a decline is only
+    // valid on an OPEN request (pending/quoted). Shared predicate:
+    // src/lib/request-status.ts — applied by every quote-family route.
+    if (!isOpenRequestStatus(transportRequest.status)) {
+      return NextResponse.json({ error: 'Request is no longer active' }, { status: 409 });
     }
 
     // SECURITY: Only a pending quote may be declined — an accepted quote

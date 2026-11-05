@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,13 +30,25 @@ export async function POST(request: NextRequest) {
     // SECURITY: Verify this booking belongs to the authenticated user
     const { data: booking } = await supabase
       .from('bookings')
-      .select('id, operator_id')
+      .select('id, operator_id, status')
       .eq('id', booking_id)
       .eq('user_id', user_id)
       .single();
 
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found or access denied' }, { status: 403 });
+    }
+
+    // LIFECYCLE GUARD (BUS-REVIEW-CANCELLED-001): a review may be created
+    // only for a booking that actually ran — status 'completed'. A
+    // cancelled booking must be refused before any review row or operator
+    // notification exists (the review UI applies the same rule: cancelled
+    // trips never show the review section).
+    if ((booking as any).status !== 'completed') {
+      return NextResponse.json(
+        { error: 'Only a completed booking can be reviewed' },
+        { status: 409 }
+      );
     }
 
     // SECURITY (BUS-REVIEW-OPERATOR-001): the review's operator is derived
