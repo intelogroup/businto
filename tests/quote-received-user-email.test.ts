@@ -17,8 +17,8 @@ import { generateUserTripToken, verifyUserTripToken } from '../src/lib/tokens';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
-// Mock supabase-server so createClaimCode / redeemClaimCode work in-memory
-vi.mock('../src/lib/supabase-server', async () => {
+// Mock supabase/admin so createClaimCode / redeemClaimCode work in-memory
+vi.mock('../src/lib/supabase/admin', async () => {
     const claimStore = new Map<string, any>();
 
     const insertMock = vi.fn((rows: any | any[]) => {

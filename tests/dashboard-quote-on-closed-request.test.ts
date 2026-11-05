@@ -43,7 +43,7 @@ const h = vi.hoisted(() => {
   return { store, QB, emails };
 });
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (t: string) => new h.QB(t) },
   requireUser: vi.fn(async () => ({ id: 'user-op', email: 'op@synthetic.example' })),
 }));

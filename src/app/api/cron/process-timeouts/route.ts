@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { logEvent } from '@/lib/event-logger';
 
 export const dynamic = 'force-dynamic';

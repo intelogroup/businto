@@ -285,7 +285,7 @@ vi.mock('@/lib/sms', () => ({
 // ─── Supabase admin mock — configurable per test ─────────────────────────────
 let mockSupabaseFrom: ReturnType<typeof vi.fn>;
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: {
     get from() { return mockSupabaseFrom; },
   },

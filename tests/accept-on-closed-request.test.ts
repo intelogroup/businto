@@ -39,7 +39,7 @@ const h = vi.hoisted(() => {
   return { store, QB };
 });
 
-vi.mock('@/lib/supabase-server', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
+vi.mock('@/lib/supabase/admin', () => ({ supabaseAdmin: { from: (t: string) => new h.QB(t) } }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ auth: { getUser: async () => ({ data: { user: { id: 'user-1' } } }) } }) }));
 vi.mock('@/lib/email', () => ({ sendEmail: vi.fn(async()=>({id:'m'})), emailTemplates: { bookingConfirmation: () => ({subject:'s',html:'h'}) }, getAppBaseUrl: () => 'http://localhost' }));
 vi.mock('@/lib/sms', () => ({ sendSMS: vi.fn(async()=>({})), smsTemplates: { quoteAccepted: () => ({body:'x'}) } }));

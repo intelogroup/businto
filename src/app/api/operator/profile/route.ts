@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, requireUser } from '@/lib/supabase-server';
+import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
 import { logEvent } from '@/lib/event-logger';
 
 /**

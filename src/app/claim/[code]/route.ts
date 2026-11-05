@@ -3,7 +3,7 @@ import { redeemClaimCode } from '@/lib/claim-codes';
 import { generateOperatorViewToken, generateUserTripToken } from '@/lib/tokens';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { getAppBaseUrl } from '@/lib/email';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 /**

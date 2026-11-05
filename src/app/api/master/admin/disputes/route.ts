@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, requireAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin, requireAdmin } from '@/lib/supabase/admin';
 
 const VALID_DISPUTE_STATUSES = ['open', 'under_review', 'resolved', 'dismissed'] as const;
 type DisputeStatus = typeof VALID_DISPUTE_STATUSES[number];

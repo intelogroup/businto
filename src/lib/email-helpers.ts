@@ -8,7 +8,7 @@
 import { createClaimCode } from './claim-codes';
 import { getAppBaseUrl } from './email';
 import { logClaimLinkGeneration } from './email-logger';
-import { supabaseAdmin } from './supabase-server';
+import { supabaseAdmin } from './supabase/admin';
 
 /**
  * Validates that a claim link is properly formed and doesn't contain corruption

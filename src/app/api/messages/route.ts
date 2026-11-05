@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase-server';
+import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 
 // An operator participates in a request when their operator record (looked up

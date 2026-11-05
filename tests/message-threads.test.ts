@@ -3,7 +3,7 @@ import { GET } from '@/app/api/messages/threads/route';
 import { NextRequest } from 'next/server';
 
 // Mock supabaseAdmin and helpers
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: {
     from: vi.fn(),
   },
@@ -17,7 +17,7 @@ describe('Message Threads API', () => {
   });
 
   it('should return 401 when user is not authenticated', async () => {
-    const { requireUser } = await import('@/lib/supabase-server');
+    const { requireUser } = await import('@/lib/supabase/admin');
     (requireUser as any).mockResolvedValue(null);
 
     const req = new NextRequest('http://localhost:3000/api/messages/threads');
@@ -29,8 +29,8 @@ describe('Message Threads API', () => {
   });
 
   it('should return empty threads when user has no messages', async () => {
-    const { requireUser } = await import('@/lib/supabase-server');
-    const { supabaseAdmin } = await import('@/lib/supabase-server');
+    const { requireUser } = await import('@/lib/supabase/admin');
+    const { supabaseAdmin } = await import('@/lib/supabase/admin');
     (requireUser as any).mockResolvedValue({ id: 'user-1' });
 
     const chain: any = {};
@@ -48,8 +48,8 @@ describe('Message Threads API', () => {
   });
 
   it('should group messages into threads by request_id', async () => {
-    const { requireUser } = await import('@/lib/supabase-server');
-    const { supabaseAdmin } = await import('@/lib/supabase-server');
+    const { requireUser } = await import('@/lib/supabase/admin');
+    const { supabaseAdmin } = await import('@/lib/supabase/admin');
     (requireUser as any).mockResolvedValue({ id: 'user-1' });
 
     const mockMessages = [
@@ -111,8 +111,8 @@ describe('Message Threads API', () => {
   });
 
   it('should separate threads by different request_ids', async () => {
-    const { requireUser } = await import('@/lib/supabase-server');
-    const { supabaseAdmin } = await import('@/lib/supabase-server');
+    const { requireUser } = await import('@/lib/supabase/admin');
+    const { supabaseAdmin } = await import('@/lib/supabase/admin');
     (requireUser as any).mockResolvedValue({ id: 'user-1' });
 
     const mockMessages = [
@@ -172,8 +172,8 @@ describe('Message Threads API', () => {
   });
 
   it('should only expose safe profile fields (no phone/email)', async () => {
-    const { requireUser } = await import('@/lib/supabase-server');
-    const { supabaseAdmin } = await import('@/lib/supabase-server');
+    const { requireUser } = await import('@/lib/supabase/admin');
+    const { supabaseAdmin } = await import('@/lib/supabase/admin');
     (requireUser as any).mockResolvedValue({ id: 'user-1' });
 
     const mockMessages = [

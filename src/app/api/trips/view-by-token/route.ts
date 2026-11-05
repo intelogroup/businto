@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { verifyUserTripToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
 import { USER_TRIP_VIEW_SELECT, toUserTripView } from '@/lib/trip-view';

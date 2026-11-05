@@ -17,14 +17,14 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
 vi.mock("@/lib/event-logger", () => ({ logEvent: vi.fn(async () => {}) }));
 
 import { GET } from "@/app/api/trips/[id]/re-request/route";
-import { supabaseAdmin } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 function chain() {
   const c: any = {

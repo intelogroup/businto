@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
 

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerAuthClient } from '@/lib/supabase/server';
 
 // Service role client for internal API routes (bypasses RLS)
 // Never expose this to the browser or client-side code
@@ -12,13 +13,6 @@ export const supabaseAdmin = createClient(
     },
   }
 );
-
-// For server-side code that needs a user-session-aware client,
-// use `createClient` from `@/lib/supabase/server` instead.
-// This legacy export is kept for backward compatibility.
-export { createClient as createServerClient } from '@/lib/supabase/server';
-
-import { createClient as createServerAuthClient } from '@/lib/supabase/server';
 
 /**
  * Ensures the request is from an authenticated user.

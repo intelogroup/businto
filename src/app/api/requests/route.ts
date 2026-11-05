@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/stripe';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { sendSMS, smsTemplates } from '@/lib/sms';

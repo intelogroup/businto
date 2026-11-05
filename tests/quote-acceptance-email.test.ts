@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../src/app/api/quotes/accept/route';
-import { supabaseAdmin } from '../src/lib/supabase-server';
+import { supabaseAdmin } from '../src/lib/supabase/admin';
 import { sendEmail } from '../src/lib/email';
 import { NextRequest } from 'next/server';
 
 // 1. Setup Mocks using the inline factory to avoid hoisting issues
-vi.mock('../src/lib/supabase-server', () => {
+vi.mock('../src/lib/supabase/admin', () => {
   const mock: any = {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),

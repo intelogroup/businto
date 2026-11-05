@@ -15,7 +15,7 @@ const mockRequireUser = vi.fn();
 const mockFrom = vi.fn();
 const mockLogEvent = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('@/lib/supabase-server', () => {
+vi.mock('@/lib/supabase/admin', () => {
   return {
     supabaseAdmin: {
       from: (...args: any[]) => mockFrom(...args),

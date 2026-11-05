@@ -32,7 +32,7 @@ vi.mock("@supabase/ssr", () => ({
   })),
 }));
 
-vi.mock("@/lib/supabase-server", () => ({
+vi.mock("@/lib/supabase/admin", () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
@@ -107,7 +107,7 @@ describe("POST /api/payments/booking-checkout", () => {
 
   it("returns 404 when booking not found or not owned by user", async () => {
     _mockUser = { id: "user-1" };
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(
       mockChain({ data: null, error: new Error("not found") })
     );
@@ -142,7 +142,7 @@ describe("POST /api/payments/checkout-session", () => {
 
   it("returns 404 when transport request not found", async () => {
     _mockUser = { id: "user-1" };
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(
       mockChain({ data: null, error: new Error("not found") })
     );
@@ -196,7 +196,7 @@ describe("POST /api/payments/seamless", () => {
 
   it("returns 400 when bookingId is missing and authenticated", async () => {
     _mockUser = { id: "user-1" };
-    const { supabaseAdmin } = await import("@/lib/supabase-server");
+    const { supabaseAdmin } = await import("@/lib/supabase/admin");
     (supabaseAdmin as any).from = vi.fn().mockReturnValue(
       mockChain({ data: null, error: null })
     );

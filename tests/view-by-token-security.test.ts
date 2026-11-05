@@ -257,7 +257,7 @@ function viewChain(table: string) {
   return c;
 }
 
-vi.mock('@/lib/supabase-server', () => ({
+vi.mock('@/lib/supabase/admin', () => ({
   supabaseAdmin: { from: (table: string) => viewChain(table) },
 }));
 
