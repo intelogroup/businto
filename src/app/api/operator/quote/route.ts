@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
 import { validateQuote } from '@/lib/quote-validation';
 import { fetchRequestStatus, isOpenRequestStatus } from '@/lib/request-status';
+import { fetchOperatorQuoteEligibility } from '@/lib/policy';
 import { logEvent } from '@/lib/event-logger';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateTripViewLink } from '@/lib/email-helpers';
@@ -45,6 +46,16 @@ export async function POST(request: NextRequest) {
         );
       }
       operatorId = directOp.id;
+    }
+
+    // POLICY (M4, BUS-QUOTE-OPERATOR-STATUS-001): a quote may be submitted
+    // only by an operator that is active and currently accepting requests —
+    // the eligibility the matching engine selects on and pending-requests
+    // enforces. Shared decision: src/lib/policy.ts; the token route
+    // (POST /api/quotes) judges its operator row through the same function.
+    const eligibility = await fetchOperatorQuoteEligibility(operatorId);
+    if (!eligibility.eligible) {
+      return NextResponse.json({ error: eligibility.message }, { status: 403 });
     }
 
     const body = await request.json();

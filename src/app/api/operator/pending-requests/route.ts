@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
+import { requestMatchesOperatorSpecialties } from '@/lib/policy';
 
 /**
  * GET /api/operator/pending-requests
@@ -87,8 +88,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter out already-quoted requests client-side (Supabase doesn't support NOT IN well)
+    // POLICY (M4, BUS-PENDING-SPECIALTY-001): the specialties fetched above
+    // are applied here, through the shared rule in src/lib/policy.ts — an
+    // operator with specialties set is offered only matching service types;
+    // an operator with none set sees all open requests.
     const filtered = (requests || []).filter(
-      (r: any) => !quotedRequestIds.includes(r.id)
+      (r: any) =>
+        !quotedRequestIds.includes(r.id) &&
+        requestMatchesOperatorSpecialties(operator?.specialties, r.service_type)
     );
 
     return NextResponse.json({ requests: filtered });
