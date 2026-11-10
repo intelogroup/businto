@@ -4,6 +4,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logEvent } from '@/lib/event-logger';
+import { transition } from '@/lib/transitions';
 
 // Platform routing fee - this is what we charge requesters to connect them with operators
 // Operators are paid separately outside the platform
@@ -85,29 +86,106 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Claim (BUS-CREATE-INTENT-STATE-001 residual, M3) ───────────
+    // The gate above still refuses settled/terminal states from the
+    // initial read, but a read cannot HOLD a state: two concurrent
+    // calls both passed the gate on the same 'unpaid' read, each
+    // minted a Stripe intent, and the second (unpredicated) store
+    // overwrote the first — two live intents, one stored id. The gate
+    // is now backed by the sibling routes' DB-level claim discipline:
+    //   1. CLAIM — one update predicated on payment_status IN
+    //      ('unpaid','pending','failed') flips the booking to
+    //      'processing'. Exactly one concurrent caller can win it;
+    //      a refused claim makes NO Stripe call.
+    //   2. WORK — create the Stripe intent. Sequencing choice: the
+    //      intent is created only AFTER a successful claim, never
+    //      before — the intent id cannot exist before the intent, so
+    //      the claim flips the state first and the id is stored by
+    //      the commit; the alternative (create first, void on
+    //      refusal) would mint a Stripe object for every refused
+    //      call, the exact cost the gate exists to prevent.
+    //   3. COMMIT — store the intent id through an update predicated
+    //      on the claim state, restoring the pre-claim payment_status:
+    //      a created intent is not yet a payment in flight (the modal
+    //      confirms it; the webhook settles paid/failed), so the
+    //      booking's stored end state is identical to the pre-claim
+    //      flow. If the Stripe call fails, the claim is RELEASED back
+    //      to the pre-claim state instead.
+    const claimedFrom = booking.payment_status as string;
+    const claim = await transition(supabase, {
+      table: 'bookings',
+      filters: [{ column: 'id', value: bookingId }],
+      guardField: 'payment_status',
+      from: ['unpaid', 'pending', 'failed'],
+      patch: { payment_status: 'processing' },
+    });
+    if (!claim.ok) {
+      if (claim.kind === 'error') {
+        throw new Error('Payment claim failed, please retry');
+      }
+      // Lost the race: another payment path claimed (or settled) the
+      // booking between the read and the claim. Refuse with the
+      // gate's own answer; no Stripe call was made.
+      return NextResponse.json(
+        { error: 'Booking is not payable in its current state' },
+        { status: 409 }
+      );
+    }
+
     // Create payment intent for routing fee only
     // Note: booking.amount contains operator's quote but they're paid separately
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(ROUTING_FEE * 100), // Convert $1.99 to cents
-      currency,
-      metadata: {
-        booking_id: bookingId,
-        confirmation_code: booking.confirmation_code,
-        routing_fee: ROUTING_FEE.toString(),
-        operator_quote: booking.amount.toString()
-      },
-      description: `Routing Fee - Booking ${booking.confirmation_code}`,
-      receipt_email: booking.user?.email
-    });
+    let paymentIntent: import('stripe').Stripe.PaymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(ROUTING_FEE * 100), // Convert $1.99 to cents
+        currency,
+        metadata: {
+          booking_id: bookingId,
+          confirmation_code: booking.confirmation_code,
+          routing_fee: ROUTING_FEE.toString(),
+          operator_quote: booking.amount.toString()
+        },
+        description: `Routing Fee - Booking ${booking.confirmation_code}`,
+        receipt_email: booking.user?.email
+      });
+    } catch (stripeErr) {
+      // RELEASE the claim, predicated on the claim state, so the
+      // booking returns to exactly its pre-claim payable state.
+      await transition(supabase, {
+        table: 'bookings',
+        filters: [{ column: 'id', value: bookingId }],
+        guardField: 'payment_status',
+        from: ['processing'],
+        patch: { payment_status: claimedFrom },
+      });
+      throw stripeErr;
+    }
 
-    // Update booking with payment intent ID and routing fee
-    await supabase
-      .from('bookings')
-      .update({
+    // COMMIT — store the intent id under the claim predicate and
+    // restore the pre-claim payment state (see the claim comment).
+    // The outcome is checked and logged; the response is the same as
+    // the pre-claim flow's, whose store was unchecked.
+    const commit = await transition(supabase, {
+      table: 'bookings',
+      filters: [{ column: 'id', value: bookingId }],
+      guardField: 'payment_status',
+      from: ['processing'],
+      patch: {
         stripe_payment_intent_id: paymentIntent.id,
-        routing_fee_amount: ROUTING_FEE
-      })
-      .eq('id', bookingId);
+        routing_fee_amount: ROUTING_FEE,
+        payment_status: claimedFrom,
+      },
+    });
+    if (!commit.ok) {
+      await logEvent({
+        event_type: 'payment.create_intent.claim_commit_failed',
+        status: 'error',
+        actor_type: 'system',
+        booking_id: bookingId,
+        message: 'Intent created but the claim commit did not land; webhook settlement keys on booking_id metadata',
+        metadata: { payment_intent_id: paymentIntent.id },
+      });
+    }
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

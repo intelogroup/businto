@@ -4,6 +4,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logEvent } from '@/lib/event-logger';
+import { transition, isTerminalBookingStatus } from '@/lib/transitions';
 
 /**
  * Refund Policy:
@@ -70,6 +71,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // TERMINAL GUARD (BUS-REFUND-ON-COMPLETED-001): a completed or
+    // cancelled booking is finished business — its payment must never be
+    // refunded out from under the operator's earnings. Refuse BEFORE
+    // any Stripe call, whatever reason string the client supplied.
+    if (isTerminalBookingStatus(booking.status)) {
+      return NextResponse.json(
+        { error: `A ${booking.status} booking cannot be refunded` },
+        { status: 409 }
+      );
+    }
+
     // Check if payment was made
     if (!booking.stripe_payment_intent_id || booking.payment_status !== 'paid') {
       return NextResponse.json(
@@ -119,14 +131,23 @@ export async function POST(request: NextRequest) {
       idempotencyKey: `refund-${bookingId}`
     });
 
-    // Update booking status
-    await supabase
-      .from('bookings')
-      .update({
+    // Update booking status — TRANSITION: predicated on the payment
+    // still being 'paid', outcome checked (a state change that landed
+    // during the Stripe call refuses instead of being overwritten).
+    const refundMark = await transition(supabase, {
+      table: 'bookings',
+      filters: [{ column: 'id', value: bookingId }],
+      guardField: 'payment_status',
+      from: ['paid'],
+      patch: {
         payment_status: 'refunded',
         updated_at: new Date().toISOString()
-      })
-      .eq('id', bookingId);
+      },
+      mode: 'single',
+    });
+    if (!refundMark.ok) {
+      console.error(`Refund recorded with Stripe but booking ${bookingId} no longer in 'paid' state:`, refundMark);
+    }
 
     // Create notification for user
     const { data: userData } = await supabase

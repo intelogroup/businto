@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
+import { gateBookingExactAddresses } from '@/lib/policy';
 
 /**
  * GET /api/operator/dashboard
@@ -102,7 +103,12 @@ export async function GET(request: NextRequest) {
         totalEarnings,
       },
       quotes: quotes || [],
-      bookings: bookings || [],
+      // POLICY (M4, BUS-DASHBOARD-PII-REVEAL-001): exact pickup/dropoff
+      // addresses leave the server only for paid bookings — the reveal
+      // gate in src/lib/policy.ts, the same rule the payments webhook
+      // applies to its order-details email. Unpaid/processing bookings
+      // keep their fuzzy locations; the exact fields are nulled.
+      bookings: (bookings || []).map((b: any) => gateBookingExactAddresses(b)),
     });
   } catch (error) {
     console.error('Error fetching operator dashboard:', error);

@@ -65,6 +65,11 @@ describe("Priority Leak Cron Logic", () => {
           eq: vi.fn().mockReturnThis(),
           lte: vi.fn().mockResolvedValue({ data: [mockRequest], error: null }),
           update: vi.fn().mockReturnThis(),
+          // Phase 1 write core: the route now reads the outcome of its
+          // predicated claim update (src/lib/transitions.ts). The chain
+          // resolves the updated row so the outcome check can proceed —
+          // assertions below are unchanged.
+          then(res: any) { res({ data: [mockRequest], error: null }); },
         };
       }
       return { insert: vi.fn().mockResolvedValue({ error: null }) };
@@ -106,6 +111,11 @@ describe("Priority Leak Cron Logic", () => {
             return Promise.resolve({ data: [mockMedicalRequest], error: null });
           }),
           update: vi.fn().mockReturnThis(),
+          // Phase 1 write core: the route now reads the outcome of its
+          // predicated alert-mark update (src/lib/transitions.ts). The
+          // chain resolves the updated row so the outcome check can
+          // proceed — assertions below are unchanged.
+          then(res: any) { res({ data: [mockMedicalRequest], error: null }); },
         };
       }
       return { insert: vi.fn().mockResolvedValue({ error: null }) };

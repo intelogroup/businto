@@ -6,6 +6,7 @@ import { sendSMS, smsTemplates } from '@/lib/sms';
 import { logEvent } from '@/lib/event-logger';
 import { verifyUserTripToken } from '@/lib/tokens';
 import { isOpenRequestStatus } from '@/lib/request-status';
+import { transition } from '@/lib/transitions';
 import { getDispatchMode } from '@/lib/app-settings';
 import { nanoid } from 'nanoid';
 
@@ -203,41 +204,38 @@ export async function POST(request: NextRequest) {
       .eq('id', tripRequestId)
       .single();
 
-    // Update the accepted quote — the status predicate keeps the write
-    // itself fail-closed if the quote left 'pending' after the check above
-    const { error: updateError } = await supabaseAdmin
-      .from('quotes')
-      .update({ status: 'accepted' })
-      .eq('id', quoteId)
-      .eq('status', 'pending');
+    // TRANSITION (BUS-ACCEPT-ZERO-ROW-001): the status predicate keeps
+    // the write fail-closed if the quote left 'pending' after the check
+    // above, and its OUTCOME is checked — zero updated rows means a
+    // decline landed inside the read→write window, and the accept is
+    // refused BEFORE any sibling write (no decline-all, no booking).
+    const quoteTransition = await transition(supabaseAdmin, {
+      table: 'quotes',
+      filters: [{ column: 'id', value: quoteId }],
+      guardField: 'status',
+      from: ['pending'],
+      patch: { status: 'accepted' },
+    });
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
-
-    // Permanently decline other quotes for this request
-    // MARKETPLACE INTEGRITY: Once declined, these quotes are permanently closed
-    // They will NOT be resurrected even if parent regrets choice
-    const { data: declinedQuotes } = await supabaseAdmin
-      .from('quotes')
-      .update({ status: 'declined' })
-      .eq('request_id', tripRequestId)
-      .neq('id', quoteId)
-      .select('operator_id');
-
-    // Notify losing operators
-    if (declinedQuotes && declinedQuotes.length > 0) {
-      const notifications = declinedQuotes.map(q => ({
-        user_id: q.operator_id,
-        type: 'quote_declined',
-        title: 'Quote Not Selected',
-        message: 'The customer has chosen another operator for this request.',
-        data: { request_id: tripRequestId }
-      }));
-
-      await supabaseAdmin
-        .from('notifications')
-        .insert(notifications);
+    if (!quoteTransition.ok) {
+      if (quoteTransition.kind === 'error') {
+        return NextResponse.json(
+          { error: (quoteTransition.error as any)?.message || 'Failed to accept quote' },
+          { status: 500 }
+        );
+      }
+      await logEvent({
+        event_type: 'quote.accept.race_blocked',
+        status: 'error',
+        actor_id: userId,
+        request_id: tripRequestId,
+        quote_id: quoteId,
+        message: 'Accept refused: quote left pending between read and write (0-row transition)',
+      });
+      return NextResponse.json(
+        { error: 'This quote is no longer pending and cannot be accepted.' },
+        { status: 409 }
+      );
     }
 
     // Update transport request status to booked — atomic guard: .neq('status','booked') means
@@ -295,6 +293,43 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Permanently decline other quotes for this request — AFTER the
+    // request itself is booked, so a concurrent accept that loses the
+    // booked race has already been refused above and never reaches this
+    // write (BUS-ACCEPT-DOUBLE-RACE-001).
+    // MARKETPLACE INTEGRITY: Once declined, these quotes are permanently closed
+    // They will NOT be resurrected even if parent regrets choice
+    // TRANSITION: predicated on status='pending' — a sibling quote that
+    // a concurrent accept already moved out of 'pending' is never
+    // clobbered back to 'declined'.
+    const declineOthers = await transition(supabaseAdmin, {
+      table: 'quotes',
+      filters: [
+        { column: 'request_id', value: tripRequestId },
+        { column: 'id', op: 'neq', value: quoteId },
+      ],
+      guardField: 'status',
+      from: ['pending'],
+      patch: { status: 'declined' },
+      select: 'operator_id',
+    });
+    const declinedQuotes = declineOthers.ok ? declineOthers.rows : null;
+
+    // Notify losing operators
+    if (declinedQuotes && declinedQuotes.length > 0) {
+      const notifications = declinedQuotes.map(q => ({
+        user_id: q.operator_id,
+        type: 'quote_declined',
+        title: 'Quote Not Selected',
+        message: 'The customer has chosen another operator for this request.',
+        data: { request_id: tripRequestId }
+      }));
+
+      await supabaseAdmin
+        .from('notifications')
+        .insert(notifications);
+    }
+
     // Check if manual dispatch mode is active — PERF: use cached setting (60s TTL)
     const isManualMode = await getDispatchMode();
 
@@ -327,6 +362,14 @@ export async function POST(request: NextRequest) {
         quote_id: quoteId,
         message: bookingError.message,
       });
+      // OUTCOME CHECK (BUS-ACCEPT-NO-BOOKING-SUCCESS-001): a failed
+      // booking insert is a failed accept — return 500 with no success
+      // payload and no operator notification, instead of logging the
+      // error and falling through to a success response.
+      return NextResponse.json(
+        { error: 'Failed to create booking' },
+        { status: 500 }
+      );
     } else if (booking) {
       await logEvent({
         event_type: 'booking.created',

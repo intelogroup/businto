@@ -5,6 +5,7 @@ import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorViewToken } from '@/lib/tokens';
 import { generateOperatorQuoteLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
+import { transition } from '@/lib/transitions';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,27 @@ export async function GET(req: Request) {
         let notifiedStandard = 0;
 
         for (const request of leakRequests || []) {
+            // TRANSITION CLAIM (BUS-CRON-PRIORITY-LEAK-BOOKED-001): claim
+            // the request by marking it notified through an update
+            // predicated on it still being 'pending', BEFORE any operator
+            // is emailed. A request booked while an earlier request's
+            // emails were sending refuses the claim — it is not leaked,
+            // no operator is emailed, and the flag is never set. (The
+            // flag is set up front rather than after the sends; the
+            // observable end state for a still-pending request is the
+            // same, and a mid-loop crash can no longer re-leak.)
+            const claim = await transition(supabaseAdmin, {
+                table: 'transport_requests',
+                filters: [{ column: 'id', value: request.id }],
+                guardField: 'status',
+                from: ['pending'],
+                patch: { notified_standard_network: true },
+            });
+            if (!claim.ok) {
+                console.log(`Skipping leak for request ${request.id}: no longer pending`);
+                continue;
+            }
+
             console.log(`Leaking request ${request.id} to standard network...`);
 
             const operators = await findMatchingOperators({
@@ -130,8 +152,9 @@ export async function GET(req: Request) {
                 if (process.env.NODE_ENV !== 'production') console.log('Notified standard operators:', { count: freeOperators.length, requestId: request.id });
             }
 
-            // Mark as notified even if there were 0 free operators to prevent endless looping
-            await supabaseAdmin.from('transport_requests').update({ notified_standard_network: true }).eq('id', request.id);
+            // The notified flag was already set by the claim above —
+            // including when there were 0 free operators, which prevents
+            // endless looping exactly as the old post-send mark did.
             notifiedStandard++;
         }
 
@@ -176,7 +199,19 @@ export async function GET(req: Request) {
           `
                 });
 
-                await supabaseAdmin.from('transport_requests').update({ admin_alerted: true }).eq('id', request.id);
+                // TRANSITION: the alert mark is predicated on the request
+                // still being pending and its outcome is checked — a
+                // request booked during the alert send is not marked.
+                const alertMark = await transition(supabaseAdmin, {
+                    table: 'transport_requests',
+                    filters: [{ column: 'id', value: request.id }],
+                    guardField: 'status',
+                    from: ['pending'],
+                    patch: { admin_alerted: true },
+                });
+                if (!alertMark.ok) {
+                    continue;
+                }
 
                 await logEvent({
                     event_type: 'request.manual_allocation.flagged',

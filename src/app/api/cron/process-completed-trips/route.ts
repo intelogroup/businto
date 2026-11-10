@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
+import { transition } from '@/lib/transitions';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,18 +63,36 @@ export async function GET(req: Request) {
                 console.log(`Processing completed trip follow-up for booking ${booking.id}...`);
 
                 try {
-                    // 1. Update statuses FIRST to prevent duplicate emails on retry.
-                    // If the cron re-runs before email sends, the status change ensures
-                    // this booking won't be picked up again.
-                    await supabaseAdmin
-                        .from('bookings')
-                        .update({ status: 'completed' })
-                        .eq('id', booking.id);
+                    // 1. TRANSITION statuses FIRST to prevent duplicate emails on retry.
+                    // Both writes are predicated on the state observed at
+                    // fetch and their outcomes are checked
+                    // (BUS-CRON-COMPLETE-OVERWRITE-CANCEL-001): a rider
+                    // cancellation landing while an earlier booking's email
+                    // was sending refuses the completion — the booking
+                    // stays cancelled and no completion email goes out.
+                    const bookingTransition = await transition(supabaseAdmin, {
+                        table: 'bookings',
+                        filters: [{ column: 'id', value: booking.id }],
+                        guardField: 'status',
+                        from: [booking.status],
+                        patch: { status: 'completed' },
+                    });
+                    if (!bookingTransition.ok) {
+                        console.log(`Skipping follow-up for booking ${booking.id}: no longer in status ${booking.status}`);
+                        continue;
+                    }
 
-                    await supabaseAdmin
-                        .from('transport_requests')
-                        .update({ status: 'completed' })
-                        .eq('id', request.id);
+                    const requestTransition = await transition(supabaseAdmin, {
+                        table: 'transport_requests',
+                        filters: [{ column: 'id', value: request.id }],
+                        guardField: 'status',
+                        from: ['pending', 'quoted', 'booked'],
+                        patch: { status: 'completed' },
+                    });
+                    if (!requestTransition.ok) {
+                        console.log(`Skipping follow-up for booking ${booking.id}: request ${request.id} no longer completable`);
+                        continue;
+                    }
 
                     // 2. Send follow-up email (after status update for idempotency)
                     await sendEmail({
@@ -119,7 +138,7 @@ export async function GET(req: Request) {
 
         const { data: expiredRequests, error: expiredErr } = await supabaseAdmin
             .from('transport_requests')
-            .select('id, service_type, user_id, created_at, start_date, metadata_private, profiles!transport_requests_user_id_fkey(email, full_name)')
+            .select('id, status, service_type, user_id, created_at, start_date, metadata_private, profiles!transport_requests_user_id_fkey(email, full_name)')
             .in('status', ['pending', 'quoted'])
             .or(`start_date.lte.${yesterday},created_at.lte.${fourteenDaysAgo}`);
 
@@ -145,12 +164,22 @@ export async function GET(req: Request) {
             }
 
             try {
-                // Update status FIRST for idempotency — prevents duplicate
+                // TRANSITION FIRST for idempotency — prevents duplicate
                 // expiration emails if cron re-runs before email completes.
-                await supabaseAdmin
-                    .from('transport_requests')
-                    .update({ status: 'cancelled' })
-                    .eq('id', req.id);
+                // Predicated on the fetched state and outcome-checked
+                // (BUS-CRON-AUTOCANCEL-OVERWRITE-BOOKED-001): a request
+                // booked while an earlier request's email was sending
+                // refuses the auto-cancel and gets no expiry email.
+                const cancelTransition = await transition(supabaseAdmin, {
+                    table: 'transport_requests',
+                    filters: [{ column: 'id', value: req.id }],
+                    guardField: 'status',
+                    from: ['pending', 'quoted'],
+                    patch: { status: 'cancelled' },
+                });
+                if (!cancelTransition.ok) {
+                    continue;
+                }
 
                 const profile = Array.isArray(req.profiles) ? req.profiles[0] : req.profiles;
                 if (profile?.email) {

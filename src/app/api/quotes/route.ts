@@ -6,6 +6,7 @@ import { generateTripViewLink } from '@/lib/email-helpers';
 import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
 import { fetchRequestStatus, isOpenRequestStatus } from '@/lib/request-status';
+import { operatorQuoteEligibility } from '@/lib/policy';
 
 
 export async function POST(request: NextRequest) {
@@ -243,9 +244,21 @@ export async function POST(request: NextRequest) {
     if (company_id) {
       const { data: opInfo } = await supabaseAdmin
         .from('operators')
-        .select('company_name, company_phone')
+        .select('company_name, company_phone, is_active, is_accepting_requests')
         .eq('id', company_id)
         .maybeSingle();
+
+      // POLICY (M4, BUS-TOKEN-QUOTE-OPERATOR-STATUS-001): the same row also
+      // carries the operator's status — a quote may be submitted only by an
+      // operator that is active and currently accepting requests. A token
+      // emailed before deactivation stays cryptographically valid until it
+      // expires; eligibility is judged at submission time, through the
+      // shared decision in src/lib/policy.ts (the session route,
+      // POST /api/operator/quote, enforces the same function).
+      const eligibility = operatorQuoteEligibility(opInfo);
+      if (!eligibility.eligible) {
+        return NextResponse.json({ error: eligibility.message }, { status: 403 });
+      }
 
       if (!opInfo?.company_name || !opInfo?.company_phone) {
         return NextResponse.json(

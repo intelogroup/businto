@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { isOpenRequestStatus } from '@/lib/request-status';
+import { transition } from '@/lib/transitions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,16 +61,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update quote status — the status predicate keeps the write
-    // fail-closed if the quote left 'pending' after the check above
-    const { error } = await supabase
-      .from('quotes')
-      .update({ status: 'declined' })
-      .eq('id', quoteId)
-      .eq('status', 'pending');
+    // TRANSITION (BUS-DECLINE-ACCEPT-RACE-001): the status predicate
+    // keeps the write fail-closed, and its OUTCOME is now checked — if
+    // an accept landed between the read above and this write, the
+    // update matches zero rows and the decline is refused with NO
+    // operator notification, instead of reporting success while
+    // flipping an accepted quote to declined.
+    const declineTransition = await transition(supabase, {
+      table: 'quotes',
+      filters: [{ column: 'id', value: quoteId }],
+      guardField: 'status',
+      from: ['pending'],
+      patch: { status: 'declined' },
+      mode: 'single',
+    });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!declineTransition.ok) {
+      if (declineTransition.kind === 'error') {
+        return NextResponse.json(
+          { error: (declineTransition.error as any)?.message || 'Failed to decline quote' },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'This quote is no longer pending and cannot be declined.' },
+        { status: 409 }
+      );
     }
 
     // Notify operator

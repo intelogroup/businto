@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { sendSMS, smsTemplates } from '@/lib/sms';
-
-// An operator participates in a request when their operator record (looked up
-// by profile ID) holds a quote on that request.
-async function hasQuoteOnRequest(profileId: string, requestId: string): Promise<boolean> {
-  const { data: operator } = await supabase
-    .from('operators')
-    .select('id')
-    .eq('profile_id', profileId)
-    .maybeSingle();
-  if (!operator) return false;
-
-  const { data: quote } = await supabase
-    .from('quotes')
-    .select('operator_id')
-    .eq('request_id', requestId)
-    .eq('operator_id', operator.id)
-    .maybeSingle();
-  return !!quote;
-}
+import { validateRequestParticipation } from '@/lib/policy';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,38 +52,21 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         );
       }
-    } else if (request_id) {
-      // For request-based messages, verify the sender owns the request
-      // or has a quote on it (is an operator participant)
-      const { data: req } = await supabase
-        .from('transport_requests')
-        .select('user_id')
-        .eq('id', request_id)
-        .single();
-      if (!req) {
-        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
-      }
-      const isRequestOwner = req.user_id === user.id;
-      if (!isRequestOwner) {
-        // Check if sender is an operator with a quote on this request.
-        // user.id is a profile ID — look up the operator record first, then check quotes.
-        if (!(await hasQuoteOnRequest(user.id, request_id))) {
-          return NextResponse.json(
-            { error: 'You are not a participant in this request' },
-            { status: 403 }
-          );
-        }
-      }
-
-      // H6: The recipient must also be a participant in this request — the
-      // request owner, or an operator with a quote on it. Without this check
-      // any participant could push messages, in-app notifications, and SMS
-      // to arbitrary registered users under this request's cover.
-      if (recipient_id !== req.user_id && !(await hasQuoteOnRequest(recipient_id, request_id))) {
-        return NextResponse.json(
-          { error: 'Recipient is not a participant in this request' },
-          { status: 403 }
-        );
+    }
+    // POLICY (M4, BUS-MSG-DUAL-CONTEXT-001): EVERY context leg the send
+    // carries is validated — not booking OR request, but booking AND
+    // request when both are supplied. A valid booking must not let a
+    // foreign request_id ride unchecked into the insert (threads group
+    // on request_id first, so the message would surface under the
+    // foreign request). The request leg is the shared participation
+    // decision in src/lib/policy.ts — the same sender/recipient rules
+    // (and the same refusal statuses/messages) the request-only path
+    // has always applied: the sender owns the request or has a quote
+    // on it (H6: the recipient must participate too).
+    if (request_id) {
+      const refusal = await validateRequestParticipation(user.id, recipient_id, request_id);
+      if (refusal) {
+        return NextResponse.json({ error: refusal.error }, { status: refusal.status });
       }
     }
 
