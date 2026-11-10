@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { logEvent } from '@/lib/event-logger';
+import { transition } from '@/lib/transitions';
+import { OPEN_REQUEST_STATUSES } from '@/lib/request-status';
 import Stripe from 'stripe';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -66,15 +68,24 @@ export async function POST(request: NextRequest) {
       const bookingId = paymentIntent.metadata.booking_id;
 
       if (bookingId) {
-        // Update booking payment status
-        const { data: booking, error } = await supabase
-          .from('bookings')
-          .update({ payment_status: 'paid' })
-          .eq('id', bookingId)
-          .select('user_id, operator_id, confirmation_code, amount')
-          .single();
+        // TRANSITION (BUS-WEBHOOK-PI-SUCCEEDED-TERMINAL-001): 'paid' may
+        // only land on a LIVE booking. The update is predicated on the
+        // booking still being confirmed/in_progress; a booking that was
+        // cancelled or completed before this (possibly very late) event
+        // matches zero rows and gains no paid state, no notifications,
+        // and no PII reveal.
+        const paidTransition = await transition(supabase, {
+          table: 'bookings',
+          filters: [{ column: 'id', value: bookingId }],
+          guardField: 'status',
+          from: ['confirmed', 'in_progress'],
+          patch: { payment_status: 'paid' },
+          select: 'user_id, operator_id, confirmation_code, amount',
+          mode: 'single',
+        });
+        const booking = paidTransition.ok ? paidTransition.rows[0] : null;
 
-        if (!error && booking) {
+        if (booking) {
           // Notify user
           await supabase.from('notifications').insert({
             user_id: booking.user_id,
@@ -160,16 +171,22 @@ export async function POST(request: NextRequest) {
       const bookingId = paymentIntent.metadata.booking_id;
 
       if (bookingId) {
-        await supabase
-          .from('bookings')
-          .update({ payment_status: 'failed' })
-          .eq('id', bookingId);
-
-        const { data: booking } = await supabase
-          .from('bookings')
-          .select('user_id, confirmation_code')
-          .eq('id', bookingId)
-          .single();
+        // TRANSITION (BUS-WEBHOOK-PI-FAILED-SETTLED-001): 'failed' may
+        // only land on a NON-SETTLED payment. The update is predicated
+        // on payment_status still being unpaid/pending/processing; a
+        // booking that already settled as 'paid' matches zero rows and
+        // keeps its paid state (and its operator earnings), and no
+        // failure notification is sent.
+        const failedTransition = await transition(supabase, {
+          table: 'bookings',
+          filters: [{ column: 'id', value: bookingId }],
+          guardField: 'payment_status',
+          from: ['unpaid', 'pending', 'processing'],
+          patch: { payment_status: 'failed' },
+          select: 'user_id, confirmation_code',
+          mode: 'single',
+        });
+        const booking = failedTransition.ok ? failedTransition.rows[0] : null;
 
         if (booking) {
           await supabase.from('notifications').insert({
@@ -189,6 +206,31 @@ export async function POST(request: NextRequest) {
       const paymentIntentId = charge.payment_intent as string;
 
       if (paymentIntentId) {
+        // FULL-REFUND GATE (BUS-WEBHOOK-REFUND-PARTIAL-001): Stripe sends
+        // charge.refunded for partial refunds too. Only a FULL refund
+        // (charge.refunded, or amount_refunded covering the charge) may
+        // move a booking to the terminal 'refunded' state; a partial
+        // refund leaves a paid booking paid and sends no refund notice.
+        const isFullRefund =
+          charge.refunded === true ||
+          (typeof charge.amount_refunded === 'number' &&
+            typeof charge.amount === 'number' &&
+            charge.amount_refunded >= charge.amount);
+
+        if (!isFullRefund) {
+          await logEvent({
+            event_type: 'webhook.charge.partial_refund',
+            actor_type: 'system',
+            message: 'Partial refund received; booking payment state unchanged',
+            metadata: {
+              payment_intent: paymentIntentId,
+              amount: charge.amount,
+              amount_refunded: charge.amount_refunded,
+            }
+          });
+          break;
+        }
+
         const { data: booking } = await supabase
           .from('bookings')
           .select('id, user_id, confirmation_code')
@@ -196,18 +238,25 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (booking) {
-          await supabase
-            .from('bookings')
-            .update({ payment_status: 'refunded' })
-            .eq('id', booking.id);
-
-          await supabase.from('notifications').insert({
-            user_id: booking.user_id,
-            type: 'payment_refunded',
-            title: 'Refund Processed',
-            message: `Your payment for booking ${booking.confirmation_code} has been refunded.`,
-            data: { booking_id: booking.id }
+          // TRANSITION: 'refunded' only from a settled 'paid' state.
+          const refundTransition = await transition(supabase, {
+            table: 'bookings',
+            filters: [{ column: 'id', value: booking.id }],
+            guardField: 'payment_status',
+            from: ['paid'],
+            patch: { payment_status: 'refunded' },
+            mode: 'single',
           });
+
+          if (refundTransition.ok) {
+            await supabase.from('notifications').insert({
+              user_id: booking.user_id,
+              type: 'payment_refunded',
+              title: 'Refund Processed',
+              message: `Your payment for booking ${booking.confirmation_code} has been refunded.`,
+              data: { booking_id: booking.id }
+            });
+          }
         }
       }
       break;
@@ -220,24 +269,42 @@ export async function POST(request: NextRequest) {
       if (session.metadata?.type === 'priority_fee' && session.metadata?.request_id) {
         const requestId = session.metadata.request_id;
 
-        const { error } = await supabase
-          .from('transport_requests')
-          .update({
+        // TRANSITION (BUS-WEBHOOK-PRIORITY-CLOSED-001): the priority fee
+        // may only land on an OPEN request. The update is predicated on
+        // the request still being pending/quoted; a request that was
+        // cancelled or completed before this late event matches zero
+        // rows and gains no paid/priority state.
+        const priorityTransition = await transition(supabase, {
+          table: 'transport_requests',
+          filters: [{ column: 'id', value: requestId }],
+          guardField: 'status',
+          from: OPEN_REQUEST_STATUSES,
+          patch: {
             payment_status: 'paid',
             payment_intent_id: session.payment_intent as string,
             priority_until: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
             routing_fee_amount: 1.99
-          })
-          .eq('id', requestId);
+          },
+          mode: 'single',
+        });
 
-        if (error) {
+        if (!priorityTransition.ok && priorityTransition.kind === 'error') {
           await logEvent({
             event_type: 'webhook.checkout_session.db_error',
             status: 'error',
             actor_type: 'system',
             request_id: requestId,
             message: 'Failed to update transport request after priority fee payment',
-            metadata: { error: error.message }
+            metadata: { error: (priorityTransition.error as any)?.message }
+          });
+        } else if (!priorityTransition.ok) {
+          await logEvent({
+            event_type: 'webhook.priority_fee.closed_request',
+            status: 'error',
+            actor_type: 'system',
+            request_id: requestId,
+            message: 'Priority fee arrived for a closed request; no state changed',
+            metadata: { payment_intent: session.payment_intent }
           });
         } else {
           await logEvent({

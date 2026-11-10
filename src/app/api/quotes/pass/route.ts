@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { verifyOperatorViewToken } from '@/lib/tokens';
 import { logEvent } from '@/lib/event-logger';
-import { isOpenRequestStatus } from '@/lib/request-status';
+import { isOpenRequestStatus, OPEN_REQUEST_STATUSES } from '@/lib/request-status';
+import { mergeMetadata } from '@/lib/transitions';
 
 /**
  * POST /api/quotes/pass
@@ -45,19 +46,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Request is no longer active' }, { status: 409 });
   }
 
-  // Flag for admin re-dispatch via Safety Valve
-  const { error: updateErr } = await supabaseAdmin
-    .from('transport_requests')
-    .update({
-      metadata_private: {
-        ...request.metadata_private,
-        requires_manual_allocation: true,
-      },
-    })
-    .eq('id', requestId);
+  // Flag for admin re-dispatch via Safety Valve — METADATA MERGE
+  // (BUS-PASS-CLOBBER-001): never write back the snapshot read above.
+  // mergeMetadata claims the request with a predicated touch, re-reads
+  // it, and merges the flag into the FRESH metadata object through a
+  // write predicated on the fresh state — a booking landing inside the
+  // old read→write window refuses the flag, and a metadata key written
+  // concurrently (e.g. a priority-payment marker) survives.
+  const merged = await mergeMetadata(supabaseAdmin, {
+    table: 'transport_requests',
+    id: requestId,
+    from: OPEN_REQUEST_STATUSES,
+    additions: { requires_manual_allocation: true },
+  });
 
-  if (updateErr) {
-    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  if (!merged.ok) {
+    if (merged.kind === 'error') {
+      return NextResponse.json(
+        { error: (merged.error as any)?.message || 'Failed to flag request' },
+        { status: 500 }
+      );
+    }
+    return NextResponse.json({ error: 'Request is no longer active' }, { status: 409 });
   }
 
   await logEvent({

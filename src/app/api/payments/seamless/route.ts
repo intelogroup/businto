@@ -4,6 +4,7 @@ import { supabaseAdmin as supabase } from '@/lib/supabase/admin';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logEvent } from '@/lib/event-logger';
+import { isTerminalBookingStatus } from '@/lib/transitions';
 
 const ROUTING_FEE_CENTS = 199; // $1.99
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
             .select(`
-                id, confirmation_code, request_id, amount, payment_status,
+                id, confirmation_code, request_id, amount, payment_status, status,
                 user:profiles!bookings_user_id_fkey (id, stripe_customer_id, email)
             `)
             .eq('id', bookingId)
@@ -66,6 +67,17 @@ export async function POST(request: NextRequest) {
         if (booking.payment_status === 'paid') {
             // Already paid — treat as success so UI shows the green tick
             return NextResponse.json({ status: 'success' });
+        }
+
+        // TERMINAL GUARD (BUS-PAYMENT-ON-CANCELLED-001, Phase 1 half):
+        // a cancelled or completed booking must never be charged. The
+        // CAS claim below only looks at payment_status (its discipline
+        // is Phase 2); the booking lifecycle state was never checked.
+        if (isTerminalBookingStatus(booking.status)) {
+            return NextResponse.json(
+                { error: `A ${booking.status} booking cannot be charged` },
+                { status: 409 }
+            );
         }
 
         // Atomic CAS: claim this booking for seamless payment by setting

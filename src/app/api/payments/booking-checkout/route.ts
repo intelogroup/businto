@@ -5,6 +5,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { getAppBaseUrl } from '@/lib/email';
 import { logEvent } from '@/lib/event-logger';
+import { isTerminalBookingStatus } from '@/lib/transitions';
 
 const ROUTING_FEE = 1.99;
 
@@ -61,6 +62,18 @@ export async function POST(request: NextRequest) {
                 url: `${appUrl}/trips/${booking.request_id}?payment=success`,
                 alreadyPaid: true,
             });
+        }
+
+        // TERMINAL GUARD (BUS-PAYMENT-ON-CANCELLED-001, Phase 1 half):
+        // a cancelled or completed booking must never be charged. The
+        // claim discipline below stays as-is (Phase 2); what was missing
+        // is that the claim only looked at payment_status, so a terminal
+        // booking with an unpaid fee still claimed and charged.
+        if (isTerminalBookingStatus(booking.status)) {
+            return NextResponse.json(
+                { error: `A ${booking.status} booking cannot be charged` },
+                { status: 409 }
+            );
         }
 
         // Atomic CAS: claim this booking for checkout by setting payment_status

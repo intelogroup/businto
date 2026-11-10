@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { logEvent } from '@/lib/event-logger';
+import { mergeMetadata } from '@/lib/transitions';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,20 +65,28 @@ export async function GET(req: Request) {
       // Skip if already flagged for timeout
       if (request.metadata_private?.timeout_alerted_at) continue;
 
-      // Read-modify-write: flag for Safety Valve + record when we flagged it
-      const { error: updateErr } = await supabaseAdmin
-        .from('transport_requests')
-        .update({
-          metadata_private: {
-            ...request.metadata_private,
-            requires_manual_allocation: true,
-            timeout_alerted_at: new Date().toISOString(),
-          },
-        })
-        .eq('id', requestId);
+      // METADATA MERGE (BUS-CRON-TIMEOUT-CLOBBER-001): never write back
+      // the snapshot read above. mergeMetadata claims the request with
+      // a predicated touch, re-reads it, and merges the flag keys into
+      // the FRESH metadata object through a write predicated on the
+      // fresh state — a booking landing inside the old read→write
+      // window refuses the flag, and a metadata key written
+      // concurrently (e.g. a priority-payment marker) survives.
+      const merged = await mergeMetadata(supabaseAdmin, {
+        table: 'transport_requests',
+        id: requestId,
+        from: ['pending', 'quoted'],
+        additions: {
+          requires_manual_allocation: true,
+          timeout_alerted_at: new Date().toISOString(),
+        },
+        isEligible: (fresh) => !fresh.metadata_private?.timeout_alerted_at,
+      });
 
-      if (updateErr) {
-        console.error(`[process-timeouts] Failed to flag request ${requestId}:`, updateErr);
+      if (!merged.ok) {
+        if (merged.kind === 'error') {
+          console.error(`[process-timeouts] Failed to flag request ${requestId}:`, merged.error);
+        }
         continue;
       }
 
