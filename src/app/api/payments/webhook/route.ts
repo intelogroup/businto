@@ -8,6 +8,18 @@ import Stripe from 'stripe';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+/**
+ * A dedupe-insert failure is a duplicate delivery only when it is a
+ * unique violation (Postgres SQLSTATE 23505, surfaced by PostgREST as
+ * the error code): a concurrent delivery recorded the event first.
+ * Every other failure means the record was NOT written.
+ */
+function isUniqueViolation(error: any): boolean {
+  if (!error) return false;
+  if (error.code === '23505') return true;
+  return /duplicate key|unique constraint/i.test(String(error.message || ''));
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
@@ -52,7 +64,21 @@ export async function POST(request: NextRequest) {
     });
 
   if (webhookError) {
-    // DB error already logged via logEvent below
+    // CLAIM DISCIPLINE (BUS-WEBHOOK-DEDUPE-SWALLOW-001, M3): the
+    // webhook_events insert IS the dedupe claim, and its outcome
+    // decides whether this delivery may apply the event.
+    if (isUniqueViolation(webhookError)) {
+      // A concurrent delivery recorded the event first — the claim
+      // already exists, so this delivery is a duplicate: do not apply
+      // the event a second time.
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    // Any other failure means the claim did NOT happen. Fail closed:
+    // return a retryable 500 and do NOT apply the event. Applying it
+    // unrecorded (the old behavior — log and fall through to a 200)
+    // leaves no dedupe trace, so Stripe's redelivery of the same
+    // event would apply it a second time. A 500 makes Stripe retry
+    // after the record path recovers.
     await logEvent({
       event_type: 'webhook.db_error',
       status: 'error',
@@ -60,6 +86,10 @@ export async function POST(request: NextRequest) {
       message: 'Failed to record stripe_event_id in webhook_events',
       metadata: { event_id: event.id, error: webhookError.message }
     });
+    return NextResponse.json(
+      { error: 'Failed to record webhook event' },
+      { status: 500 }
+    );
   }
 
   switch (event.type) {

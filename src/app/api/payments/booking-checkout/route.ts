@@ -87,12 +87,48 @@ export async function POST(request: NextRequest) {
             .select('id');
 
         if (claimErr || !claimed || claimed.length === 0) {
-            // Another payment path is already in-flight or completed
-            const appUrl = getAppBaseUrl();
-            return NextResponse.json({
-                url: `${appUrl}/trips/${booking.request_id}?payment=success`,
-                alreadyPaid: true,
-            });
+            // CLAIM DISCIPLINE (BUS-PAYMENT-CLAIM-FALSE-SUCCESS-001,
+            // M3): a failed claim — zero rows OR a database error — is
+            // answered from the booking's REAL payment state, never
+            // mapped to alreadyPaid blind. Re-read, then answer:
+            //   'paid'       → the fee settled via another path while
+            //                  we raced it: the existing alreadyPaid
+            //                  success answer.
+            //   'processing' → another path holds the claim right now:
+            //                  an in-progress answer, NOT alreadyPaid.
+            //   anything else → an error (500 when the claim itself
+            //                  errored and the state is still payable —
+            //                  the caller may retry; 409 when the state
+            //                  is settled non-paid, e.g. failed/refunded).
+            const { data: fresh } = await supabase
+                .from('bookings')
+                .select('payment_status')
+                .eq('id', bookingId)
+                .single();
+            const freshStatus = (fresh as any)?.payment_status as string | undefined;
+            if (freshStatus === 'paid') {
+                const appUrl = getAppBaseUrl();
+                return NextResponse.json({
+                    url: `${appUrl}/trips/${booking.request_id}?payment=success`,
+                    alreadyPaid: true,
+                });
+            }
+            if (freshStatus === 'processing') {
+                return NextResponse.json(
+                    { error: 'A payment is already in progress for this booking', inProgress: true },
+                    { status: 409 }
+                );
+            }
+            if (claimErr) {
+                return NextResponse.json(
+                    { error: 'Payment claim failed, please retry' },
+                    { status: 500 }
+                );
+            }
+            return NextResponse.json(
+                { error: `Booking payment is ${freshStatus ?? 'unknown'} and cannot be charged` },
+                { status: 409 }
+            );
         }
 
         const appUrl = getAppBaseUrl();
@@ -166,9 +202,14 @@ export async function POST(request: NextRequest) {
             sessionId: session.id
         });
     } catch (error: any) {
-        // Revert processing lock so the user can retry
+        // Release this route's claim so the user can retry (M3). The
+        // revert is predicated on the claim state: it releases only a
+        // booking still in 'processing' — previously this update fired
+        // by id alone, so an error thrown before/without a successful
+        // claim (or after another path settled the fee) could force a
+        // settled booking back to 'unpaid'.
         if (bookingId) {
-            await supabase.from('bookings').update({ payment_status: 'unpaid' }).eq('id', bookingId);
+            await supabase.from('bookings').update({ payment_status: 'unpaid' }).eq('id', bookingId).eq('payment_status', 'processing');
         }
         await logEvent({
             event_type: 'payment.booking_checkout.error',
