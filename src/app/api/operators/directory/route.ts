@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { parsePagination } from '@/lib/boundary';
 
 const VALID_SPECIALTIES = ['school', 'medical', 'wedding', 'corporate'] as const;
 
@@ -20,8 +21,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const specialty = searchParams.get('specialty');
     const location = searchParams.get('location')?.trim() || '';
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    // BOUNDARY (BUS-DIRECTORY-PAGINATION-001): one shared parser —
+    // page/limit are positive integers or the request is refused 400
+    // before any data-layer call (the old Math.max/Math.min clamps
+    // propagated NaN from parseInt into .range(NaN, NaN) -> 500).
+    const pagination = parsePagination(searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+    const { page, limit } = pagination;
 
     // Validate specialty filter
     if (specialty && !VALID_SPECIALTIES.includes(specialty as typeof VALID_SPECIALTIES[number])) {
@@ -40,7 +48,7 @@ export async function GET(request: NextRequest) {
       .eq('is_verified', true)
       .eq('is_active', true)
       .order('rating', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      .range(pagination.from, pagination.to);
 
     if (specialty) {
       query = query.contains('specialties', [specialty]);

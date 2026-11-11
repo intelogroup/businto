@@ -7,6 +7,7 @@ import { logEvent } from '@/lib/event-logger';
 import { validateQuote } from '@/lib/quote-validation';
 import { fetchRequestStatus, isOpenRequestStatus } from '@/lib/request-status';
 import { operatorQuoteEligibility } from '@/lib/policy';
+import { parsePagination } from '@/lib/boundary';
 
 
 export async function POST(request: NextRequest) {
@@ -466,8 +467,21 @@ export async function GET(request: NextRequest) {
     const requestId = searchParams.get('request_id');
     const operatorId = searchParams.get('operator_id');
     // PERF: Pagination — was unbounded (caused 590ms p95). Default 50, max 100.
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
-    const page = Math.max(parseInt(searchParams.get('page') || '0', 10), 0);
+    // BOUNDARY (BUS-QUOTES-PAGINATION-001): shared pagination parser —
+    // this list is 0-based (firstPage 0), so page >= 0 and limit a
+    // positive integer, or the request is refused 400 before any
+    // data-layer call (the old Math.min/Math.max clamps propagated
+    // NaN into .range(NaN, NaN) -> 500, and limit <= 0 produced
+    // empty/reversed ranges).
+    const pagination = parsePagination(searchParams, {
+      firstPage: 0,
+      defaultLimit: 50,
+      maxLimit: 100,
+    });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+    const { page, limit } = pagination;
 
     // SECURITY: Determine the caller's role to scope results appropriately.
     // Admins see all quotes; users see only quotes on their own requests;
@@ -503,7 +517,7 @@ export async function GET(request: NextRequest) {
       .from('quotes')
       .select(selectClause)
       .order('created_at', { ascending: false })
-      .range(page * limit, (page + 1) * limit - 1);
+      .range(pagination.from, pagination.to);
 
     if (requestId) {
       query = query.eq('request_id', requestId);

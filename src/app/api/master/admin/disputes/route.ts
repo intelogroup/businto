@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireAdmin } from '@/lib/supabase/admin';
+import { parsePagination } from '@/lib/boundary';
 
 const VALID_DISPUTE_STATUSES = ['open', 'under_review', 'resolved', 'dismissed'] as const;
 type DisputeStatus = typeof VALID_DISPUTE_STATUSES[number];
@@ -24,8 +25,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') as DisputeStatus | null;
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    // BOUNDARY (BUS-ADMIN-DISPUTES-PAGINATION-001): shared pagination
+    // parser — malformed/non-positive page/limit refused 400 before
+    // any data-layer call (NaN used to propagate into .range()).
+    const pagination = parsePagination(searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+    const { page, limit } = pagination;
 
     if (status && !VALID_DISPUTE_STATUSES.includes(status)) {
       return NextResponse.json(
@@ -44,7 +51,7 @@ export async function GET(request: NextRequest) {
       )
       .not('dispute_status', 'is', null)
       .order('dispute_flagged_at', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      .range(pagination.from, pagination.to);
 
     if (status) {
       query = query.eq('dispute_status', status);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
 import { logEvent } from '@/lib/event-logger';
+import { parseTextField, parseStringArray } from '@/lib/boundary';
 
 /**
  * GET /api/operator/profile
@@ -168,6 +169,38 @@ export async function PATCH(request: NextRequest) {
       if (invalid.length > 0) {
         return NextResponse.json(
           { error: `Invalid specialties: ${invalid.join(', ')}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // BOUNDARY (BUS-OPERATOR-PROFILE-COMPANY-SHAPE-001): the company
+    // text fields are strings before they are stored — they used to
+    // be copied verbatim, so a numeric/array/object company_name was
+    // persisted onto the operator's public company record.
+    for (const field of ['company_name', 'company_email', 'company_phone'] as const) {
+      if (updateData[field] !== undefined) {
+        const parsedField = parseTextField(updateData[field], field);
+        if (!parsedField.ok) {
+          return NextResponse.json(
+            { error: parsedField.error },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // BOUNDARY (BUS-OPERATOR-PROFILE-AREAS-SHAPE-001): service_areas,
+    // when present, is an array of strings — the same discipline the
+    // specialties check above applies to its enum list. A bare string,
+    // an object, or non-string elements are refused before any write;
+    // downstream matching and the directory search treat this column
+    // as a string array.
+    if (updateData.service_areas !== undefined) {
+      const parsedAreas = parseStringArray(updateData.service_areas, 'service_areas');
+      if (!parsedAreas.ok) {
+        return NextResponse.json(
+          { error: parsedAreas.error },
           { status: 400 }
         );
       }
