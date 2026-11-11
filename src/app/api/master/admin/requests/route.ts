@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireAdmin } from '@/lib/supabase/admin';
+import { parsePagination } from '@/lib/boundary';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,8 +11,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    // BOUNDARY (BUS-ADMIN-REQUESTS-PAGINATION-001): shared pagination
+    // parser — raw parseInt here had no NaN guard and no floor at all;
+    // malformed/non-positive page/limit are refused 400 before any
+    // data-layer call. No limit ceiling: this route never had one.
+    const pagination = parsePagination(searchParams);
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+    const { page, limit } = pagination;
 
     let query = supabase
       .from('transport_requests')
@@ -25,7 +33,7 @@ export async function GET(request: NextRequest) {
         quotes (count)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1);
+      .range(pagination.from, pagination.to);
 
     if (status) {
       if (status === 'active') {

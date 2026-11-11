@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseLimitParam } from "@/lib/boundary";
 
 /**
  * GET /api/geocode?q=<query>&limit=5&countrycodes=us
@@ -17,7 +18,17 @@ export async function GET(request: NextRequest) {
         return NextResponse.json([], { status: 200 });
     }
 
-    const limit = searchParams.get("limit") ?? "5";
+    // BOUNDARY (M5 census): the limit is parsed by the same boundary
+    // module as every list endpoint — a positive integer (clamped to
+    // 50) or a 400, never a raw string interpolated into the upstream
+    // URL.
+    const limit = parseLimitParam(searchParams.get("limit"), { defaultValue: 5, max: 50 });
+    if (limit === null) {
+        return NextResponse.json(
+            { error: "Invalid limit: must be a positive integer" },
+            { status: 400 }
+        );
+    }
     const countrycodes = searchParams.get("countrycodes") ?? "us";
 
     // Photon API docs: https://photon.komoot.io/

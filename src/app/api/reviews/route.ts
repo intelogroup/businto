@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
+import { parseRating, parseTextField } from '@/lib/boundary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +18,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (rating < 1 || rating > 5) {
+    // BOUNDARY (BUS-REVIEW-RATING-SHAPE-001): the rating is parsed as
+    // an integer NUMBER before any range question — the old
+    // `rating < 1 || rating > 5` check let 4.5, "5", and "abc" through
+    // (fractional coercion / NaN comparisons) to the insert.
+    const parsedRating = parseRating(rating);
+    if (!parsedRating.ok) {
       return NextResponse.json(
-        { error: 'Rating must be between 1 and 5' },
+        { error: parsedRating.error },
         { status: 400 }
       );
     }
+    const ratingValue = parsedRating.value;
 
     // SECURITY: Use session user id — never trust user_id from request body
     const user_id = user.id;
@@ -90,7 +97,7 @@ export async function POST(request: NextRequest) {
         booking_id,
         user_id,
         operator_id: reviewOperatorId,
-        rating,
+        rating: ratingValue,
         comment
       })
       .select()
@@ -108,7 +115,7 @@ export async function POST(request: NextRequest) {
         user_id: reviewOperatorId,
         type: 'review_received',
         title: 'New Review',
-        message: `You received a ${rating}-star review!`,
+        message: `You received a ${ratingValue}-star review!`,
         data: { review_id: data.id, booking_id }
       });
 
@@ -227,6 +234,18 @@ export async function PATCH(request: NextRequest) {
     if (!review_id || !operator_response) {
       return NextResponse.json(
         { error: 'Missing review_id or operator_response' },
+        { status: 400 }
+      );
+    }
+
+    // BOUNDARY (BUS-REVIEW-RESPONSE-SHAPE-001): operator_response is
+    // a string before it is stored — the truthiness check above let
+    // numbers, booleans, arrays, and objects through verbatim into a
+    // publicly readable column.
+    const parsedResponse = parseTextField(operator_response, 'operator_response');
+    if (!parsedResponse.ok) {
+      return NextResponse.json(
+        { error: parsedResponse.error },
         { status: 400 }
       );
     }

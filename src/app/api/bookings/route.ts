@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { transition, isTerminalBookingStatus } from '@/lib/transitions';
+import { parseTextField } from '@/lib/boundary';
 
 export async function GET(request: NextRequest) {
   try {
@@ -78,6 +79,20 @@ export async function PATCH(request: NextRequest) {
 
     if (!bookingId) {
       return NextResponse.json({ error: 'Missing bookingId' }, { status: 400 });
+    }
+
+    // BOUNDARY (BUS-BOOKING-INSTRUCTIONS-SHAPE-001): special_instructions,
+    // when present, is a string before it is stored — it used to be copied
+    // into the update verbatim, so numbers/booleans/arrays/objects were
+    // persisted as the booking's instructions.
+    if (special_instructions !== undefined) {
+      const parsedInstructions = parseTextField(special_instructions, 'special_instructions');
+      if (!parsedInstructions.ok) {
+        return NextResponse.json(
+          { error: parsedInstructions.error },
+          { status: 400 }
+        );
+      }
     }
 
     // SECURITY: Whitelist the only status a user may set — they can cancel but
