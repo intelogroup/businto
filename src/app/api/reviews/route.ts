@@ -31,6 +31,25 @@ export async function POST(request: NextRequest) {
     }
     const ratingValue = parsedRating.value;
 
+    // BOUNDARY (BUS-REVIEW-COMMENT-SHAPE-001): comment, when present,
+    // is a string before it is stored — the rating (above) and the
+    // PATCH operator_response were already parsed this way, but the
+    // POST comment was inserted verbatim, so numeric/boolean/array/
+    // object shapes landed in the publicly readable comment column.
+    // An omitted (or null) comment keeps its historical no-comment
+    // behavior.
+    let commentValue: string | null | undefined = comment;
+    if (comment !== undefined && comment !== null) {
+      const parsedComment = parseTextField(comment, 'comment');
+      if (!parsedComment.ok) {
+        return NextResponse.json(
+          { error: parsedComment.error },
+          { status: 400 }
+        );
+      }
+      commentValue = parsedComment.value;
+    }
+
     // SECURITY: Use session user id — never trust user_id from request body
     const user_id = user.id;
 
@@ -98,7 +117,7 @@ export async function POST(request: NextRequest) {
         user_id,
         operator_id: reviewOperatorId,
         rating: ratingValue,
-        comment
+        comment: commentValue
       })
       .select()
       .single();

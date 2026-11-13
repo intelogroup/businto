@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireAdmin } from '@/lib/supabase/admin';
-import { parsePagination } from '@/lib/boundary';
+import { parsePagination, parsePlainObject } from '@/lib/boundary';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,12 +68,22 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
+    // BOUNDARY (BUS-ADMIN-USERS-UPDATES-SHAPE-001): `updates` must be a
+    // plain object before its keys are read — missing/null updates
+    // threw a 500 from Object.keys, and string/number/array shapes
+    // issued an empty {} update while reporting success.
+    const parsedUpdates = parsePlainObject(updates, 'updates');
+    if (!parsedUpdates.ok) {
+      return NextResponse.json({ error: parsedUpdates.error }, { status: 400 });
+    }
+    const updatesObject = parsedUpdates.value;
+
     // Validate allowed fields — role escalation is intentionally restricted here
     const allowedFields = ['role', 'is_verified', 'cori_verified', 'insurance_verified'];
     const filteredUpdates: Record<string, unknown> = {};
-    for (const key of Object.keys(updates)) {
+    for (const key of Object.keys(updatesObject)) {
       if (allowedFields.includes(key)) {
-        filteredUpdates[key] = updates[key];
+        filteredUpdates[key] = updatesObject[key];
       }
     }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { transition, isTerminalBookingStatus } from '@/lib/transitions';
-import { parseTextField } from '@/lib/boundary';
+import { parseTextField, parsePagination } from '@/lib/boundary';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +13,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const operatorId = searchParams.get('operator_id');
     const status = searchParams.get('status');
+
+    // BOUNDARY (BUS-BOOKINGS-PAGINATION-001): shared pagination
+    // parser, like every sibling list (default 20, max 50) — this
+    // route used to return every booking (with joined request/quote/
+    // user/operator) in one unbounded response and ignore page/limit.
+    const pagination = parsePagination(searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
 
     let query = supabase
       .from('bookings')
@@ -50,6 +59,8 @@ export async function GET(request: NextRequest) {
     if (status) {
       query = query.eq('status', status);
     }
+
+    query = query.range(pagination.from, pagination.to);
 
     const { data, error } = await query;
 

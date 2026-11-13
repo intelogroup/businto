@@ -39,6 +39,16 @@
  *   first — an integer rating is an integer before it is in range; a
  *   text field is a string before it is stored — and the route
  *   refuses 400 before any write.
+ *
+ * Object / boolean parsers (parsePlainObject / parseBooleanField):
+ *   The same faith in arrived shapes survived on the object- and
+ *   boolean-shaped fields: an admin user's `updates` was Object.keys'd
+ *   unchecked (500 on null, silent empty update on string/number/array
+ *   — BUS-ADMIN-USERS-UPDATES-SHAPE-001), transport_preferences let
+ *   arrays pass a typeof-'object' check into a jsonb column
+ *   (BUS-CUSTOMER-PROFILE-PREFS-SHAPE-001), the dispatch toggle stored
+ *   `enabled` verbatim (BUS-DISPATCH-TOGGLE-SHAPE-001), and the
+ *   messages PATCH wrote `is_read` verbatim (BUS-MSG-PATCH-SHAPE-001).
  */
 
 export interface PaginationOptions {
@@ -150,4 +160,38 @@ export function parseStringArray(value: unknown, field: string): FieldParse<stri
     return { ok: false, error: `${field} must be an array of strings` };
   }
   return { ok: true, value: value as string[] };
+}
+
+/**
+ * A plain-object field is a non-null, non-array object before its keys
+ * are read or it is stored. `typeof [] === 'object'` and
+ * `Object.keys(null)` throws, so the typeof checks routes hand-rolled
+ * let arrays through verbatim into jsonb columns
+ * (BUS-CUSTOMER-PROFILE-PREFS-SHAPE-001) and crashed or silently
+ * no-oped on missing/null payloads (BUS-ADMIN-USERS-UPDATES-SHAPE-001).
+ * One check now serves every object-shaped field.
+ */
+export function parsePlainObject(
+  value: unknown,
+  field: string
+): FieldParse<Record<string, unknown>> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return { ok: false, error: `${field} must be an object` };
+  }
+  return { ok: true, value: value as Record<string, unknown> };
+}
+
+/**
+ * A boolean field is a boolean before it is stored or branched on —
+ * never truthiness. A string "false" is truthy: stored verbatim it
+ * read back OFF under a `value === true` reader while the audit log
+ * took the enabled branch (BUS-DISPATCH-TOGGLE-SHAPE-001), and a
+ * string/number/object is_read was written verbatim by the messages
+ * PATCH (BUS-MSG-PATCH-SHAPE-001).
+ */
+export function parseBooleanField(value: unknown, field: string): FieldParse<boolean> {
+  if (typeof value !== 'boolean') {
+    return { ok: false, error: `${field} must be a boolean` };
+  }
+  return { ok: true, value };
 }

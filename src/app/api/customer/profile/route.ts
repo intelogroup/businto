@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
+import { parsePlainObject } from '@/lib/boundary';
 
 /**
  * GET /api/customer/profile
@@ -142,7 +143,12 @@ export async function PATCH(request: NextRequest) {
     // Validate transport_preferences structure
     if (updateData.transport_preferences !== undefined) {
       const prefs = updateData.transport_preferences;
-      if (prefs !== null && typeof prefs !== 'object') {
+      // BOUNDARY (BUS-CUSTOMER-PROFILE-PREFS-SHAPE-001): preferences
+      // must be a PLAIN object or null — the old `typeof !== 'object'`
+      // check let arrays through (typeof [] === 'object'), and they
+      // were written verbatim into the jsonb column, skipping the enum
+      // checks below (an array carries no default_mobility keys).
+      if (prefs !== null && !parsePlainObject(prefs, 'transport_preferences').ok) {
         return NextResponse.json(
           { error: 'Transport preferences must be an object or null' },
           { status: 400 }

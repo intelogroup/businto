@@ -189,7 +189,8 @@ describe("GET /api/master/admin/exchanges", () => {
     (supabaseAdmin as any).from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({ data: [], error: null }),
     });
 
     const { GET } = await import("@/app/api/master/admin/exchanges/route");
@@ -213,7 +214,8 @@ describe("GET /api/master/admin/exchanges (data shape)", () => {
     (supabaseAdmin as any).from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [{ id: "b-1", requires_manual_exchange: true }], error: null }),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({ data: [{ id: "b-1", requires_manual_exchange: true }], error: null }),
     });
 
     const { GET } = await import("@/app/api/master/admin/exchanges/route");

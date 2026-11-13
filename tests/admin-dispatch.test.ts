@@ -914,7 +914,6 @@ describe("GET /api/master/admin/exchanges", () => {
   it("returns empty array when no pending exchanges", async () => {
     (requireAdmin as any).mockResolvedValue(ADMIN);
     const chain = mockChain({ data: [], error: null });
-    chain.order = vi.fn().mockResolvedValue({ data: [], error: null });
     (supabaseAdmin.from as any).mockReturnValue(chain);
 
     const res = await exchangesGET(getReq("http://localhost/api/master/admin/exchanges"));
@@ -927,7 +926,6 @@ describe("GET /api/master/admin/exchanges", () => {
     (requireAdmin as any).mockResolvedValue(ADMIN);
     const EXCHANGES = [MOCK_BOOKING, { ...MOCK_BOOKING, id: "booking-2" }];
     const chain = mockChain({ data: EXCHANGES, error: null });
-    chain.order = vi.fn().mockResolvedValue({ data: EXCHANGES, error: null });
     (supabaseAdmin.from as any).mockReturnValue(chain);
 
     const res = await exchangesGET(getReq("http://localhost/api/master/admin/exchanges"));
@@ -939,7 +937,6 @@ describe("GET /api/master/admin/exchanges", () => {
   it("returns 500 on database error", async () => {
     (requireAdmin as any).mockResolvedValue(ADMIN);
     const chain = mockChain({ data: null, error: { message: "connection failed" } });
-    chain.order = vi.fn().mockResolvedValue({ data: null, error: { message: "connection failed" } });
     (supabaseAdmin.from as any).mockReturnValue(chain);
 
     const res = await exchangesGET(getReq("http://localhost/api/master/admin/exchanges"));
@@ -950,8 +947,8 @@ describe("GET /api/master/admin/exchanges", () => {
   it("only returns bookings where requires_manual_exchange is true", async () => {
     (requireAdmin as any).mockResolvedValue(ADMIN);
     // The route uses .eq('requires_manual_exchange', true) — verify the chain receives it
-    const chain: any = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn() };
-    chain.order.mockResolvedValue({ data: [MOCK_BOOKING], error: null });
+    const chain: any = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), range: vi.fn() };
+    chain.range.mockResolvedValue({ data: [MOCK_BOOKING], error: null });
     (supabaseAdmin.from as any).mockReturnValue(chain);
 
     await exchangesGET(getReq("http://localhost/api/master/admin/exchanges"));

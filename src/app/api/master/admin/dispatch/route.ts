@@ -4,6 +4,8 @@ import { sendEmail, emailTemplates, getAppBaseUrl } from '@/lib/email';
 import { generateOperatorQuoteLink } from '@/lib/email-helpers';
 import { extractRequirements } from '@/lib/operator-matching';
 import { logEvent } from '@/lib/event-logger';
+import { parseBooleanField } from '@/lib/boundary';
+import { isOpenRequestStatus } from '@/lib/request-status';
 
 // GET — return current manual dispatch mode + operator list for the modal
 export async function GET(req: NextRequest) {
@@ -38,19 +40,29 @@ export async function POST(req: NextRequest) {
 
   // ── Toggle manual dispatch mode ──────────────────────────────────────────
   if (body.action === 'toggle') {
+    // BOUNDARY (BUS-DISPATCH-TOGGLE-SHAPE-001): `enabled` is a boolean
+    // before it is stored — any other shape was upserted verbatim, so
+    // a stored string "true" read back OFF under the GET branch's
+    // `value === true` while the audit log took the enabled branch.
+    const parsedEnabled = parseBooleanField(body.enabled, 'enabled');
+    if (!parsedEnabled.ok) {
+      return NextResponse.json({ error: parsedEnabled.error }, { status: 400 });
+    }
+    const enabled = parsedEnabled.value;
+
     const { error } = await supabaseAdmin
       .from('app_settings')
-      .upsert({ key: 'manual_dispatch_mode', value: body.enabled, updated_at: new Date().toISOString() });
+      .upsert({ key: 'manual_dispatch_mode', value: enabled, updated_at: new Date().toISOString() });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     await logEvent({
-      event_type: body.enabled ? 'admin.manual_dispatch.enabled' : 'admin.manual_dispatch.disabled',
+      event_type: enabled ? 'admin.manual_dispatch.enabled' : 'admin.manual_dispatch.disabled',
       actor_type: 'admin',
       metadata: { toggled_by: admin.id },
     });
 
-    return NextResponse.json({ manualDispatchMode: body.enabled });
+    return NextResponse.json({ manualDispatchMode: enabled });
   }
 
   // ── Manually dispatch to a specific operator ─────────────────────────────
@@ -69,6 +81,15 @@ export async function POST(req: NextRequest) {
 
     if (reqError || !request) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // LIFECYCLE GUARD (BUS-DISPATCH-SEND-CLOSED-001): a dispatch email
+    // may be sent only for an open request — the shared guard the
+    // quotes family uses. This branch never read request.status, so
+    // cancelled/completed/booked requests got a claim link and an
+    // operator email (the create_quote branches below refuse them).
+    if (!isOpenRequestStatus(request.status)) {
+      return NextResponse.json({ error: `Cannot dispatch. Request is already ${request.status}.` }, { status: 400 });
     }
 
     // Fetch operator
@@ -150,6 +171,13 @@ export async function POST(req: NextRequest) {
 
     if (reqError || !request) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
+
+    // LIFECYCLE GUARD (BUS-DISPATCH-SEND-CLOSED-001): same open-request
+    // guard as the send branch — refuse a closed request before any
+    // operator is created, any claim link generated, or any email sent.
+    if (!isOpenRequestStatus(request.status)) {
+      return NextResponse.json({ error: `Cannot dispatch. Request is already ${request.status}.` }, { status: 400 });
     }
 
     let operatorId: string;
