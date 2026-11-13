@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { validateRequestParticipation } from '@/lib/policy';
+import { parseTextField, parseBooleanField } from '@/lib/boundary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +24,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // BOUNDARY (BUS-MSG-CONTENT-SHAPE-001): content is a string before
+    // it is stored — a truthy non-string used to be inserted verbatim
+    // and then throw on content.substring() AFTER the row was written,
+    // returning 500 for a message that exists (a retry duplicates it).
+    const parsedContent = parseTextField(content, 'content');
+    if (!parsedContent.ok) {
+      return NextResponse.json({ error: parsedContent.error }, { status: 400 });
+    }
+    const contentText = parsedContent.value;
 
     if (!request_id && !booking_id) {
       return NextResponse.json(
@@ -77,7 +88,7 @@ export async function POST(request: NextRequest) {
         booking_id,
         sender_id,
         recipient_id,
-        content
+        content: contentText
       })
       .select('*')
       .single();
@@ -106,7 +117,7 @@ export async function POST(request: NextRequest) {
         user_id: recipient_id,
         type: 'message',
         title: 'New Message',
-        message: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+        message: contentText.substring(0, 100) + (contentText.length > 100 ? '...' : ''),
         data: { message_id: data.id, sender_id, request_id, booking_id }
       });
 
@@ -217,14 +228,28 @@ export async function PATCH(request: NextRequest) {
 
     const { message_ids, is_read } = await request.json();
 
-    if (!message_ids?.length) {
+    // BOUNDARY (BUS-MSG-PATCH-SHAPE-001): message_ids must be an array
+    // and is_read (when present) a boolean, parsed before any update —
+    // a string or array-like object used to pass the `?.length` check
+    // and reach .in() verbatim, and any is_read shape was written
+    // verbatim. Absent/null is_read keeps the historical default true.
+    if (!Array.isArray(message_ids) || message_ids.length === 0) {
       return NextResponse.json({ error: 'Missing message_ids' }, { status: 400 });
+    }
+
+    let isRead = true;
+    if (is_read !== undefined && is_read !== null) {
+      const parsedIsRead = parseBooleanField(is_read, 'is_read');
+      if (!parsedIsRead.ok) {
+        return NextResponse.json({ error: parsedIsRead.error }, { status: 400 });
+      }
+      isRead = parsedIsRead.value;
     }
 
     // SECURITY: Ensure user is the recipient of these messages
     const { error } = await supabase
       .from('messages')
-      .update({ is_read: is_read ?? true })
+      .update({ is_read: isRead })
       .in('id', message_ids)
       .eq('recipient_id', user.id);
 
