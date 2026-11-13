@@ -1,20 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
+import { parsePagination } from '@/lib/boundary';
 
 /**
  * GET /api/messages/threads
  *
- * Returns a list of conversation threads for the authenticated user.
+ * Returns a page of conversation threads for the authenticated user.
  * Each thread is grouped by (request_id OR booking_id) and includes:
  * - The other participant's profile info
  * - The last message preview
  * - Unread count
+ *
+ * Query params:
+ *   page  — default 1
+ *   limit — default 20 (max 50)
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // BOUNDARY (BUS-THREADS-PAGINATION-001): the THREAD list is paged
+    // with the shared parser like every sibling list (default 20, max
+    // 50) — this route used to return every thread in one unbounded
+    // response. Grouping still runs over the full message set (thread
+    // counts, unread counts, and last-message previews must reflect
+    // whole threads, never a truncated page of messages); only the
+    // finished, sorted thread list is sliced.
+    const pagination = parsePagination(new URL(request.url).searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
     }
 
     // Fetch all messages where user is sender or recipient
@@ -106,7 +123,9 @@ export async function GET(_request: NextRequest) {
       new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
     );
 
-    return NextResponse.json({ threads });
+    // Slice the requested page of whole threads (see the BOUNDARY note
+    // above — grouping/counts are computed over complete threads).
+    return NextResponse.json({ threads: threads.slice(pagination.from, pagination.to + 1) });
   } catch (error) {
     console.error('Error fetching message threads:', error);
     return NextResponse.json(

@@ -79,12 +79,24 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(50);
 
+    // Headline stats come from an UNBOUNDED stat-fields query over
+    // all of the operator's bookings (BUS-DASHBOARD-STATS-TRUNCATION-001):
+    // they used to be computed from the .limit(50) display page above,
+    // so an operator with 60 completed/paid $100 bookings was shown
+    // $5,000 instead of $6,000 (the sibling earnings route totals all
+    // completed/paid bookings unbounded). The .limit(50) fetch above
+    // now feeds only the displayed bookings list.
+    const { data: statsBookings } = await supabaseAdmin
+      .from('bookings')
+      .select('status, payment_status, amount')
+      .eq('operator_id', operatorId);
+
     // Calculate earnings from completed/paid bookings
-    const completedBookings = (bookings || []).filter(
+    const completedBookings = (statsBookings || []).filter(
       (b: any) => b.status === 'completed' && b.payment_status === 'paid'
     );
     const totalEarnings = completedBookings.reduce((sum: number, b: any) => sum + (b.amount || 0), 0);
-    const activeBookings = (bookings || []).filter(
+    const activeBookings = (statsBookings || []).filter(
       (b: any) => ['confirmed', 'in_progress'].includes(b.status)
     );
 
