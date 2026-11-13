@@ -166,6 +166,18 @@ export async function POST(request: NextRequest) {
         );
     }
 
+    // LIFECYCLE GUARD (BUS-DISPUTES-NO-DISPUTE-001): only `flag` may
+    // act on a trip with no dispute — resolve / dismiss / update_status
+    // on a never-flagged trip used to write a phantom resolved /
+    // dismissed / under_review dispute (with dispute_resolved_at set)
+    // although no flag was ever recorded.
+    if (action !== 'flag' && !trip.dispute_status) {
+      return NextResponse.json(
+        { error: 'No dispute exists for this trip' },
+        { status: 409 }
+      );
+    }
+
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('transport_requests')
       .update(updatePayload)
