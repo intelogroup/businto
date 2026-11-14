@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { validateRequestParticipation } from '@/lib/policy';
-import { parseTextField, parseBooleanField } from '@/lib/boundary';
+import { parsePagination, parseTextField, parseBooleanField } from '@/lib/boundary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -163,6 +163,16 @@ export async function GET(request: NextRequest) {
     const requestId = searchParams.get('request_id');
     const bookingId = searchParams.get('booking_id');
 
+    // BOUNDARY (BUS-MESSAGES-PAGINATION-001): the message list is
+    // paged with the shared parser like every sibling list (default
+    // 20, max 50) — malformed page/limit refused 400 before the
+    // fetch. The fetch stays whole (the user scoping must apply to
+    // the full set); only the returned list is sliced, below.
+    const pagination = parsePagination(searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+
     let query = supabase
       .from('messages')
       .select('*')
@@ -185,31 +195,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Slice the requested page from the full scoped list (see the
+    // BOUNDARY note above); enrichment below maps only the page.
+    const allMessages = messages || [];
+    const total = allMessages.length;
+    const pageMessages = allMessages.slice(pagination.from, pagination.to + 1);
+    const paging = {
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit),
+    };
+
     // Enrich messages with profile data from unified_profiles view
-    const userIds = [...new Set(messages.flatMap(m => [m.sender_id, m.recipient_id]))];
-    
+    const userIds = [...new Set(pageMessages.flatMap(m => [m.sender_id, m.recipient_id]))];
+
     if (userIds.length > 0) {
       // SECURITY: Only expose display fields — never phone, email, or private metadata
       const { data: profiles } = await supabase
         .from('unified_profiles')
         .select('id, full_name, avatar_url, role')
         .in('id', userIds);
-      
+
       const profileMap = (profiles || []).reduce((acc, p) => {
         acc[p.id] = p;
         return acc;
       }, {} as Record<string, any>);
 
-      const enrichedMessages = messages.map(m => ({
+      const enrichedMessages = pageMessages.map(m => ({
         ...m,
         sender: profileMap[m.sender_id],
         recipient: profileMap[m.recipient_id]
       }));
 
-      return NextResponse.json({ messages: enrichedMessages });
+      return NextResponse.json({ messages: enrichedMessages, ...paging });
     }
 
-    return NextResponse.json({ messages: [] });
+    return NextResponse.json({ messages: [], ...paging });
   } catch (error) {
     console.error('Error fetching messages:', error);
     return NextResponse.json(

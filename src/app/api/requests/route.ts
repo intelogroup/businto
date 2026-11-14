@@ -12,6 +12,11 @@ import { logEvent } from '@/lib/event-logger';
 import { calculateRoute, geocodeToCoords } from '@/lib/routing';
 import { getDispatchMode } from '@/lib/app-settings';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { parseEnumParam, parsePagination } from '@/lib/boundary';
+
+// The transport_requests status vocabulary (the table's CHECK
+// constraint): the only values a status filter can legitimately name.
+const VALID_REQUEST_STATUSES = ['pending', 'quoted', 'booked', 'in_progress', 'completed', 'cancelled'] as const;
 
 // ─── Dev-only perf timing helper ─────────────────────────────────────────────
 const IS_DEV_PERF = process.env.NODE_ENV !== 'production' || process.env.ENABLE_PERF_TRACE === '1';
@@ -752,8 +757,25 @@ export async function GET(request: NextRequest) {
       // Unauthenticated callers see nothing
       return NextResponse.json({ requests: [] });
     }
-    if (status) {
-      query = query.eq('status', status);
+    // BOUNDARY: the status filter is a member of the request-status
+    // vocabulary before it reaches .eq() — a supplied value outside
+    // it is refused 400 instead of failing closed by accident
+    // (an empty 200 indistinguishable from a legitimately empty list).
+    const parsedStatus = parseEnumParam(status, 'status', VALID_REQUEST_STATUSES);
+    if (!parsedStatus.ok) {
+      return NextResponse.json({ error: parsedStatus.error }, { status: 400 });
+    }
+    // BOUNDARY (D6 pagination sweep): the requests list is paged
+    // with the shared parser like every sibling list (default 20,
+    // max 50) — malformed page/limit refused 400 before the fetch
+    // runs. The fetch itself stays whole (each request carries its
+    // nested quotes/operators); only the returned list is sliced.
+    const pagination = parsePagination(searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+    if (parsedStatus.value) {
+      query = query.eq('status', parsedStatus.value);
     }
 
     const { data, error } = await query;
@@ -763,7 +785,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ requests: data });
+    const allRequests = data || [];
+    return NextResponse.json({
+      requests: allRequests.slice(pagination.from, pagination.to + 1),
+      total: allRequests.length,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(allRequests.length / pagination.limit),
+    });
   } catch (error) {
     console.error('Error fetching transport requests:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
-import { parseRating, parseTextField } from '@/lib/boundary';
+import { parsePagination, parseRating, parseTextField } from '@/lib/boundary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -175,6 +175,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // BOUNDARY (BUS-REVIEWS-PAGINATION-001): the reviews list is
+    // paged with the shared parser like every sibling list (default
+    // 20, max 50) — malformed page/limit refused 400 before the
+    // fetch. The fetch itself stays whole: averageRating and
+    // totalReviews are full-set aggregates and must not shrink to
+    // the returned page; only the list is sliced, below.
+    const pagination = parsePagination(searchParams, { maxLimit: 50 });
+    if (!pagination.ok) {
+      return NextResponse.json({ error: pagination.error }, { status: 400 });
+    }
+    const { page, limit } = pagination;
+
     // Public operator reviews: only expose reviewer name + avatar (no booking confirmation codes)
     const selectClause = operatorId && !userId
       ? `
@@ -220,16 +232,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Calculate average rating if filtering by operator
+    // Calculate average rating if filtering by operator — over the
+    // FULL result set, never just the returned page.
+    const allReviews = data || [];
     let averageRating = 0;
-    if (data && data.length > 0) {
-      averageRating = (data as any[]).reduce((sum, r) => sum + r.rating, 0) / data.length;
+    if (allReviews.length > 0) {
+      averageRating = (allReviews as any[]).reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
     }
 
     return NextResponse.json({
-      reviews: data,
+      reviews: allReviews.slice(pagination.from, pagination.to + 1),
       averageRating: Math.round(averageRating * 10) / 10,
-      totalReviews: data?.length || 0
+      totalReviews: allReviews.length,
+      total: allReviews.length,
+      page,
+      limit,
+      totalPages: Math.ceil(allReviews.length / limit)
     });
   } catch (error) {
     console.error('Error fetching reviews:', error);

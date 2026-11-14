@@ -49,6 +49,25 @@
  *   (BUS-CUSTOMER-PROFILE-PREFS-SHAPE-001), the dispatch toggle stored
  *   `enabled` verbatim (BUS-DISPATCH-TOGGLE-SHAPE-001), and the
  *   messages PATCH wrote `is_read` verbatim (BUS-MSG-PATCH-SHAPE-001).
+ *
+ * Search / month / enum parsers (parseSearchTerm / parseMonthParam /
+ * parseEnumParam):
+ *   The filter-shaped inputs had no parser at all, and each route
+ *   improvised: the directory interpolated `location` raw into an
+ *   ilike pattern, so caller-supplied % and _ acted as LIKE wildcards
+ *   instead of literals (BUS-DIRECTORY-LOCATION-WILDCARD-001); the
+ *   admin users search interpolated `search` raw into a PostgREST
+ *   .or() string, so a comma injected whole extra filter clauses on
+ *   other columns (BUS-ADMIN-USERS-SEARCH-INJECTION-001); the
+ *   earnings `month` filter was applied only when it happened to
+ *   match a regex, and any other supplied value was silently dropped
+ *   into an unfiltered all-time response
+ *   (BUS-EARNINGS-MONTH-FILTER-001); and role/status filters flowed
+ *   verbatim into .eq(), where a value outside the domain vocabulary
+ *   failed closed only by accident (empty 200). The rule these
+ *   parsers share with the rest of the module: a supplied filter is
+ *   honored literally or refused — never silently dropped, never
+ *   widened.
  */
 
 export interface PaginationOptions {
@@ -194,4 +213,83 @@ export function parseBooleanField(value: unknown, field: string): FieldParse<boo
     return { ok: false, error: `${field} must be a boolean` };
   }
   return { ok: true, value };
+}
+
+/**
+ * A search term is escaped for the LIKE pattern it is about to enter
+ * before it is interpolated — backslash first (it is LIKE's escape
+ * character), then the % and _ wildcards — so the term can only ever
+ * match itself literally (BUS-DIRECTORY-LOCATION-WILDCARD-001).
+ *
+ * With `orString: true` the escaped term is destined for a PostgREST
+ * .or() filter STRING, a second grammar layered over the LIKE
+ * pattern: a comma separates clauses, and . ( ) : * and quotes are
+ * structural there. Escaping cannot make those literal inside an
+ * or() string, so a term containing them is REFUSED instead — the
+ * route answers 400 rather than letting the term widen into extra
+ * filter clauses on other columns
+ * (BUS-ADMIN-USERS-SEARCH-INJECTION-001). Plain parameterized
+ * .ilike() values (orString: false) need the escaping only: the
+ * value never enters the or() grammar.
+ */
+export function parseSearchTerm(
+  raw: string,
+  options: { orString?: boolean } = {}
+): FieldParse<string> {
+  if (options.orString && /[,.:()*'"]/.test(raw)) {
+    return {
+      ok: false,
+      error: 'Invalid search: must not contain , . ( ) : * or quotes',
+    };
+  }
+  const escaped = raw
+    .replace(/\\/g, '\\\\')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_');
+  return { ok: true, value: escaped };
+}
+
+/**
+ * A month filter is a YYYY-MM value with a real month (01–12) before
+ * it filters anything (BUS-EARNINGS-MONTH-FILTER-001). Absent (or
+ * empty) means "no filter" — that is the route's happy path, not a
+ * refusal. A supplied value in any other shape is refused: the old
+ * regex apply-gate silently DROPPED near-miss shapes ('2026-1',
+ * '2026-11-01', '26-11') and returned the unfiltered all-time list.
+ */
+export function parseMonthParam(raw: string | null): FieldParse<string | null> {
+  if (raw === null || raw === '') return { ok: true, value: null };
+  const match = /^(\d{4})-(\d{2})$/.exec(raw);
+  if (!match) {
+    return { ok: false, error: 'Invalid month: must be in YYYY-MM format' };
+  }
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) {
+    return { ok: false, error: 'Invalid month: must be in YYYY-MM format' };
+  }
+  return { ok: true, value: raw };
+}
+
+/**
+ * An enum filter (role, status, …) is a member of the domain
+ * vocabulary before it reaches .eq() — the same allowlist shape the
+ * directory specialty and admin disputes status checks already use.
+ * Absent (or empty) means "no filter". A supplied value outside the
+ * allowlist is refused 400: passed through verbatim it failed closed
+ * only by accident (an empty 200 for a value that can never exist),
+ * indistinguishable from a legitimately empty result.
+ */
+export function parseEnumParam(
+  raw: string | null,
+  field: string,
+  allowlist: readonly string[]
+): FieldParse<string | null> {
+  if (raw === null || raw === '') return { ok: true, value: null };
+  if (!allowlist.includes(raw)) {
+    return {
+      ok: false,
+      error: `Invalid ${field}. Must be one of: ${allowlist.join(', ')}`,
+    };
+  }
+  return { ok: true, value: raw };
 }
