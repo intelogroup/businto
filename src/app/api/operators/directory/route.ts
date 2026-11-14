@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
-import { parsePagination } from '@/lib/boundary';
+import { parsePagination, parseSearchTerm } from '@/lib/boundary';
 
 const VALID_SPECIALTIES = ['school', 'medical', 'wedding', 'corporate'] as const;
 
@@ -20,7 +20,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const specialty = searchParams.get('specialty');
-    const location = searchParams.get('location')?.trim() || '';
+    // BOUNDARY (BUS-DIRECTORY-LOCATION-WILDCARD-001): the location
+    // term is escaped by the shared parser before it enters the
+    // ilike pattern — a caller's % or _ matches only itself, never
+    // other characters. (Escaping only: the value is a parameterized
+    // ilike argument, not an or() string, so no refusal applies.)
+    const parsedLocation = parseSearchTerm(
+      searchParams.get('location')?.trim() || ''
+    );
+    const location = parsedLocation.ok ? parsedLocation.value : '';
     // BOUNDARY (BUS-DIRECTORY-PAGINATION-001): one shared parser —
     // page/limit are positive integers or the request is refused 400
     // before any data-layer call (the old Math.max/Math.min clamps

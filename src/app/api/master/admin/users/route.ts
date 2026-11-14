@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireAdmin } from '@/lib/supabase/admin';
-import { parsePagination, parsePlainObject } from '@/lib/boundary';
+import { parseEnumParam, parsePagination, parsePlainObject, parseSearchTerm } from '@/lib/boundary';
+
+// The profile role vocabulary (src/lib/auth.ts): the only values a
+// role filter can legitimately name.
+const VALID_ROLES = ['user', 'operator', 'manager', 'admin'] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,8 +14,28 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const role = searchParams.get('role');
-    const search = searchParams.get('search');
+    // BOUNDARY: the role filter is a member of the role vocabulary
+    // before it reaches .eq() — a supplied value outside it is
+    // refused 400 instead of failing closed by accident (empty 200).
+    const parsedRole = parseEnumParam(searchParams.get('role'), 'role', VALID_ROLES);
+    if (!parsedRole.ok) {
+      return NextResponse.json({ error: parsedRole.error }, { status: 400 });
+    }
+    const role = parsedRole.value;
+    // BOUNDARY (BUS-ADMIN-USERS-SEARCH-INJECTION-001): the search
+    // term is parsed for the or() string it is about to enter —
+    // LIKE wildcards escaped, PostgREST grammar characters refused
+    // 400 — so it stays a literal substring match over the three
+    // named columns and can never add a clause on another column.
+    const rawSearch = searchParams.get('search');
+    let search: string | null = null;
+    if (rawSearch) {
+      const parsedSearch = parseSearchTerm(rawSearch, { orString: true });
+      if (!parsedSearch.ok) {
+        return NextResponse.json({ error: parsedSearch.error }, { status: 400 });
+      }
+      search = parsedSearch.value;
+    }
     // BOUNDARY (BUS-ADMIN-USERS-PAGINATION-001): shared pagination
     // parser — malformed/non-positive page/limit refused 400 before
     // any data-layer call (raw parseInt propagated NaN into .range()).
