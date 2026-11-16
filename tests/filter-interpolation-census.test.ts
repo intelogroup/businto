@@ -14,6 +14,14 @@
  * dates, or a term that passed through parseSearchTerm). A NEW
  * interpolation site fails this test at introduction instead of
  * surfacing in a later adversarial-loop cycle.
+ *
+ * Extension (2026-11-16): the same census discipline for the filter
+ * and coordinate parsers. The three routes the 2026-11-15/16 cycles
+ * carded (BUS-BOOKINGS-STATUS-001, BUS-ADMIN-REQUESTS-STATUS-001,
+ * BUS-MAPS-DISTANCE-COORD-SHAPE-001) bypassed parsers that already
+ * existed for their siblings; the REQUIRED_PARSERS census below pins
+ * each route to its parser so a future edit cannot quietly drop the
+ * call and reopen the bypass family.
  */
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
@@ -124,4 +132,33 @@ describe('census guard: no unvetted interpolation into .or()/.ilike() filter str
       expect(source, `${rel}: ${entry.reason}`).toContain('parseSearchTerm');
     }
   });
+});
+
+/** Routes pinned to the boundary parsers their inputs require, with
+ *  the card that proved the bypass. A route that stops calling its
+ *  parser fails here at edit time, not in a later loop cycle. */
+const REQUIRED_PARSERS: Record<string, { parsers: string[]; card: string }> = {
+  'src/app/api/bookings/route.ts': {
+    parsers: ['parsePagination', 'parseEnumParam'],
+    card: 'BUS-BOOKINGS-STATUS-001',
+  },
+  'src/app/api/master/admin/requests/route.ts': {
+    parsers: ['parsePagination', 'parseEnumParam'],
+    card: 'BUS-ADMIN-REQUESTS-STATUS-001',
+  },
+  'src/app/api/maps/distance/route.ts': {
+    parsers: ['parseCoordinate'],
+    card: 'BUS-MAPS-DISTANCE-COORD-SHAPE-001',
+  },
+};
+
+describe('census guard: carded routes still route through their boundary parsers', () => {
+  for (const [rel, entry] of Object.entries(REQUIRED_PARSERS)) {
+    it(`${rel} uses ${entry.parsers.join(' + ')} (${entry.card})`, () => {
+      const source = readFileSync(path.join(ROOT, rel), 'utf8');
+      for (const parser of entry.parsers) {
+        expect(source, `${rel} must keep calling ${parser} (${entry.card})`).toContain(parser);
+      }
+    });
+  }
 });

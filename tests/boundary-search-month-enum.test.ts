@@ -16,9 +16,12 @@
  * - A supplied enum filter is a member of its allowlist or a
  *   refusal — never a verbatim pass-through that fails closed only
  *   by accident.
+ * - A coordinate is a finite number in range or a refusal — never
+ *   a truthiness check that forwards strings/structures verbatim
+ *   and treats 0 as missing (BUS-MAPS-DISTANCE-COORD-SHAPE-001).
  */
 import { describe, it, expect } from 'vitest';
-import { parseSearchTerm, parseMonthParam, parseEnumParam } from '@/lib/boundary';
+import { parseSearchTerm, parseMonthParam, parseEnumParam, parseCoordinate } from '@/lib/boundary';
 
 describe('parseSearchTerm — LIKE escaping', () => {
   it('passes a plain term through unchanged', () => {
@@ -92,5 +95,34 @@ describe('parseEnumParam', () => {
     expect(parseEnumParam('bogus', 'role', ROLES).ok).toBe(false);
     expect(parseEnumParam('Admin', 'role', ROLES).ok).toBe(false);
     expect(parseEnumParam('admin ', 'role', ROLES).ok).toBe(false);
+  });
+});
+
+describe('parseCoordinate', () => {
+  it('accepts finite in-range numbers, including 0 and the range edges', () => {
+    expect(parseCoordinate(0, 'originLat', 'latitude')).toEqual({ ok: true, value: 0 });
+    expect(parseCoordinate(42.36, 'originLat', 'latitude')).toEqual({ ok: true, value: 42.36 });
+    expect(parseCoordinate(90, 'destLat', 'latitude')).toEqual({ ok: true, value: 90 });
+    expect(parseCoordinate(-90, 'destLat', 'latitude')).toEqual({ ok: true, value: -90 });
+    expect(parseCoordinate(180, 'originLng', 'longitude')).toEqual({ ok: true, value: 180 });
+    expect(parseCoordinate(-180, 'originLng', 'longitude')).toEqual({ ok: true, value: -180 });
+  });
+  it('refuses out-of-range numbers per kind', () => {
+    expect(parseCoordinate(91, 'originLat', 'latitude').ok).toBe(false);
+    expect(parseCoordinate(-91, 'originLat', 'latitude').ok).toBe(false);
+    expect(parseCoordinate(181, 'originLng', 'longitude').ok).toBe(false);
+    expect(parseCoordinate(-999, 'destLng', 'longitude').ok).toBe(false);
+    // A valid longitude range is NOT a valid latitude range.
+    expect(parseCoordinate(120, 'destLat', 'latitude').ok).toBe(false);
+  });
+  it('refuses non-finite numbers', () => {
+    expect(parseCoordinate(NaN, 'originLat', 'latitude').ok).toBe(false);
+    expect(parseCoordinate(Infinity, 'originLng', 'longitude').ok).toBe(false);
+    expect(parseCoordinate(-Infinity, 'originLng', 'longitude').ok).toBe(false);
+  });
+  it('refuses every non-number shape, including numeric strings', () => {
+    for (const bad of ['42.36', 'abc', '', [42.36], { v: 42.36 }, true, false, null, undefined]) {
+      expect(parseCoordinate(bad, 'originLat', 'latitude').ok, String(bad)).toBe(false);
+    }
   });
 });
