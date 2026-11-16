@@ -1,22 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateRoute, geocodeToCoords } from '@/lib/routing';
+import { parseCoordinate } from '@/lib/boundary';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) ?? {};
     const { origin, destination, originLat, originLng, destLat, destLng } = body;
 
-    if ((!origin && !destination) && (!originLat || !originLng || !destLat || !destLng)) {
+    // BOUNDARY (BUS-MAPS-DISTANCE-COORD-SHAPE-001): every coordinate
+    // that ARRIVED is parsed by parseCoordinate before anything
+    // consumes it — a finite number in range, or the request is
+    // refused 400. The old truthiness checks forwarded strings,
+    // arrays, objects and out-of-range numbers to calculateRoute
+    // verbatim, and treated a legitimate 0 (equator / prime meridian)
+    // as missing. An absent coordinate stays absent (undefined) and
+    // falls back to geocoding its address, as before.
+    const parsedOriginLat = originLat === undefined ? null : parseCoordinate(originLat, 'originLat', 'latitude');
+    const parsedOriginLng = originLng === undefined ? null : parseCoordinate(originLng, 'originLng', 'longitude');
+    const parsedDestLat = destLat === undefined ? null : parseCoordinate(destLat, 'destLat', 'latitude');
+    const parsedDestLng = destLng === undefined ? null : parseCoordinate(destLng, 'destLng', 'longitude');
+    for (const parsed of [parsedOriginLat, parsedOriginLng, parsedDestLat, parsedDestLng]) {
+      if (parsed && !parsed.ok) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
+    }
+
+    const coordValue = (parsed: typeof parsedOriginLat): number | undefined =>
+      parsed && parsed.ok ? parsed.value : undefined;
+    let oLat = coordValue(parsedOriginLat);
+    let oLng = coordValue(parsedOriginLng);
+    let dLat = coordValue(parsedDestLat);
+    let dLng = coordValue(parsedDestLng);
+
+    if (oLat === undefined && oLng === undefined && dLat === undefined && dLng === undefined && !origin && !destination) {
       return NextResponse.json(
         { error: 'Provide either origin/destination addresses or coordinate pairs' },
         { status: 400 }
       );
     }
 
-    let oLat = originLat, oLng = originLng, dLat = destLat, dLng = destLng;
-
-    // Geocode address strings if coordinates were not provided
-    if (!oLat || !oLng) {
+    // Geocode address strings for whichever side lacks a full pair.
+    if (oLat === undefined || oLng === undefined) {
       if (!origin) return NextResponse.json({ error: 'Missing origin' }, { status: 400 });
       const coords = await geocodeToCoords(origin);
       if (!coords) return NextResponse.json({ error: 'Could not geocode origin address' }, { status: 400 });
@@ -24,7 +48,7 @@ export async function POST(request: NextRequest) {
       oLng = coords.lng;
     }
 
-    if (!dLat || !dLng) {
+    if (dLat === undefined || dLng === undefined) {
       if (!destination) return NextResponse.json({ error: 'Missing destination' }, { status: 400 });
       const coords = await geocodeToCoords(destination);
       if (!coords) return NextResponse.json({ error: 'Could not geocode destination address' }, { status: 400 });

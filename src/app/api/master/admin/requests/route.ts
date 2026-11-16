@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireAdmin } from '@/lib/supabase/admin';
-import { parsePagination } from '@/lib/boundary';
+import { parsePagination, parseEnumParam } from '@/lib/boundary';
+
+// The transport-request status vocabulary (same as the rider requests
+// route), plus this route's documented 'active' alias for
+// pending-or-quoted.
+const VALID_ADMIN_REQUEST_STATUSES = [
+  'pending', 'quoted', 'booked', 'in_progress', 'completed', 'cancelled', 'active',
+] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +17,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    // BOUNDARY (BUS-ADMIN-REQUESTS-STATUS-001): the status filter is a
+    // member of the request vocabulary (or the 'active' alias) before
+    // it reaches .eq()/.in() — parsed via parseEnumParam like the
+    // sibling admin disputes and rider requests routes. Passed through
+    // raw, an out-of-vocabulary status failed closed only by accident
+    // (a silent empty 200), indistinguishable from a legitimately
+    // empty result.
+    const parsedStatus = parseEnumParam(
+      searchParams.get('status'),
+      'status',
+      VALID_ADMIN_REQUEST_STATUSES
+    );
+    if (!parsedStatus.ok) {
+      return NextResponse.json({ error: parsedStatus.error }, { status: 400 });
+    }
+    const status = parsedStatus.value;
     // BOUNDARY (BUS-ADMIN-REQUESTS-PAGINATION-001): shared pagination
     // parser — raw parseInt here had no NaN guard and no floor at all;
     // malformed/non-positive page/limit are refused 400 before any

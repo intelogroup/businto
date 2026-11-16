@@ -68,6 +68,16 @@
  *   parsers share with the rest of the module: a supplied filter is
  *   honored literally or refused — never silently dropped, never
  *   widened.
+ *
+ * Coordinate parser (parseCoordinate):
+ *   The maps/distance route consumed its coordinate fields by
+ *   truthiness: any truthy value — a string, an array, an object, an
+ *   out-of-range number — was forwarded verbatim to the routing
+ *   engine, while a legitimate 0 (equator / prime meridian) read as
+ *   "missing" and fell through to the geocoding path or a 400
+ *   (BUS-MAPS-DISTANCE-COORD-SHAPE-001). A coordinate is a finite
+ *   NUMBER in range before it is forwarded — latitude in [-90, 90],
+ *   longitude in [-180, 180] — and 0 is a coordinate, not an absence.
  */
 
 export interface PaginationOptions {
@@ -292,4 +302,32 @@ export function parseEnumParam(
     };
   }
   return { ok: true, value: raw };
+}
+
+/**
+ * A coordinate is a finite NUMBER in range before it is forwarded to
+ * the routing engine — never truthiness (BUS-MAPS-DISTANCE-COORD-
+ * SHAPE-001): the string "42.36", an array, an object, a boolean and
+ * an out-of-range number are all refused, while 0 parses as the valid
+ * coordinate it is. Range is part of the type: latitude [-90, 90],
+ * longitude [-180, 180].
+ */
+export function parseCoordinate(
+  value: unknown,
+  field: string,
+  kind: 'latitude' | 'longitude'
+): FieldParse<number> {
+  const max = kind === 'latitude' ? 90 : 180;
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < -max ||
+    value > max
+  ) {
+    return {
+      ok: false,
+      error: `${field} must be a ${kind} between ${-max} and ${max}`,
+    };
+  }
+  return { ok: true, value };
 }
