@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase, requireUser } from '@/lib/supabase/admin';
 import { transition, isTerminalBookingStatus } from '@/lib/transitions';
-import { parseTextField, parsePagination } from '@/lib/boundary';
+import { parseTextField, parsePagination, parseEnumParam } from '@/lib/boundary';
+
+// The booking status vocabulary (route + cron): bookings are created
+// 'confirmed', may be 'in_progress', and end 'completed' or 'cancelled'.
+const VALID_BOOKING_STATUSES = ['confirmed', 'in_progress', 'completed', 'cancelled'] as const;
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +16,18 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const operatorId = searchParams.get('operator_id');
-    const status = searchParams.get('status');
+
+    // BOUNDARY (BUS-BOOKINGS-STATUS-001): the status filter is a member
+    // of the booking vocabulary before it reaches .eq() — parsed via
+    // parseEnumParam like the sibling rider requests route. Passed
+    // through raw, an out-of-vocabulary status failed closed only by
+    // accident (a silent empty 200), indistinguishable from a
+    // legitimately empty result.
+    const parsedStatus = parseEnumParam(searchParams.get('status'), 'status', VALID_BOOKING_STATUSES);
+    if (!parsedStatus.ok) {
+      return NextResponse.json({ error: parsedStatus.error }, { status: 400 });
+    }
+    const status = parsedStatus.value;
 
     // BOUNDARY (BUS-BOOKINGS-PAGINATION-001): shared pagination
     // parser, like every sibling list (default 20, max 50) — this

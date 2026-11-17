@@ -46,13 +46,27 @@ export function checkRateLimit(key: string, limit: number = 10, windowMs: number
 /**
  * Get client IP address from request headers.
  * On Vercel, x-forwarded-for is set by the edge proxy.
+ *
+ * BOUNDARY (BUS-RATE-LIMIT-XFF-SPOOF-001): the platform appends the
+ * real peer address as the LAST x-forwarded-for entry; every earlier
+ * entry is client-supplied and passes through verbatim. Keying
+ * throttles on the FIRST entry let a caller mint a fresh rate-limit
+ * bucket per attempt by rotating a header value, defeating the
+ * per-IP caps (guest request creation, claim redemption). The
+ * identity is the last entry — the one the client cannot choose.
  */
 export function getClientIP(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const realIP = request.headers.get('x-real-ip');
 
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    const entries = forwarded
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+    if (entries.length > 0) {
+      return entries[entries.length - 1];
+    }
   }
 
   if (realIP) {
