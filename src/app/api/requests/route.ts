@@ -12,7 +12,7 @@ import { logEvent } from '@/lib/event-logger';
 import { calculateRoute, geocodeToCoords } from '@/lib/routing';
 import { getDispatchMode } from '@/lib/app-settings';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
-import { parseEnumParam, parsePagination } from '@/lib/boundary';
+import { parseCoordinate, parseEnumParam, parsePagination, parseTextField } from '@/lib/boundary';
 
 // The transport_requests status vocabulary (the table's CHECK
 // constraint): the only values a status filter can legitimately name.
@@ -93,6 +93,51 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields: service_type, pickup_address, dropoff_address, start_date' },
         { status: 400 }
       );
+    }
+
+    // BOUNDARY (BUS-REQUEST-CREATE-SHAPE-001): every typed field —
+    // required and optional — is parsed by the shared boundary
+    // parsers before it is used or stored. Truthiness was the only
+    // check before: a non-string address reached
+    // pickup_address.split(',') as a 500, a non-string start_date
+    // was stored verbatim, a truthy non-string fuzzy short-circuited
+    // the `fuzzy || address.split(',')[0]` derivation and was stored
+    // as-is, and a truthy non-numeric or out-of-range coordinate
+    // skipped geocoding and was stored verbatim. Absent optional
+    // fields keep their existing meaning (derive / geocode); a
+    // supplied one is the right shape or the request is refused 400
+    // before any insert.
+    for (const [value, field] of [
+      [pickup_address, 'pickup_address'],
+      [dropoff_address, 'dropoff_address'],
+      [start_date, 'start_date'],
+    ] as const) {
+      const parsed = parseTextField(value, field);
+      if (!parsed.ok) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
+    }
+    for (const [value, field] of [
+      [pickup_fuzzy, 'pickup_fuzzy'],
+      [dropoff_fuzzy, 'dropoff_fuzzy'],
+    ] as const) {
+      if (value === undefined || value === null) continue;
+      const parsed = parseTextField(value, field);
+      if (!parsed.ok) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
+    }
+    for (const [value, field, kind] of [
+      [bodyPickupLat, 'pickup_lat', 'latitude'],
+      [bodyPickupLng, 'pickup_lng', 'longitude'],
+      [bodyDropoffLat, 'dropoff_lat', 'latitude'],
+      [bodyDropoffLng, 'dropoff_lng', 'longitude'],
+    ] as const) {
+      if (value === undefined || value === null) continue;
+      const parsed = parseCoordinate(value, field, kind);
+      if (!parsed.ok) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
     }
 
     // Validate service type

@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseLimitParam } from "@/lib/boundary";
+import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
+
+// BOUNDARY (BUS-GEOCODE-COST-001): this proxy is unauthenticated, so
+// volume is bounded per client IP here instead of by auth — 30 calls
+// per minute is generous for the debounced autocomplete caller and
+// caps scripted abuse of the upstream Photon service.
+const GEOCODE_RATE_LIMIT = 30;
+const GEOCODE_RATE_WINDOW_MS = 60 * 1000;
+const GEOCODE_MAX_QUERY_CHARS = 500;
 
 /**
  * GET /api/geocode?q=<query>&limit=5&countrycodes=us
@@ -11,11 +20,31 @@ import { parseLimitParam } from "@/lib/boundary";
  *   { place_id, display_name, lat, lon }
  */
 export async function GET(request: NextRequest) {
+    // Throttle FIRST (BUS-GEOCODE-COST-001): refused and malformed
+    // calls burn budget too, so hostile shapes cannot probe the
+    // validation boundary for free at unlimited rate.
+    if (!checkRateLimit(`geocode:${getClientIP(request)}`, GEOCODE_RATE_LIMIT, GEOCODE_RATE_WINDOW_MS)) {
+        return NextResponse.json(
+            { error: "Too many geocoding requests" },
+            { status: 429 }
+        );
+    }
+
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q");
 
     if (!q || q.trim().length < 3) {
         return NextResponse.json([], { status: 200 });
+    }
+
+    // BOUNDARY (BUS-GEOCODE-COST-001): the query forwarded upstream
+    // is length-bounded — an unbounded q proxies caller-sized input
+    // to Photon verbatim.
+    if (q.length > GEOCODE_MAX_QUERY_CHARS) {
+        return NextResponse.json(
+            { error: "Query is too long" },
+            { status: 400 }
+        );
     }
 
     // BOUNDARY (M5 census): the limit is parsed by the same boundary
