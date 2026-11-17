@@ -150,6 +150,26 @@ const REQUIRED_PARSERS: Record<string, { parsers: string[]; card: string }> = {
     parsers: ['parseCoordinate'],
     card: 'BUS-MAPS-DISTANCE-COORD-SHAPE-001',
   },
+  // Extension (2026-11-17 fix-all follow-ups): the validate-bound-
+  // throttle cards of 2026-11-16/17 pinned their routes to the same
+  // boundary parsers — a route that stops parsing its typed fields
+  // fails here at edit time.
+  'src/app/api/requests/route.ts': {
+    parsers: ['parseTextField', 'parseCoordinate'],
+    card: 'BUS-REQUEST-CREATE-SHAPE-001',
+  },
+  'src/app/api/email/send/route.ts': {
+    parsers: ['parseTextField'],
+    card: 'BUS-EMAIL-SEND-TYPE-SHAPE-001',
+  },
+  'src/app/api/logs/route.ts': {
+    parsers: ['parseTextField', 'parsePlainObject'],
+    card: 'BUS-LOGS-SHAPE-FLOOD-001',
+  },
+  'src/app/api/geocode/route.ts': {
+    parsers: ['parseLimitParam'],
+    card: 'BUS-GEOCODE-COST-001',
+  },
 };
 
 describe('census guard: carded routes still route through their boundary parsers', () => {
@@ -159,6 +179,30 @@ describe('census guard: carded routes still route through their boundary parsers
       for (const parser of entry.parsers) {
         expect(source, `${rel} must keep calling ${parser} (${entry.card})`).toContain(parser);
       }
+    });
+  }
+});
+
+/** Routes pinned to the shared throttle: the cost cards of
+ *  2026-11-16 proved these routes reached a paid or proxied upstream
+ *  (LLM inference, the Photon geocoder, the event log) with no
+ *  checkRateLimit call at all. A route that drops the call reopens
+ *  its card's family. (BUS-RATE-LIMIT-XFF-SPOOF-001 is pinned
+ *  behaviorally instead — tests/rate-limit-xff-identity.test.ts
+ *  exercises getClientIP + checkRateLimit composed exactly as the
+ *  routes compose them.) */
+const REQUIRED_THROTTLES: Record<string, { card: string }> = {
+  'src/app/api/chat/route.ts': { card: 'BUS-CHAT-LLM-COST-001' },
+  'src/app/api/chat/suggestions/route.ts': { card: 'BUS-CHAT-LLM-COST-001' },
+  'src/app/api/geocode/route.ts': { card: 'BUS-GEOCODE-COST-001' },
+  'src/app/api/logs/route.ts': { card: 'BUS-LOGS-SHAPE-FLOOD-001' },
+};
+
+describe('census guard: carded routes still throttle through checkRateLimit', () => {
+  for (const [rel, entry] of Object.entries(REQUIRED_THROTTLES)) {
+    it(`${rel} uses checkRateLimit (${entry.card})`, () => {
+      const source = readFileSync(path.join(ROOT, rel), 'utf8');
+      expect(source, `${rel} must keep calling checkRateLimit (${entry.card})`).toContain('checkRateLimit');
     });
   }
 });
