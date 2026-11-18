@@ -1,9 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateRoute, geocodeToCoords } from '@/lib/routing';
-import { parseCoordinate } from '@/lib/boundary';
+import { parseCoordinate, parseTextField } from '@/lib/boundary';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+
+// BOUNDARY (BUS-MAPS-DISTANCE-COST-001): this route is
+// unauthenticated and fans out to upstream services (geocodeToCoords
+// x2 + calculateRoute per call), so volume is bounded per client IP
+// here instead of by auth — the same checkRateLimit discipline as
+// /api/geocode (BUS-GEOCODE-COST-001). The limit is 20/min rather
+// than geocode's 30 because one distance call can cost three
+// upstream calls; the address-length bound mirrors geocode's
+// 500-char query cap.
+const DISTANCE_RATE_LIMIT = 20;
+const DISTANCE_RATE_WINDOW_MS = 60 * 1000;
+const DISTANCE_MAX_ADDRESS_CHARS = 500;
 
 export async function POST(request: NextRequest) {
   try {
+    // Throttle FIRST (BUS-MAPS-DISTANCE-COST-001): refused and
+    // malformed calls burn budget too, so hostile shapes cannot
+    // probe the validation boundary for free at unlimited rate.
+    if (!checkRateLimit(`maps-distance:${getClientIP(request)}`, DISTANCE_RATE_LIMIT, DISTANCE_RATE_WINDOW_MS)) {
+      return NextResponse.json(
+        { error: 'Too many distance requests' },
+        { status: 429 }
+      );
+    }
+
     const body = (await request.json()) ?? {};
     const { origin, destination, originLat, originLng, destLat, destLng } = body;
 
@@ -40,9 +63,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Geocode address strings for whichever side lacks a full pair.
+    // BOUNDARY (BUS-MAPS-DISTANCE-ADDRESS-SHAPE-001): an address
+    // that is about to be geocoded is parsed by parseTextField
+    // first — a string before it reaches geocodeToCoords, mirroring
+    // parseCoordinate for the coordinate legs. The old truthiness
+    // check forwarded numbers, booleans, arrays and objects
+    // verbatim, and encodeURIComponent coerced them into plausible
+    // Photon queries ('12345', '[object Object]'). An address whose
+    // side has a full coordinate pair is never consumed and stays
+    // inert, exactly as before.
+    // BOUNDARY (BUS-MAPS-DISTANCE-COST-001): the address forwarded
+    // upstream is length-bounded — an unbounded address proxies
+    // caller-sized input to Photon verbatim.
     if (oLat === undefined || oLng === undefined) {
       if (!origin) return NextResponse.json({ error: 'Missing origin' }, { status: 400 });
-      const coords = await geocodeToCoords(origin);
+      const parsedOrigin = parseTextField(origin, 'origin');
+      if (!parsedOrigin.ok) {
+        return NextResponse.json({ error: parsedOrigin.error }, { status: 400 });
+      }
+      if (parsedOrigin.value.length > DISTANCE_MAX_ADDRESS_CHARS) {
+        return NextResponse.json({ error: 'Origin address is too long' }, { status: 400 });
+      }
+      const coords = await geocodeToCoords(parsedOrigin.value);
       if (!coords) return NextResponse.json({ error: 'Could not geocode origin address' }, { status: 400 });
       oLat = coords.lat;
       oLng = coords.lng;
@@ -50,7 +92,14 @@ export async function POST(request: NextRequest) {
 
     if (dLat === undefined || dLng === undefined) {
       if (!destination) return NextResponse.json({ error: 'Missing destination' }, { status: 400 });
-      const coords = await geocodeToCoords(destination);
+      const parsedDestination = parseTextField(destination, 'destination');
+      if (!parsedDestination.ok) {
+        return NextResponse.json({ error: parsedDestination.error }, { status: 400 });
+      }
+      if (parsedDestination.value.length > DISTANCE_MAX_ADDRESS_CHARS) {
+        return NextResponse.json({ error: 'Destination address is too long' }, { status: 400 });
+      }
+      const coords = await geocodeToCoords(parsedDestination.value);
       if (!coords) return NextResponse.json({ error: 'Could not geocode destination address' }, { status: 400 });
       dLat = coords.lat;
       dLng = coords.lng;

@@ -38,7 +38,11 @@
  *   BUS-OPERATOR-PROFILE-AREAS-SHAPE-001). The parsers check the TYPE
  *   first — an integer rating is an integer before it is in range; a
  *   text field is a string before it is stored — and the route
- *   refuses 400 before any write.
+ *   refuses 400 before any write. The same type-first rule gates
+ *   reads that fan out upstream: the maps/distance route parsed its
+ *   coordinate legs but let origin/destination of any shape flow
+ *   into the geocoder (BUS-MAPS-DISTANCE-ADDRESS-SHAPE-001), so an
+ *   address is a string via parseTextField before it is geocoded.
  *
  * Object / boolean parsers (parsePlainObject / parseBooleanField):
  *   The same faith in arrived shapes survived on the object- and

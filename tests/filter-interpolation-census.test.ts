@@ -147,8 +147,8 @@ const REQUIRED_PARSERS: Record<string, { parsers: string[]; card: string }> = {
     card: 'BUS-ADMIN-REQUESTS-STATUS-001',
   },
   'src/app/api/maps/distance/route.ts': {
-    parsers: ['parseCoordinate'],
-    card: 'BUS-MAPS-DISTANCE-COORD-SHAPE-001',
+    parsers: ['parseCoordinate', 'parseTextField'],
+    card: 'BUS-MAPS-DISTANCE-COORD-SHAPE-001 + BUS-MAPS-DISTANCE-ADDRESS-SHAPE-001',
   },
   // Extension (2026-11-17 fix-all follow-ups): the validate-bound-
   // throttle cards of 2026-11-16/17 pinned their routes to the same
@@ -196,6 +196,7 @@ const REQUIRED_THROTTLES: Record<string, { card: string }> = {
   'src/app/api/chat/suggestions/route.ts': { card: 'BUS-CHAT-LLM-COST-001' },
   'src/app/api/geocode/route.ts': { card: 'BUS-GEOCODE-COST-001' },
   'src/app/api/logs/route.ts': { card: 'BUS-LOGS-SHAPE-FLOOD-001' },
+  'src/app/api/maps/distance/route.ts': { card: 'BUS-MAPS-DISTANCE-COST-001' },
 };
 
 describe('census guard: carded routes still throttle through checkRateLimit', () => {
