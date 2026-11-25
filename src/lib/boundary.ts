@@ -82,6 +82,23 @@
  *   (BUS-MAPS-DISTANCE-COORD-SHAPE-001). A coordinate is a finite
  *   NUMBER in range before it is forwarded — latitude in [-90, 90],
  *   longitude in [-180, 180] — and 0 is a coordinate, not an absence.
+ *
+ * Numeric field parsers (parsePositiveNumber / parsePositiveInteger /
+ * parseNumberInRange):
+ *   The JSON-body numeric fields had no parser either, and each route
+ *   improvised around them: the admin dispatch quote branches guarded
+ *   price by truthiness or not at all, so a string/negative/boolean/
+ *   array price was inserted verbatim as a live quote total
+ *   (BUS-DISPATCH-QUOTE-PRICE-SHAPE-001); the quotes/notify route
+ *   truthiness-guarded quoteCount and interpolated any shape into the
+ *   notification email subject (BUS-NOTIFY-COUNT-SHAPE-001); and the
+ *   operator profile validated service_radius_miles by Number()
+ *   COERCION, so true / "50" / [50] were stored as numbers the caller
+ *   never sent as numbers (BUS-OPERATOR-RADIUS-COERCION-001). The
+ *   rule is the same type-first rule as every parser above: a numeric
+ *   field is a finite NUMBER of the required shape (positive, integer,
+ *   in range) before it is stored, rendered, or branched on — a
+ *   numeric string is a refusal, never a coercion.
  */
 
 export interface PaginationOptions {
@@ -331,6 +348,65 @@ export function parseCoordinate(
     return {
       ok: false,
       error: `${field} must be a ${kind} between ${-max} and ${max}`,
+    };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * A price/amount field is a positive finite NUMBER before it is
+ * stored — never truthiness, never coercion (BUS-DISPATCH-QUOTE-
+ * PRICE-SHAPE-001): the string "150", -50, true and [150] are all
+ * refusals, while a genuine positive number passes verbatim.
+ */
+export function parsePositiveNumber(
+  value: unknown,
+  field: string
+): FieldParse<number> {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return { ok: false, error: `${field} must be a positive number` };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * A count field is a positive integer NUMBER before it is rendered
+ * or stored (BUS-NOTIFY-COUNT-SHAPE-001): "3", -3, 2.5, true, [3]
+ * and {count: 3} are all refusals — the integer check is part of the
+ * type, not a rounding step applied after the fact.
+ */
+export function parsePositiveInteger(
+  value: unknown,
+  field: string
+): FieldParse<number> {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    return { ok: false, error: `${field} must be a positive integer` };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * A bounded measurement is a finite NUMBER inside its range before
+ * the range is even asked (BUS-OPERATOR-RADIUS-COERCION-001): the
+ * type check comes first, so true / "50" / [50] are refused rather
+ * than Number()-coerced into values the caller never sent, while a
+ * genuine in-range number is stored verbatim.
+ */
+export function parseNumberInRange(
+  value: unknown,
+  field: string,
+  min: number,
+  max: number
+): FieldParse<number> {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < min ||
+    value > max
+  ) {
+    return {
+      ok: false,
+      error: `${field} must be a number between ${min} and ${max}`,
     };
   }
   return { ok: true, value };
