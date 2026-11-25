@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireUser } from '@/lib/supabase/admin';
 import { logEvent } from '@/lib/event-logger';
-import { parseTextField, parseStringArray } from '@/lib/boundary';
+import { parseTextField, parseStringArray, parseNumberInRange } from '@/lib/boundary';
 
 /**
  * GET /api/operator/profile
@@ -206,16 +206,21 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Validate service_radius_miles
+    // BOUNDARY (BUS-OPERATOR-RADIUS-COERCION-001): service_radius_miles
+    // is a finite NUMBER in 1..500 before it is stored — it was the
+    // last field on this route still validated by Number() coercion,
+    // so true / "50" / [50] were stored as numbers the caller never
+    // sent as numbers. The type check is part of the parse; a genuine
+    // in-range number is stored verbatim.
     if (updateData.service_radius_miles !== undefined) {
-      const radius = Number(updateData.service_radius_miles);
-      if (isNaN(radius) || radius < 1 || radius > 500) {
+      const parsedRadius = parseNumberInRange(updateData.service_radius_miles, 'service_radius_miles', 1, 500);
+      if (!parsedRadius.ok) {
         return NextResponse.json(
           { error: 'Service radius must be between 1 and 500 miles' },
           { status: 400 }
         );
       }
-      updateData.service_radius_miles = radius;
+      updateData.service_radius_miles = parsedRadius.value;
     }
 
     const { data: updated, error: updateError } = await supabaseAdmin

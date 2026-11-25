@@ -5,6 +5,7 @@ import { generateUserTripToken } from '@/lib/tokens';
 import { generateTripViewLink } from '@/lib/email-helpers';
 import { sendSMS, smsTemplates } from '@/lib/sms';
 import { isOpenRequestStatus } from '@/lib/request-status';
+import { parsePositiveInteger } from '@/lib/boundary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +25,18 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // BOUNDARY (BUS-NOTIFY-COUNT-SHAPE-001): quoteCount is a positive
+    // integer NUMBER before it is rendered — it was truthiness-guarded
+    // only and interpolated verbatim into the notification email
+    // subject, so "3" / -3 / 2.5 / true / [3] / {count: 3} all sent
+    // mail carrying the hostile value. Refusal is 400 before any
+    // profile fetch, link generation, or send.
+    const parsedCount = parsePositiveInteger(quoteCount, 'quoteCount');
+    if (!parsedCount.ok) {
+      return NextResponse.json({ error: parsedCount.error }, { status: 400 });
+    }
+    const count = parsedCount.value;
 
     // Fetch user profile for email and SMS opt-in status
     const { data: profile, error: profileError } = await supabase
@@ -110,8 +123,8 @@ export async function POST(request: NextRequest) {
       // No quote data available — send a generic "quotes are in" email
       await sendEmail({
         to: profile.email,
-        subject: `${quoteCount} operator${quoteCount > 1 ? 's' : ''} quoted your route`,
-        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${quoteCount} quote(s) for your transport request. <a href="${claimLink}">View them in your dashboard →</a></p>`
+        subject: `${count} operator${count > 1 ? 's' : ''} quoted your route`,
+        html: `<p>Hi ${profile.full_name || 'there'},</p><p>You have ${count} quote(s) for your transport request. <a href="${claimLink}">View them in your dashboard →</a></p>`
       });
     }
 
