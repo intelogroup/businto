@@ -7,7 +7,7 @@ export function obfuscateAddress(address: string, city?: string, state?: string)
         return `${city}, ${state}`;
     }
 
-    if (!address) return "";
+    if (typeof address !== 'string' || !address) return "";
 
     // Regular expression to match common house number patterns at the start of the string
     const houseNumberRegex = /^\d+[-\w]*\s+/;
@@ -25,7 +25,7 @@ export function obfuscateAddress(address: string, city?: string, state?: string)
  * Examples: "456 Maple St, Boston, MA" -> "xxx Maple St, Boston, MA"
  */
 export function maskStreetNumber(address: string): string {
-    if (!address) return "";
+    if (typeof address !== 'string' || !address) return "";
 
     // Regular expression to match house number at the start
     const houseNumberRegex = /^\d+[-\w]*/;
