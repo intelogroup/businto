@@ -186,6 +186,11 @@ export function splitMetadataByServiceType(
   serviceType: 'school' | 'medical' | 'wedding',
   metadata: any
 ) {
+  // Shape-shifted metadata degrades to empty buckets instead of a bare
+  // TypeError from destructuring a non-object.
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return { metadata_safe: {}, metadata_private: {} };
+  }
   switch (serviceType) {
     case 'school':
       return splitSchoolMetadata(metadata);

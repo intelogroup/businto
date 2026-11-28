@@ -337,7 +337,16 @@ export function splitAndValidateMetadata(
     },
   };
 
-  const { safe: safeSchema, private: privateSchema } = schemas[serviceType];
+  // Shape-shifted stored/crafted inputs fail with a controlled Error,
+  // never a bare TypeError from destructuring or Object.entries.
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw new Error('Invalid metadata: expected an object of metadata fields.');
+  }
+  const schemaPair = (schemas as Record<string, any>)[serviceType as string];
+  if (!schemaPair) {
+    throw new Error(`Unknown service type for metadata validation: ${String(serviceType)}`);
+  }
+  const { safe: safeSchema, private: privateSchema } = schemaPair;
 
   const safeFields = Object.keys(safeSchema.shape);
   const privateFields = Object.keys(privateSchema.shape);
@@ -399,6 +408,11 @@ export function detectPrivateFieldsInSafe(
   ];
 
   const leaked: string[] = [];
+
+  // No object to inspect means no leak can be detected.
+  if (!metadata_safe || typeof metadata_safe !== 'object') {
+    return leaked;
+  }
 
   for (const key of Object.keys(metadata_safe)) {
     if (privateFieldNames.includes(key)) {
