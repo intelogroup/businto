@@ -18,19 +18,23 @@ const CHAT_MAX_INPUT_CHARS = 100_000;
 export function buildTripSummary(requests: any[]): string {
   if (!requests || requests.length === 0) return 'No recent trips found.';
   return requests.map((r: any) => {
-    const quotes: any[] = r.quotes || [];
-    const acceptedQuote = quotes.find((q: any) => q.status === 'accepted');
-    const pendingQuotes = quotes.filter((q: any) => q.status === 'pending').length;
+    // Shape-shifted stored rows degrade to placeholder fields, never throw.
+    const row: any = r ?? {};
+    const quotes: any[] = Array.isArray(row.quotes) ? row.quotes : [];
+    const acceptedQuote = quotes.find((q: any) => q?.status === 'accepted');
+    const pendingQuotes = quotes.filter((q: any) => q?.status === 'pending').length;
     let tripState = '';
-    if (r.status === 'booked' && acceptedQuote) {
+    if (row.status === 'booked' && acceptedQuote) {
       tripState = `BOOKED at $${acceptedQuote.total_price ?? acceptedQuote.amount}`;
     } else if (quotes.length > 0) {
       tripState = `QUOTED — ${quotes.length} quote(s) received, ${pendingQuotes} pending`;
     } else {
       tripState = `PENDING — awaiting operator quotes`;
     }
-    const date = new Date(r.created_at).toLocaleDateString();
-    return `- Trip ${r.id.slice(0, 8).toUpperCase()} | ${(r.service_type as string).toUpperCase()} | ${tripState} | Submitted: ${date}`;
+    const date = new Date(row.created_at).toLocaleDateString();
+    const idLabel = typeof row.id === 'string' ? row.id.slice(0, 8).toUpperCase() : 'UNKNOWN';
+    const serviceLabel = typeof row.service_type === 'string' ? row.service_type.toUpperCase() : 'UNKNOWN';
+    return `- Trip ${idLabel} | ${serviceLabel} | ${tripState} | Submitted: ${date}`;
   }).join('\n');
 }
 
