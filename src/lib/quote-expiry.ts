@@ -46,10 +46,14 @@ export function checkQuoteExpiry(expiresAt: string | Date | null | undefined): Q
     };
   }
 
-  const target = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
+  const target = typeof expiresAt === 'string'
+    ? new Date(expiresAt)
+    : expiresAt instanceof Date
+      ? expiresAt
+      : null;
 
-  // Guard against invalid date
-  if (isNaN(target.getTime())) {
+  // Guard against invalid date and shape-shifted stored values
+  if (!target || isNaN(target.getTime())) {
     return {
       isExpired: false,
       statusCode: 200,
