@@ -432,6 +432,11 @@ export function extractRequirements(
   service_type: string,
   metadata: any = {}
 ): string[] {
+  // Shape-shifted stored metadata: a null or non-object metadata value
+  // behaves as absent, never as a bare TypeError.
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    metadata = {};
+  }
   const requirements: string[] = [];
 
   if (service_type === 'school') {
@@ -440,8 +445,8 @@ export function extractRequirements(
     if (metadata.schedule_type) requirements.push(`Schedule: ${metadata.schedule_type}`);
     if (metadata.special_needs) requirements.push(`Special needs: ${metadata.special_needs}`);
   } else if (service_type === 'medical') {
-    if (metadata.mobility_level) requirements.push(`Mobility: ${metadata.mobility_level.replace('-', ' ')}`);
-    if (metadata.service_level) requirements.push(`Service: ${metadata.service_level.replace(/-/g, ' ')}`);
+    if (typeof metadata.mobility_level === 'string' && metadata.mobility_level) requirements.push(`Mobility: ${metadata.mobility_level.replace('-', ' ')}`);
+    if (typeof metadata.service_level === 'string' && metadata.service_level) requirements.push(`Service: ${metadata.service_level.replace(/-/g, ' ')}`);
     if (metadata.stair_factor && metadata.stair_factor !== 'none') requirements.push(`Stairs: ${metadata.stair_factor}`);
     if (metadata.oxygen_required || metadata.oxygen_use) requirements.push('Portable Oxygen');
     if (metadata.is_bariatric) requirements.push('Bariatric (250+ lbs)');
@@ -453,7 +458,7 @@ export function extractRequirements(
     if (metadata.guest_count) requirements.push(`${metadata.guest_count} guests`);
     if (metadata.vehicle_style) requirements.push(`Vehicle: ${metadata.vehicle_style}`);
     if (metadata.itinerary_type) requirements.push(`Itinerary: ${metadata.itinerary_type}`);
-    if (metadata.shuttle_mode) requirements.push(`Mode: ${metadata.shuttle_mode.replace('-', ' ')}`);
+    if (typeof metadata.shuttle_mode === 'string' && metadata.shuttle_mode) requirements.push(`Mode: ${metadata.shuttle_mode.replace('-', ' ')}`);
     if (metadata.event_start_time) requirements.push(`Event Start: ${metadata.event_start_time}`);
 
     // Amenities
