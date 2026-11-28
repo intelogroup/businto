@@ -1,7 +1,7 @@
 export type AuthErrorMode = "login" | "signup";
 
 export function getErrorMessage(message: string | undefined, mode: AuthErrorMode): string {
-    if (!message) {
+    if (!message || typeof message !== "string") {
         return mode === "login"
             ? "Sign in failed. Please try again."
             : "Signup failed. Please try again.";
